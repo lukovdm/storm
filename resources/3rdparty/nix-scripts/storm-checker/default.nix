@@ -26,10 +26,9 @@
 
 let
   l3ppCmakeSed = writeText "l3pp-sed" ''
-    16,28d
-    28i\
+    16,29d
+    30i\
     set(l3pp_INCLUDE "${l3pp}/include/")
-    29d
     32s/ l3pp_ext//
   '';
   inherit (lib) singleton optional;
@@ -60,7 +59,6 @@ stdenv.mkDerivation {
     ++ optional mathsatSupport "-DMSAT_ROOT=${mathsat}";
 
   postPatch = ''
-    cat resources/3rdparty/CMakeLists.txt
     sed -f ${l3ppCmakeSed} -i resources/3rdparty/CMakeLists.txt
     cat resources/3rdparty/CMakeLists.txt
   '';
