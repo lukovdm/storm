@@ -9,6 +9,7 @@
 , carl
 , cln
 , doxygen
+, eigen
 , gmp
 , ginac
 , glpk
@@ -25,11 +26,13 @@
 }:
 
 let
-  l3ppCmakeSed = writeText "l3pp-sed" ''
+  cmakeSed = writeText "cmake-sed" ''
     16,29d
     30i\
     set(l3pp_INCLUDE "${l3pp}/include/")
-    32s/ l3pp_ext//
+    32d
+    49,84d
+    87d
   '';
   inherit (lib) singleton optional;
   genCmakeOption = bool: name:
@@ -59,7 +62,7 @@ stdenv.mkDerivation {
     ++ optional mathsatSupport "-DMSAT_ROOT=${mathsat}";
 
   postPatch = ''
-    sed -f ${l3ppCmakeSed} -i resources/3rdparty/CMakeLists.txt
+    sed -f ${cmakeSed} -i resources/3rdparty/CMakeLists.txt
     cat resources/3rdparty/CMakeLists.txt
   '';
 
