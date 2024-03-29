@@ -31,9 +31,9 @@ let
     set(l3pp_INCLUDE "${l3pp}/include/")
     30d
   '';
-  inherit lib;
+  inherit (lib) singleton optional;
   genCmakeOption = bool: name:
-    lib.list.singleton "-D${name}=${if bool then "on" else "off"}";
+    singleton "-D${name}=${if bool then "on" else "off"}";
 
 in
 stdenv.mkDerivation {
@@ -49,14 +49,14 @@ stdenv.mkDerivation {
   # };
 
   buildInputs = [ boost carl cln doxygen gmp ginac glpk hwloc l3pp xercesc ]
-    ++ lib.list.optional tbbSupport tbb
-    ++ lib.list.optional z3Support z3;
+    ++ optional tbbSupport tbb
+    ++ optional z3Support z3;
 
   nativeBuildInputs = [ autoconf automake cmake ];
 
   cmakeFlags = genCmakeOption tbbSupport "STORM_USE_INTELTBB"
     ++ genCmakeOption ltoSupport "STORM_USE_LTO"
-    ++ lib.list.optional mathsatSupport "-DMSAT_ROOT=${mathsat}";
+    ++ optional mathsatSupport "-DMSAT_ROOT=${mathsat}";
 
   postPatch = ''
     sed -f ${l3ppCmakeSed} -i resources/3rdparty/CMakeLists.txt
