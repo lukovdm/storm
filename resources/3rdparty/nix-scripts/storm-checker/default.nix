@@ -26,10 +26,11 @@
 
 let
   l3ppCmakeSed = writeText "l3pp-sed" ''
-    8,27d
+    16,28d
     28i\
     set(l3pp_INCLUDE "${l3pp}/include/")
-    30d
+    29d
+    32s/ l3pp_ext//
   '';
   inherit (lib) singleton optional;
   genCmakeOption = bool: name:
