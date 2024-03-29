@@ -32,7 +32,7 @@ let
     set(l3pp_INCLUDE "${l3pp}/include/")
     32d
     49,84d
-    85s/STORM_3RDPARTY_INCLUDE_DIR/STORM_3RDPARTY_SOURCE_DIR
+    85s/STORM_3RDPARTY_INCLUDE_DIR/STORM_3RDPARTY_SOURCE_DIR/
     87d
   '';
   inherit (lib) singleton optional;
