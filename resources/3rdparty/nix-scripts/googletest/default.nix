@@ -13,7 +13,7 @@ stdenv.mkDerivation rec {
     sha256 = "0bjlljmbf8glnd9qjabx73w6pd7ibv43yiyngqvmvgxsabzr8399";
   };
 
-  meta = with stdenv.lib; {
+  meta = with lib; {
     description = "Google's C++ test framework";
     homepage = "https://github.com/google/googletest";
     maintainers = [ maintainers.spacefrogg ];

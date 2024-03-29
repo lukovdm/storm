@@ -17,7 +17,7 @@ stdenv.mkDerivation rec {
     cp -r *.h impl $out/include
   '';
 
-  meta = with stdenv.lib; {
+  meta = with lib; {
     description = "Lightweight Logging Library for C++";
     homepage = https://github.com/hbruintjes/l3pp;
     maintainers = [ maintainers.spacefrogg ];

@@ -1,10 +1,22 @@
-{ stdenv, fetchFromGitHub, autoconf, pkgconfig, cmake
-, cln, ginac, gmp, boost, eigen3_3, python3, googletest }:
+{ stdenv
+, fetchFromGitHub
+, autoconf
+, pkgconfig
+, cmake
+, cln
+, ginac
+, gmp
+, boost
+, eigen3_3
+, python3
+, googletest
+}:
 
 let
   gtest-cmake = ./gtest.cmake;
 
-in stdenv.mkDerivation rec {
+in
+stdenv.mkDerivation rec {
   name = "carl-${version}";
   version = "18.06";
 
@@ -43,7 +55,7 @@ in stdenv.mkDerivation rec {
     sed -e '/print_resource_info("GTest"/i include(resources/gtest.cmake)' -i resources/resources.cmake
   '';
 
-  meta = with stdenv.lib; {
+  meta = with lib; {
     description = "Computer ARithmetic and Logic library";
     homepage = http://smtrat.github.io/carl;
     mainainers = [ maintainers.spacefrogg ];
