@@ -26,9 +26,9 @@
 
 // Finally include the parts of Eigen we need.
 // Make sure to include our patched version of Eigen (and not a pre-installed one e.g. located at /usr/include)
-#include "StormEigen/Eigen/Dense"
-#include "StormEigen/Eigen/Sparse"
-#include "StormEigen/unsupported/Eigen/IterativeSolvers"
+#include "Eigen/Dense"
+#include "Eigen/Sparse"
+#include "unsupported/Eigen/IterativeSolvers"
 
 #if defined(__clang__)
 #pragma clang diagnostic pop
