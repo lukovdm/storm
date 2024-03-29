@@ -18,21 +18,29 @@ let
 
 in
 stdenv.mkDerivation rec {
-  name = "carl-${version}";
-  version = "18.06";
+  pname = "carl";
+  version = "14.27";
 
-  buildInputs = [ cln ginac gmp boost python3 googletest ];
+  buildInputs = [
+    cln
+    ginac
+    gmp
+    boost
+    python3
+    googletest
+  ];
 
   nativeBuildInputs = [ autoconf pkg-config cmake ];
 
   propagatedBuildInputs = [ eigen ];
 
-  src = fetchFromGitHub {
-    owner = "smtrat";
-    repo = "carl";
-    rev = version;
-    sha256 = "0lb4pbs3bwpi4z4bnh5113s9c4fzq7c8iwa0952j2jrhxf4kcb8q";
-  };
+  src = fetchFromGitHub
+    {
+      owner = "moves-rwth";
+      repo = "carl-storm";
+      rev = "14.27";
+      hash = "sha256-FMpL81yvcHvWLAMk4JyvxHKLpWXn0CV0Igb1BUuTTVQ=";
+    };
 
   enableParallelBuilding = true;
 
