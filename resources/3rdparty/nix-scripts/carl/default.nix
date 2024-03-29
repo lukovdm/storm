@@ -8,7 +8,7 @@
 , ginac
 , gmp
 , boost
-, eigen3_3
+, eigen
 , python3
 , googletest
 }:
@@ -25,7 +25,7 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ autoconf pkgconfig cmake ];
 
-  propagatedBuildInputs = [ eigen3_3 ];
+  propagatedBuildInputs = [ eigen ];
 
   src = fetchFromGitHub {
     owner = "smtrat";
