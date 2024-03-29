@@ -60,7 +60,9 @@ stdenv.mkDerivation {
     ++ optional mathsatSupport "-DMSAT_ROOT=${mathsat}";
 
   postPatch = ''
+    cat resources/3rdparty/CMakeLists.txt
     sed -f ${l3ppCmakeSed} -i resources/3rdparty/CMakeLists.txt
+    cat resources/3rdparty/CMakeLists.txt
   '';
 
   meta = with lib; {
