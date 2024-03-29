@@ -31,7 +31,7 @@ let
     set(l3pp_INCLUDE "${l3pp}/include/")
     30d
   '';
-  inherit (stdenv.lib) optional singleton;
+  inherit lib optional singleton;
   genCmakeOption = bool: name:
     singleton "-D${name}=${if bool then "on" else "off"}";
 

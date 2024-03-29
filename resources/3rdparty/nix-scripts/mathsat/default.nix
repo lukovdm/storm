@@ -27,7 +27,7 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ gmp ];
 
-  libPath = stdenv.lib.makeLibraryPath [ stdenv.cc.cc stdenv.cc.libc stdenv.glibc gmp ];
+  libPath = lib.makeLibraryPath [ stdenv.cc.cc stdenv.cc.libc stdenv.glibc gmp ];
   phases = "unpackPhase installPhase fixupPhase";
 
   installPhase = ''
