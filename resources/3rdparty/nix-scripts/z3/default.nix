@@ -1,4 +1,4 @@
-{ stdenv, fetchFromGitHub, python3 }:
+{ stdenv, lib, fetchFromGitHub, python3 }:
 
 stdenv.mkDerivation rec {
   name = "z3-${version}";

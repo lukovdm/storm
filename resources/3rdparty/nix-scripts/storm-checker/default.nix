@@ -1,4 +1,5 @@
 { stdenv
+, lib
 , fetchFromGitHub
 , writeText
 , autoconf
