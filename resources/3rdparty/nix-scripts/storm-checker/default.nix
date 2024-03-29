@@ -1,23 +1,41 @@
-{ stdenv, fetchFromGitHub, writeText, autoconf, automake, cmake
-, boost, carl, cln, doxygen, gmp, ginac, glpk, hwloc, l3pp, xercesc
+{ stdenv
+, fetchFromGitHub
+, writeText
+, autoconf
+, automake
+, cmake
+, boost
+, carl
+, cln
+, doxygen
+, gmp
+, ginac
+, glpk
+, hwloc
+, l3pp
+, xercesc
 , ltoSupport ? true
-, mathsatSupport ? false, mathsat
-, tbbSupport ? false, tbb
-, z3Support ? true, z3
+, mathsatSupport ? false
+, mathsat
+, tbbSupport ? false
+, tbb
+, z3Support ? true
+, z3
 }:
 
 let
   l3ppCmakeSed = writeText "l3pp-sed" ''
-8,27d
-28i\
-set(l3pp_INCLUDE "${l3pp}/include/")
-30d
+    8,27d
+    28i\
+    set(l3pp_INCLUDE "${l3pp}/include/")
+    30d
   '';
   inherit (stdenv.lib) optional singleton;
   genCmakeOption = bool: name:
     singleton "-D${name}=${if bool then "on" else "off"}";
 
-in stdenv.mkDerivation {
+in
+stdenv.mkDerivation {
   name = "storm-git";
 
   src = ../../../../.;
@@ -35,15 +53,15 @@ in stdenv.mkDerivation {
 
   nativeBuildInputs = [ autoconf automake cmake ];
 
-  cmakeFlags =  genCmakeOption tbbSupport "STORM_USE_INTELTBB"
+  cmakeFlags = genCmakeOption tbbSupport "STORM_USE_INTELTBB"
     ++ genCmakeOption ltoSupport "STORM_USE_LTO"
-    ++ optional mathsatSupport "-DMSAT_ROOT=${mathsat}" ;
+    ++ optional mathsatSupport "-DMSAT_ROOT=${mathsat}";
 
   postPatch = ''
     sed -f ${l3ppCmakeSed} -i resources/3rdparty/CMakeLists.txt
   '';
 
-  meta = with stdenv.lib; {
+  meta = with lib; {
     description = "Probabilistic Model Checker";
     homepage = http://www.stormchecker.org;
     license = licenses.gpl3;
