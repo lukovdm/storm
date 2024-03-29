@@ -2,7 +2,7 @@
 , lib
 , fetchFromGitHub
 , autoconf
-, pkgconfig
+, pkg-config
 , cmake
 , cln
 , ginac
@@ -23,7 +23,7 @@ stdenv.mkDerivation rec {
 
   buildInputs = [ cln ginac gmp boost python3 googletest ];
 
-  nativeBuildInputs = [ autoconf pkgconfig cmake ];
+  nativeBuildInputs = [ autoconf pkg-config cmake ];
 
   propagatedBuildInputs = [ eigen ];
 
