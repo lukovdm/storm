@@ -5,7 +5,6 @@
 #include "storm/storage/expressions/ExpressionManager.h"
 #include "storm/utility/ConstantsComparator.h"
 
-
 #undef _VERBOSE_OBSERVATION_UNFOLDING
 
 namespace storm {
