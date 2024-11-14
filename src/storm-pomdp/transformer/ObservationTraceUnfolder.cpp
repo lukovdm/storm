@@ -186,7 +186,7 @@ std::shared_ptr<storm::models::sparse::Mdp<ValueType>> ObservationTraceUnfolder<
 #ifdef _VERBOSE_OBSERVATION_UNFOLDING
     std::cout << components.transitionMatrix << '\n';
 #endif
-    STORM_LOG_ASSERT(components.transitionMatrix.getRowGroupCount() == targetState + 2,
+    STORM_LOG_ASSERT(components.transitionMatrix.getRowGroupCount() == targetState + 1,
                      "Expect row group count (" << components.transitionMatrix.getRowGroupCount() << ") one more as target state index " << targetState << ")");
 
     storm::models::sparse::StateLabeling labeling(components.transitionMatrix.getRowGroupCount());
@@ -221,6 +221,7 @@ bool ObservationTraceUnfolder<ValueType>::isRejectionSamplingSet() const {
 }
 
 template class ObservationTraceUnfolder<double>;
+template class ObservationTraceUnfolder<storm::Interval>;
 template class ObservationTraceUnfolder<storm::RationalNumber>;
 template class ObservationTraceUnfolder<storm::RationalFunction>;
 }  // namespace pomdp
