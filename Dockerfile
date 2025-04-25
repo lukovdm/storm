@@ -17,7 +17,7 @@ MAINTAINER Matthias Volk <m.volk@tue.nl>
 # CMake build type
 ARG build_type=Release
 # Specify number of threads to use for parallel compilation
-ARG no_threads=1
+ARG no_threads=24
 
 # Specify Storm configuration (ON/OFF)
 ARG gurobi_support="ON"
@@ -46,14 +46,14 @@ WORKDIR /opt/storm/build
 
 # Configure Storm
 RUN cmake .. -DCMAKE_BUILD_TYPE=$build_type \
-             -DSTORM_PORTABLE=ON \
-             -DSTORM_USE_GUROBI=$gurobi_support \
-             -DSTORM_USE_SOPLEX=$soplex_support \
-             -DSTORM_USE_SPOT_SYSTEM=$spot_support \
-             -DSTORM_DEVELOPER=$developer \
-             -DSTORM_USE_CLN_EA=$cln_exact \
-             -DSTORM_USE_CLN_RF=$cln_ratfunc \
-             $cmake_args
+    -DSTORM_PORTABLE=ON \
+    -DSTORM_USE_GUROBI=$gurobi_support \
+    -DSTORM_USE_SOPLEX=$soplex_support \
+    -DSTORM_USE_SPOT_SYSTEM=$spot_support \
+    -DSTORM_DEVELOPER=$developer \
+    -DSTORM_USE_CLN_EA=$cln_exact \
+    -DSTORM_USE_CLN_RF=$cln_ratfunc \
+    $cmake_args
 
 # Build external dependencies of Storm
 RUN make resources -j $no_threads
