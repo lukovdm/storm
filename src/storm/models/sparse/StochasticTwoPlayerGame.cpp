@@ -64,9 +64,11 @@ template class StochasticTwoPlayerGame<double>;
 
 #ifdef STORM_HAVE_CARL
 template class StochasticTwoPlayerGame<double, storm::models::sparse::StandardRewardModel<storm::Interval>>;
+template class StochasticTwoPlayerGame<storm::RationalNumber, storm::models::sparse::StandardRewardModel<storm::RationalInterval>>;
 template class StochasticTwoPlayerGame<storm::RationalFunction>;
 template class StochasticTwoPlayerGame<storm::RationalNumber>;
 template class StochasticTwoPlayerGame<storm::Interval>;
+template class StochasticTwoPlayerGame<storm::RationalInterval>;
 
 #endif
 

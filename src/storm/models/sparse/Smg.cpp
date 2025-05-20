@@ -82,8 +82,10 @@ template class Smg<double>;
 template class Smg<storm::RationalNumber>;
 
 template class Smg<double, storm::models::sparse::StandardRewardModel<storm::Interval>>;
+template class Smg<storm::RationalNumber, storm::models::sparse::StandardRewardModel<storm::RationalInterval>>;
 template class Smg<storm::RationalFunction>;
 template class Smg<storm::Interval>;
+template class Smg<storm::RationalInterval>;
 
 }  // namespace sparse
 }  // namespace models

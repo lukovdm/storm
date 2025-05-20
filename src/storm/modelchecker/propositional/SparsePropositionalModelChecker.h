@@ -8,10 +8,25 @@ namespace modelchecker {
 
 template<typename SparseModelType>
 class SparsePropositionalModelChecker : public AbstractModelChecker<SparseModelType> {
+    private:
+       template<typename T>
+       struct GetSolutionType {
+           using type = T;
+       };
+
+       template<>
+       struct GetSolutionType<storm::Interval> {
+           using type = double;
+       };
+
+       template<>
+       struct GetSolutionType<storm::RationalInterval> {
+           using type = storm::RationalNumber;
+       };
    public:
     typedef typename SparseModelType::ValueType ValueType;
     typedef typename SparseModelType::RewardModelType RewardModelType;
-    using SolutionType = typename std::conditional<std::is_same_v<ValueType, storm::Interval>, double, ValueType>::type;
+    using SolutionType = typename GetSolutionType<ValueType>::type;
 
     explicit SparsePropositionalModelChecker(SparseModelType const& model);
 

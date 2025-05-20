@@ -15,13 +15,29 @@ class CheckResult;
 
 template<typename ModelType>
 class AbstractModelChecker {
+   private:
+       template<typename T>
+       struct GetSolutionType {
+           using type = T;
+       };
+
+       template<>
+       struct GetSolutionType<storm::Interval> {
+           using type = double;
+       };
+
+       template<>
+       struct GetSolutionType<storm::RationalInterval> {
+           using type = storm::RationalNumber;
+       };
+
    public:
     virtual ~AbstractModelChecker() {
         // Intentionally left empty.
     }
 
     typedef typename ModelType::ValueType ValueType;
-    using SolutionType = typename std::conditional<std::is_same_v<ValueType, storm::Interval>, double, ValueType>::type;
+    using SolutionType = typename GetSolutionType<ValueType>::type;
 
     /*!
      * Returns the name of the model checker class (e.g., for display in error messages).

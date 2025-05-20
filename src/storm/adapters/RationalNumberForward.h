@@ -41,4 +41,6 @@ typedef GmpRationalNumber RationalNumber;
 #else
 #error GMP is to be used, but is not available.
 #endif
+
+typedef carl::Interval<RationalNumber> RationalInterval;
 }  // namespace storm

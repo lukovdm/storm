@@ -68,6 +68,9 @@ template class SparsePropositionalModelChecker<storm::models::sparse::Smg<double
 template class SparsePropositionalModelChecker<storm::models::sparse::Mdp<double, storm::models::sparse::StandardRewardModel<storm::Interval>>>;
 template class SparsePropositionalModelChecker<storm::models::sparse::Smg<double, storm::models::sparse::StandardRewardModel<storm::Interval>>>;
 
+template class SparsePropositionalModelChecker<storm::models::sparse::Mdp<storm::RationalNumber, storm::models::sparse::StandardRewardModel<storm::RationalInterval>>>;
+template class SparsePropositionalModelChecker<storm::models::sparse::Smg<storm::RationalNumber, storm::models::sparse::StandardRewardModel<storm::RationalInterval>>>;
+
 template class SparsePropositionalModelChecker<storm::models::sparse::Model<storm::RationalNumber>>;
 template class SparsePropositionalModelChecker<storm::models::sparse::Dtmc<storm::RationalNumber>>;
 template class SparsePropositionalModelChecker<storm::models::sparse::Ctmc<storm::RationalNumber>>;
@@ -84,6 +87,8 @@ template class SparsePropositionalModelChecker<storm::models::sparse::MarkovAuto
 template class SparsePropositionalModelChecker<storm::models::sparse::Smg<storm::RationalFunction>>;
 
 template class SparsePropositionalModelChecker<storm::models::sparse::Mdp<storm::Interval>>;
+
+template class SparsePropositionalModelChecker<storm::models::sparse::Mdp<storm::RationalInterval>>;
 #endif
 }  // namespace modelchecker
 }  // namespace storm

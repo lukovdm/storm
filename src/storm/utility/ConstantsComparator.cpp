@@ -109,6 +109,7 @@ template class ConstantsComparator<GmpRationalNumber>;
 template class ConstantsComparator<RationalFunction>;
 template class ConstantsComparator<Polynomial>;
 template class ConstantsComparator<Interval>;
+template class ConstantsComparator<RationalInterval>;
 #endif
 }  // namespace utility
 }  // namespace storm

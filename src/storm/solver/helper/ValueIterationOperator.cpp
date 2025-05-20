@@ -203,5 +203,7 @@ template class ValueIterationOperator<storm::RationalNumber, true>;
 template class ValueIterationOperator<storm::RationalNumber, false>;
 template class ValueIterationOperator<storm::Interval, true, double>;
 template class ValueIterationOperator<storm::Interval, false, double>;
+template class ValueIterationOperator<storm::RationalInterval, true, storm::RationalNumber>;
+template class ValueIterationOperator<storm::RationalInterval, false, storm::RationalNumber>;
 
 }  // namespace storm::solver::helper

@@ -192,8 +192,10 @@ template class NondeterministicModel<double>;
 #ifdef STORM_HAVE_CARL
 template class NondeterministicModel<storm::RationalNumber>;
 template class NondeterministicModel<double, storm::models::sparse::StandardRewardModel<storm::Interval>>;
+template class NondeterministicModel<storm::RationalNumber, storm::models::sparse::StandardRewardModel<storm::RationalInterval>>;
 template class NondeterministicModel<storm::RationalFunction>;
 template class NondeterministicModel<storm::Interval>;
+template class NondeterministicModel<storm::RationalInterval>;
 #endif
 }  // namespace sparse
 }  // namespace models

@@ -115,6 +115,9 @@ std::shared_ptr<storm::models::sparse::Mdp<ValueType>> ObservationTraceUnfolder<
                         if constexpr (std::is_same_v<ValueType, storm::Interval>) {
                             resetProb.setUpper(std::min(resetProb.upper(), 1.0));
                             resetProb.setLower(std::max(resetProb.lower(), 0.0));
+                        } else if constexpr (std::is_same_v<ValueType, storm::RationalInterval>) {
+                            resetProb.setUpper(std::min(resetProb.upper(), utility::one<storm::RationalNumber>()));
+                            resetProb.setLower(std::max(resetProb.lower(), utility::zero<storm::RationalNumber>()));
                         }
                     }
                 }
@@ -230,6 +233,7 @@ bool ObservationTraceUnfolder<ValueType>::isRejectionSamplingSet() const {
 
 template class ObservationTraceUnfolder<double>;
 template class ObservationTraceUnfolder<storm::Interval>;
+template class ObservationTraceUnfolder<storm::RationalInterval>;
 template class ObservationTraceUnfolder<storm::RationalNumber>;
 template class ObservationTraceUnfolder<storm::RationalFunction>;
 }  // namespace pomdp

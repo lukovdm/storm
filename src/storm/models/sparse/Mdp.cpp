@@ -46,8 +46,10 @@ template class Mdp<double>;
 template class Mdp<storm::RationalNumber>;
 
 template class Mdp<double, storm::models::sparse::StandardRewardModel<storm::Interval>>;
+template class Mdp<storm::RationalNumber, storm::models::sparse::StandardRewardModel<storm::RationalInterval>>;
 template class Mdp<storm::RationalFunction>;
 template class Mdp<storm::Interval>;
+template class Mdp<storm::RationalInterval>;
 }  // namespace sparse
 }  // namespace models
 }  // namespace storm

@@ -755,6 +755,11 @@ bool isConstant(storm::Interval const& a) {
 }
 
 template<>
+bool isConstant(storm::RationalInterval const& a) {
+    return a.isPointInterval();
+}
+
+template<>
 bool isInfinity(storm::RationalFunction const& a) {
     // FIXME: this should be treated more properly.
     return a == infinity<storm::RationalFunction>();
@@ -933,6 +938,11 @@ storm::Interval convertNumber(double const& number) {
     return storm::Interval(number);
 }
 
+template<>
+storm::RationalInterval convertNumber(double const& number) {
+    return storm::RationalInterval(convertNumber<storm::RationalNumber>(number));
+}
+
 #if defined(STORM_HAVE_GMP)
 template<>
 storm::Interval convertNumber(storm::GmpRationalNumber const& n) {
@@ -941,6 +951,17 @@ storm::Interval convertNumber(storm::GmpRationalNumber const& n) {
 
 template<>
 storm::GmpRationalNumber convertNumber(storm::Interval const& number) {
+    STORM_LOG_ASSERT(number.isPointInterval(), "Interval must be a point interval to convert");
+    return convertNumber<storm::GmpRationalNumber>(number.lower());
+}
+
+template<>
+storm::RationalInterval convertNumber(storm::GmpRationalNumber const& n) {
+    return storm::RationalInterval(convertNumber<storm::RationalNumber>(n));
+}
+
+template<>
+storm::GmpRationalNumber convertNumber(storm::RationalInterval const& number) {
     STORM_LOG_ASSERT(number.isPointInterval(), "Interval must be a point interval to convert");
     return convertNumber<storm::GmpRationalNumber>(number.lower());
 }
@@ -957,6 +978,17 @@ storm::ClnRationalNumber convertNumber(storm::Interval const& number) {
     STORM_LOG_ASSERT(number.isPointInterval(), "Interval must be a point interval to convert");
     return convertNumber<storm::ClnRationalNumber>(number.lower());
 }
+
+template<>
+storm::RationalInterval convertNumber(storm::ClnRationalNumber const& n) {
+    return storm::RationalInterval(convertNumber<storm::RationalNumber>(n));
+}
+
+template<>
+storm::ClnRationalNumber convertNumber(storm::RationalInterval const& number) {
+    STORM_LOG_ASSERT(number.isPointInterval(), "Interval must be a point interval to convert");
+    return convertNumber<storm::ClnRationalNumber>(number.lower());
+}
 #endif
 
 template<>
@@ -966,7 +998,18 @@ double convertNumber(storm::Interval const& number) {
 }
 
 template<>
+double convertNumber(storm::RationalInterval const& number) {
+    STORM_LOG_ASSERT(number.isPointInterval(), "Rational interval must be a point interval to convert");
+    return convertNumber<double>(number.lower());
+}
+
+template<>
 storm::Interval abs(storm::Interval const& interval) {
+    return interval.abs();
+}
+
+template<>
+storm::RationalInterval abs(storm::RationalInterval const& interval) {
     return interval.abs();
 }
 
@@ -1109,6 +1152,16 @@ template bool isInfinity(Interval const& value);
 template bool isAlmostZero(Interval const& value);
 
 template std::string to_string(storm::Interval const& value);
+
+// Instantiations for intervals.
+template RationalInterval one();
+template RationalInterval zero();
+template bool isOne(RationalInterval const& value);
+template bool isZero(RationalInterval const& value);
+template bool isInfinity(RationalInterval const& value);
+template bool isAlmostZero(RationalInterval const& value);
+
+template std::string to_string(storm::RationalInterval const& value);
 #endif
 
 }  // namespace utility

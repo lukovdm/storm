@@ -269,7 +269,7 @@ class ValueIterationOperator {
     template<OptimizationDirection RobustDirection, typename OperandType, typename OffsetType>
     auto applyRow(std::vector<IndexType>::const_iterator& matrixColumnIt, typename std::vector<ValueType>::const_iterator& matrixValueIt,
                   OperandType const& operand, OffsetType const& offsets, uint64_t offsetIndex) const {
-        if constexpr (std::is_same_v<ValueType, storm::Interval>) {
+        if constexpr (std::is_same_v<ValueType, storm::Interval> || std::is_same_v<ValueType, storm::RationalInterval>) {
             return applyRowRobust<RobustDirection>(matrixColumnIt, matrixValueIt, operand, offsets, offsetIndex);
         } else {
             return applyRowStandard(matrixColumnIt, matrixValueIt, operand, offsets, offsetIndex);
@@ -455,6 +455,12 @@ class ValueIterationOperator {
 
     template<typename Dummy>
     struct ApplyCache<storm::Interval, Dummy> {
+        mutable std::vector<std::pair<SolutionType, std::pair<SolutionType, uint64_t>>> robustOrder;
+        storage::BitVector hasOnlyConstants;
+    };
+
+    template<typename Dummy>
+    struct ApplyCache<storm::RationalInterval, Dummy> {
         mutable std::vector<std::pair<SolutionType, std::pair<SolutionType, uint64_t>>> robustOrder;
         storage::BitVector hasOnlyConstants;
     };
