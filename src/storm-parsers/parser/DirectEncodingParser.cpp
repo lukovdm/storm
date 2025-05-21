@@ -430,6 +430,7 @@ template class DirectEncodingParser<double>;
 template class DirectEncodingParser<storm::RationalNumber>;
 template class DirectEncodingParser<storm::RationalFunction>;
 template class DirectEncodingParser<storm::Interval>;
+template class DirectEncodingParser<storm::RationalInterval>;
 
 }  // namespace parser
 }  // namespace storm
