@@ -286,7 +286,7 @@ std::unique_ptr<CheckResult> SparseMdpPrctlModelChecker<SparseMdpModelType>::com
     STORM_LOG_THROW(checkTask.isOptimizationDirectionSet(), storm::exceptions::InvalidPropertyException,
                     "Formula needs to specify whether minimal or maximal values are to be computed on nondeterministic model.");
     if (rewardPathFormula.isMultiDimensional() || rewardPathFormula.getTimeBoundReference().isRewardBound()) {
-        if constexpr (std::is_same_v<storm::Interval, ValueType>) {
+        if constexpr (std::is_same_v<storm::Interval, ValueType> || std::is_same_v<storm::RationalInterval, ValueType>) {
             throw exceptions::NotImplementedException() << "Multi-reward bounded is not supported with interval models";
         } else {
             STORM_LOG_THROW(checkTask.isOnlyInitialStatesRelevantSet(), storm::exceptions::InvalidOperationException,
