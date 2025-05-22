@@ -652,7 +652,7 @@ bool Model<ValueType, RewardModelType>::supportsParameters() const {
 
 template<typename ValueType, typename RewardModelType>
 bool Model<ValueType, RewardModelType>::supportsUncertainty() const {
-    return std::is_same<ValueType, storm::Interval>::value;
+    return std::is_same_v<ValueType, storm::Interval> || std::is_same_v<ValueType, storm::RationalInterval>;
 }
 
 template<typename ValueType, typename RewardModelType>

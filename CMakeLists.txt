@@ -297,7 +297,7 @@ if (STORM_COMPILER_CLANG OR STORM_COMPILER_APPLECLANG)
 		set(CLANG_STDLIB libc++)
     endif()
 
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=${CLANG_STDLIB} -ftemplate-depth=1024 -ftemplate-backtrace-limit=0 -ferror-limit=10000")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=${CLANG_STDLIB} -ftemplate-depth=1024")
     set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
 
     if(LINUX)
