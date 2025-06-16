@@ -4,6 +4,7 @@
 
 #include "storm/logic/Formulas.h"
 #include "storm/modelchecker/CheckTask.h"
+#include "storm/models/ModelType.h"
 #include "storm/solver/OptimizationDirection.h"
 
 namespace storm {
@@ -16,20 +17,22 @@ class CheckResult;
 template<typename ModelType>
 class AbstractModelChecker {
    private:
-       template<typename T>
-       struct GetSolutionType {
-           using type = T;
-       };
+    // Due to a GCC bug we have to add this dummy template type here
+    // https://stackoverflow.com/questions/49707184/explicit-specialization-in-non-namespace-scope-does-not-compile-in-gcc
+    template<typename T, typename Dummy>
+    struct GetSolutionType {
+        using type = T;
+    };
 
-       template<>
-       struct GetSolutionType<storm::Interval> {
-           using type = double;
-       };
+    template<typename Dummy>
+    struct GetSolutionType<storm::Interval, Dummy> {
+        using type = double;
+    };
 
-       template<>
-       struct GetSolutionType<storm::RationalInterval> {
-           using type = storm::RationalNumber;
-       };
+    template<typename Dummy>
+    struct GetSolutionType<storm::RationalInterval, Dummy> {
+        using type = storm::RationalNumber;
+    };
 
    public:
     virtual ~AbstractModelChecker() {
@@ -37,7 +40,7 @@ class AbstractModelChecker {
     }
 
     typedef typename ModelType::ValueType ValueType;
-    using SolutionType = typename GetSolutionType<ValueType>::type;
+    using SolutionType = typename GetSolutionType<ValueType, void>::type;
 
     /*!
      * Returns the name of the model checker class (e.g., for display in error messages).

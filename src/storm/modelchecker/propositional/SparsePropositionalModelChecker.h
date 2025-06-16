@@ -8,25 +8,28 @@ namespace modelchecker {
 
 template<typename SparseModelType>
 class SparsePropositionalModelChecker : public AbstractModelChecker<SparseModelType> {
-    private:
-       template<typename T>
-       struct GetSolutionType {
-           using type = T;
-       };
+   private:
+    // Due to a GCC bug we have to add this dummy template type here
+    // https://stackoverflow.com/questions/49707184/explicit-specialization-in-non-namespace-scope-does-not-compile-in-gcc
+    template<typename T, typename Dummy>
+    struct GetSolutionType {
+        using type = T;
+    };
 
-       template<>
-       struct GetSolutionType<storm::Interval> {
-           using type = double;
-       };
+    template<typename Dummy>
+    struct GetSolutionType<storm::Interval, Dummy> {
+        using type = double;
+    };
 
-       template<>
-       struct GetSolutionType<storm::RationalInterval> {
-           using type = storm::RationalNumber;
-       };
+    template<typename Dummy>
+    struct GetSolutionType<storm::RationalInterval, Dummy> {
+        using type = storm::RationalNumber;
+    };
+
    public:
     typedef typename SparseModelType::ValueType ValueType;
     typedef typename SparseModelType::RewardModelType RewardModelType;
-    using SolutionType = typename GetSolutionType<ValueType>::type;
+    using SolutionType = typename GetSolutionType<ValueType, void>::type;
 
     explicit SparsePropositionalModelChecker(SparseModelType const& model);
 
