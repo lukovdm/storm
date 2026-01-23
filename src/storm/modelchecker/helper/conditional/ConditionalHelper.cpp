@@ -361,15 +361,16 @@ void finalizeSchedulerForMaybeStates(storm::storage::Scheduler<SolutionType>& sc
     storm::storage::BitVector choicesAllowedForInitialComponent = allowedChoices & ~disallowedInitialComponentExits;
 
     storm::storage::BitVector goodInitialComponentStates = initialComponentStates;
+    bool progress = false;
     for (auto state : initialComponentExitStates) {
         auto const groupStart = transitionMatrix.getRowGroupIndices()[state];
         auto const groupEnd = transitionMatrix.getRowGroupIndices()[state + 1];
         bool const allChoicesAreDisallowed = disallowedInitialComponentExits.getNextUnsetIndex(groupStart) >= groupEnd;
         if (allChoicesAreDisallowed) {
             goodInitialComponentStates.set(state, false);
+            progress = true;
         }
     }
-    bool progress = true;
     while (progress) {
         progress = false;
         for (auto state : goodInitialComponentStates) {
@@ -516,7 +517,7 @@ typename internal::ResultReturnType<ValueType> computeViaRestartMethod(Environme
         initStateInReduced = ecElimResult2->oldToNewStateMapping[initStateInReduced];
     }
 
-    STORM_LOG_INFO("Processed model has " << matrix.getRowGroupCount() << " states and " << matrix.getRowGroupCount() << " choices and "
+    STORM_PRINT_AND_LOG("Processed model has " << matrix.getRowGroupCount() << " states and " << matrix.getRowGroupCount() << " choices and "
                                           << matrix.getEntryCount() << " transitions.");
 
     // Finally, solve the equation system, potentially computing a scheduler
@@ -756,7 +757,7 @@ class WeightedReachabilityHelper {
             initialStateInSubmatrix = ecResult->oldToNewStateMapping[initialStateInSubmatrix];
         }
         isAcyclic = !storm::utility::graph::hasCycle(submatrix);
-        STORM_LOG_INFO("Processed model has " << submatrix.getRowGroupCount() << " states and " << submatrix.getRowGroupCount() << " choices and "
+        STORM_PRINT_AND_LOG("Processed model has " << submatrix.getRowGroupCount() << " states and " << submatrix.getRowGroupCount() << " choices and "
                                               << submatrix.getEntryCount() << " transitions. Matrix is " << (isAcyclic ? "acyclic." : "cyclic."));
 
         if (computeScheduler) {
@@ -979,15 +980,13 @@ typename internal::ResultReturnType<ValueType> computeViaBisection(Environment c
                                                                    storm::storage::SparseMatrix<ValueType> const& backwardTransitions,
                                                                    NormalFormData<ValueType> const& normalForm) {
     // We currently handle sound model checking incorrectly: we would need the actual lower/upper bounds of the weightedReachabilityHelper
-    STORM_LOG_WARN_COND(!env.solver().isForceSoundness(),
-                        "Bisection method does not adequately handle propagation of errors. Result is not necessarily sound.");
     SolutionType const precision = [&env]() {
-        // if (storm::NumberTraits<SolutionType>::IsExact || env.solver().isForceExact()) {
-        //     return storm::utility::zero<SolutionType>();
-        // } else {
-        return storm::utility::convertNumber<SolutionType>(env.solver().minMax().getPrecision());
-        // }
+        // TODO: Discussed that this may be better in the solveGoal or checkTask, but lets be pragmatic today.
+        return storm::utility::convertNumber<SolutionType>(env.modelchecker().getConditionalTolerance());
     }();
+    STORM_LOG_WARN_COND(!(env.solver().isForceSoundness() && storm::utility::isZero(precision)),
+                        "Bisection method does not adequately handle propagation of errors. Result is not necessarily sound.");
+
     bool const relative = env.solver().minMax().getRelativeTerminationCriterion();
 
     WeightedReachabilityHelper wrh(initialState, transitionMatrix, normalForm, computeScheduler);
@@ -1016,6 +1015,7 @@ typename internal::ResultReturnType<ValueType> computeViaBisection(Environment c
     [[maybe_unused]] SolutionType rationalCandiate = middle;  // relevant for exact computations
     [[maybe_unused]] uint64_t rationalCandidateCount = 0;
     std::set<SolutionType> checkedMiddleValues;  // Middle values that have been checked already
+    bool terminatedThroughPolicyTracking = false;
     for (uint64_t iterationCount = 1; true; ++iterationCount) {
         // evaluate the current middle
         SolutionType const middleValue = wrh.computeWeightedDiff(env, goal.direction(), storm::utility::one<ValueType>(), -middle, middleSchedulerRef);
@@ -1072,20 +1072,21 @@ typename internal::ResultReturnType<ValueType> computeViaBisection(Environment c
                                                << ".");
         }
         if (boundDiff <= (relative ? (precision * *lowerBound) : precision)) {
-            STORM_LOG_INFO("Bisection method converged after " << iterationCount << " iterations. Difference is "
+            STORM_PRINT_AND_LOG("Bisection method converged after " << iterationCount << " iterations. Difference is "
                                                                << std::setprecision(std::numeric_limits<double>::digits10)
                                                                << storm::utility::convertNumber<double>(boundDiff) << ".");
             break;
         } else if (usePolicyTracking && lowerScheduler && upperScheduler && (*lowerScheduler == *upperScheduler)) {
-            STORM_LOG_INFO("Bisection method converged after " << iterationCount << " iterations due to identical schedulers for lower and upper bound.");
+            STORM_PRINT_AND_LOG("Bisection method converged after " << iterationCount << " iterations due to identical schedulers for lower and upper bound.");
             auto result = wrh.evaluateScheduler(env, *lowerScheduler);
             lowerBound &= result;
             upperBound &= result;
+            terminatedThroughPolicyTracking = true;
             break;
         }
         // Check if bounds are fully below or above threshold
         if (goal.isBounded() && (*upperBound <= goal.thresholdValue() || (*lowerBound >= goal.thresholdValue()))) {
-            STORM_LOG_INFO("Bisection method determined result after " << iterationCount << " iterations. Found bounds are ["
+            STORM_PRINT_AND_LOG("Bisection method determined result after " << iterationCount << " iterations. Found bounds are ["
                                                                        << storm::utility::convertNumber<double>(*lowerBound) << ", "
                                                                        << storm::utility::convertNumber<double>(*upperBound) << "], threshold is "
                                                                        << storm::utility::convertNumber<double>(goal.thresholdValue()) << ".");
@@ -1093,7 +1094,7 @@ typename internal::ResultReturnType<ValueType> computeViaBisection(Environment c
         }
         // check for early termination
         if (storm::utility::resources::isTerminate()) {
-            STORM_LOG_WARN("Bisection solver aborted after " << iterationCount << "iterations. Bound difference is "
+            STORM_PRINT_AND_LOG("Bisection solver aborted after " << iterationCount << "iterations. Bound difference is "
                                                              << storm::utility::convertNumber<double>(boundDiff) << ".");
             break;
         }
@@ -1144,7 +1145,7 @@ typename internal::ResultReturnType<ValueType> computeViaBisection(Environment c
     }
     // If requested, construct the scheduler for the original model
     std::vector<uint64_t> reducedSchedulerChoices;
-    if (usePolicyTracking && *lowerBound == *upperBound) {
+    if (terminatedThroughPolicyTracking) {
         // We already have computed a scheduler
         reducedSchedulerChoices = std::move(*lowerScheduler);
     } else {
@@ -1271,14 +1272,15 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
     // We might require adapting the precision of the solver to counter error propagation (e.g. when computing the normal form).
     auto normalFormConstructionEnv = env;
     auto analysisEnv = env;
-    if (env.solver().isForceSoundness()) {
-        // We intuitively have to divide the precision into two parts, one for computations when constructing the normal form and one for the actual analysis.
-        // As the former is usually less numerically challenging, we use a factor of 1/10 for the normal form construction and 9/10 for the analysis.
-        auto const normalFormPrecisionFactor = storm::utility::convertNumber<storm::RationalNumber, std::string>("1/10");
-        normalFormConstructionEnv.solver().minMax().setPrecision(env.solver().minMax().getPrecision() * normalFormPrecisionFactor);
-        analysisEnv.solver().minMax().setPrecision(env.solver().minMax().getPrecision() *
-                                                   (storm::utility::one<storm::RationalNumber>() - normalFormPrecisionFactor));
-    }
+
+//    if (env.solver().isForceSoundness()) {
+//        // We intuitively have to divide the precision into two parts, one for computations when constructing the normal form and one for the actual analysis.
+//        // As the former is usually less numerically challenging, we use a factor of 1/10 for the normal form construction and 9/10 for the analysis.
+//        auto const normalFormPrecisionFactor = storm::utility::convertNumber<storm::RationalNumber, std::string>("1/10");
+//        normalFormConstructionEnv.solver().minMax().setPrecision(env.solver().minMax().getPrecision() * normalFormPrecisionFactor);
+//        analysisEnv.solver().minMax().setPrecision(env.solver().minMax().getPrecision() *
+//                                                   (storm::utility::one<storm::RationalNumber>() - normalFormPrecisionFactor));
+//    }
 
     // We first translate the problem into a normal form.
     // @see doi.org/10.1007/978-3-642-54862-8_43
@@ -1307,7 +1309,7 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
         if (alg == ConditionalAlgorithmSetting::Default) {
             alg = ConditionalAlgorithmSetting::Restart;
         }
-        STORM_LOG_INFO("Analyzing normal form with " << normalFormData.maybeStates.getNumberOfSetBits() << " maybe states using algorithm '" << alg << ".");
+        STORM_PRINT_AND_LOG("Analyzing normal form with " << normalFormData.maybeStates.getNumberOfSetBits() << " maybe states using algorithm '" << alg << ".");
         // sw.restart();
         internal::ResultReturnType<SolutionType> result{storm::utility::zero<SolutionType>()};
         switch (alg) {
