@@ -14,7 +14,6 @@ jobs:
       matrix:
         buildType: ["Debug", "Release"]
         config:
-          # TODO: Replace movesrwth/storm-basesystem:latest with the correct image for "required dependencies"
           - {name: "GMP; GMP; Required dependencies", baseImg: "movesrwth/storm-basesystem:latest",               disable_all: "OFF", ClnExact: "OFF", ClnRatfunc: "OFF"}
           - {name: "CLN; GMP; Required dependencies", baseImg: "movesrwth/storm-basesystem:latest",               disable_all: "OFF", ClnExact: "ON",  ClnRatfunc: "OFF"}
           - {name: "GMP; CLN; Required dependencies", baseImg: "movesrwth/storm-basesystem:latest",               disable_all: "OFF", ClnExact: "OFF", ClnRatfunc: "ON"}

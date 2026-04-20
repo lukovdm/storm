@@ -3,10 +3,6 @@ name: Build Tests
 on:
   workflow_call:
     inputs:
-      carl_tag:
-        description: "Carl git tag to use"
-        type: string
-        default: "master"
       NR_JOBS:
         description: "Number of parallel build jobs"
         type: string
@@ -126,7 +122,7 @@ jobs:
           docker build -t movesrwth/storm:ci --file ${{ inputs.dockerfile }} . \
             --build-arg BASE_IMAGE=${{ inputs.baseImg }} \
             --build-arg build_type="${{ inputs.buildType }}" \
-            --build-arg carl_tag="${{ inputs.carl_tag }}" \
+
             --build-arg disable_cudd="${{ inputs.disable_cudd }}" \
             --build-arg disable_glpk="${{ inputs.disable_glpk }}" \
             --build-arg disable_gmm="${{ inputs.disable_gmm }}" \

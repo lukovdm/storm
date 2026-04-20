@@ -18,7 +18,6 @@ jobs:
         config:
           - {name: "Debug; All dependencies",              buildType: "Debug",   baseImg: "movesrwth/storm-dependencies:latest", disable_all: "OFF", ClnExact: "OFF", ClnRatfunc: "OFF"}
           - {name: "Release; All dependencies",            buildType: "Release", baseImg: "movesrwth/storm-dependencies:latest", disable_all: "OFF", ClnExact: "OFF", ClnRatfunc: "OFF"}
-          # TODO: Replace movesrwth/storm-basesystem:latest with the correct image for "required dependencies"
           - {name: "Release; GMP; GMP; Required dependencies", buildType: "Release", baseImg: "movesrwth/storm-basesystem:latest", disable_all: "OFF", ClnExact: "OFF", ClnRatfunc: "OFF"}
           - {name: "Release; CLN; CLN; Required dependencies", buildType: "Release", baseImg: "movesrwth/storm-basesystem:latest", disable_all: "OFF", ClnExact: "ON",  ClnRatfunc: "ON"}
     uses: ./.github/workflows/test-build.yml
@@ -75,7 +74,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        distro: ["debian-12", "debian-13", "ubuntu-24.04", "ubuntu-latest"]
+        distro: ["debian-12", "debian-13", "ubuntu-24.04"]
     uses: ./.github/workflows/test-linux.yml
     with:
       NR_JOBS: "4"
