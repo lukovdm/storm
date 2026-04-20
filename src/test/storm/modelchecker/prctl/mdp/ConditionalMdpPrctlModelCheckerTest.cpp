@@ -5,6 +5,7 @@
 #include "storm-parsers/parser/PrismParser.h"
 #include "storm/api/builder.h"
 #include "storm/api/properties.h"
+#include "storm/environment/modelchecker/ConditionalModelCheckerEnvironment.h"
 #include "storm/environment/modelchecker/ModelCheckerEnvironment.h"
 #include "storm/environment/solver/MinMaxSolverEnvironment.h"
 #include "storm/modelchecker/prctl/SparseMdpPrctlModelChecker.h"
@@ -20,7 +21,7 @@ class SparseDoubleRestartEnvironment {
     typedef storm::models::sparse::Mdp<ValueType> ModelType;
     static storm::Environment createEnvironment() {
         storm::Environment env;
-        env.modelchecker().setConditionalAlgorithmSetting(storm::ConditionalAlgorithmSetting::Restart);
+        env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::Restart);
         env.solver().minMax().setPrecision(storm::utility::convertNumber<storm::RationalNumber>(1e-10));  // restart algorithm requires a higher precision
         return env;
     }
@@ -33,7 +34,7 @@ class SparseDoubleBisectionEnvironment {
     typedef storm::models::sparse::Mdp<ValueType> ModelType;
     static storm::Environment createEnvironment() {
         storm::Environment env;
-        env.modelchecker().setConditionalAlgorithmSetting(storm::ConditionalAlgorithmSetting::Bisection);
+        env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::Bisection);
         return env;
     }
 };
@@ -45,7 +46,7 @@ class SparseDoubleBisectionAdvancedEnvironment {
     typedef storm::models::sparse::Mdp<ValueType> ModelType;
     static storm::Environment createEnvironment() {
         storm::Environment env;
-        env.modelchecker().setConditionalAlgorithmSetting(storm::ConditionalAlgorithmSetting::BisectionAdvanced);
+        env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::BisectionAdvanced);
         return env;
     }
 };
@@ -57,7 +58,7 @@ class SparseDoubleBisectionPtEnvironment {
     typedef storm::models::sparse::Mdp<ValueType> ModelType;
     static storm::Environment createEnvironment() {
         storm::Environment env;
-        env.modelchecker().setConditionalAlgorithmSetting(storm::ConditionalAlgorithmSetting::BisectionPolicyTracking);
+        env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::BisectionPolicyTracking);
         return env;
     }
 };
@@ -69,7 +70,7 @@ class SparseDoubleBisectionAdvancedPtEnvironment {
     typedef storm::models::sparse::Mdp<ValueType> ModelType;
     static storm::Environment createEnvironment() {
         storm::Environment env;
-        env.modelchecker().setConditionalAlgorithmSetting(storm::ConditionalAlgorithmSetting::BisectionAdvancedPolicyTracking);
+        env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::BisectionAdvancedPolicyTracking);
         return env;
     }
 };
@@ -81,7 +82,7 @@ class SparseDoublePiEnvironment {
     typedef storm::models::sparse::Mdp<ValueType> ModelType;
     static storm::Environment createEnvironment() {
         storm::Environment env;
-        env.modelchecker().setConditionalAlgorithmSetting(storm::ConditionalAlgorithmSetting::PolicyIteration);
+        env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::PolicyIteration);
         return env;
     }
 };
@@ -93,7 +94,7 @@ class SparseRationalNumberRestartEnvironment {
     typedef storm::models::sparse::Mdp<ValueType> ModelType;
     static storm::Environment createEnvironment() {
         storm::Environment env;
-        env.modelchecker().setConditionalAlgorithmSetting(storm::ConditionalAlgorithmSetting::Restart);
+        env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::Restart);
         env.solver().minMax().setPrecision(storm::utility::convertNumber<storm::RationalNumber>(1e-10));  // restart algorithm requires a higher precision
         return env;
     }
@@ -106,7 +107,8 @@ class SparseRationalNumberBisectionEnvironment {
     typedef storm::models::sparse::Mdp<ValueType> ModelType;
     static storm::Environment createEnvironment() {
         storm::Environment env;
-        env.modelchecker().setConditionalAlgorithmSetting(storm::ConditionalAlgorithmSetting::Bisection);
+        env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::Bisection);
+        env.modelchecker().conditional().setTolerance(storm::utility::zero<storm::RationalNumber>());
         return env;
     }
 };
@@ -118,7 +120,8 @@ class SparseRationalNumberBisectionAdvancedEnvironment {
     typedef storm::models::sparse::Mdp<ValueType> ModelType;
     static storm::Environment createEnvironment() {
         storm::Environment env;
-        env.modelchecker().setConditionalAlgorithmSetting(storm::ConditionalAlgorithmSetting::BisectionAdvanced);
+        env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::BisectionAdvanced);
+        env.modelchecker().conditional().setTolerance(storm::utility::zero<storm::RationalNumber>());
         env.solver().minMax().setPrecision(storm::utility::zero<storm::RationalNumber>());  // TODO: this should not be necessary
         return env;
     }
@@ -131,7 +134,8 @@ class SparseRationalNumberBisectionPtEnvironment {
     typedef storm::models::sparse::Mdp<ValueType> ModelType;
     static storm::Environment createEnvironment() {
         storm::Environment env;
-        env.modelchecker().setConditionalAlgorithmSetting(storm::ConditionalAlgorithmSetting::BisectionPolicyTracking);
+        env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::BisectionPolicyTracking);
+        env.modelchecker().conditional().setTolerance(storm::utility::zero<storm::RationalNumber>());
         return env;
     }
 };
@@ -143,7 +147,8 @@ class SparseRationalNumberBisectionAdvancedPtEnvironment {
     typedef storm::models::sparse::Mdp<ValueType> ModelType;
     static storm::Environment createEnvironment() {
         storm::Environment env;
-        env.modelchecker().setConditionalAlgorithmSetting(storm::ConditionalAlgorithmSetting::BisectionAdvancedPolicyTracking);
+        env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::BisectionAdvancedPolicyTracking);
+        env.modelchecker().conditional().setTolerance(storm::utility::zero<storm::RationalNumber>());
         env.solver().minMax().setPrecision(storm::utility::zero<storm::RationalNumber>());  // TODO: this should not be necessary
         return env;
     }
@@ -156,7 +161,7 @@ class SparseRationalNumberPiEnvironment {
     typedef storm::models::sparse::Mdp<ValueType> ModelType;
     static storm::Environment createEnvironment() {
         storm::Environment env;
-        env.modelchecker().setConditionalAlgorithmSetting(storm::ConditionalAlgorithmSetting::PolicyIteration);
+        env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::PolicyIteration);
         return env;
     }
 };
