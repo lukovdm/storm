@@ -122,7 +122,6 @@ jobs:
           docker build -t movesrwth/storm:ci --file ${{ inputs.dockerfile }} . \
             --build-arg BASE_IMAGE=${{ inputs.baseImg }} \
             --build-arg build_type="${{ inputs.buildType }}" \
-
             --build-arg disable_cudd="${{ inputs.disable_cudd }}" \
             --build-arg disable_glpk="${{ inputs.disable_glpk }}" \
             --build-arg disable_gmm="${{ inputs.disable_gmm }}" \
