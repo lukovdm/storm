@@ -680,6 +680,11 @@ class WeightedReachabilityHelper {
         initialStateInSubmatrix = originalToReducedStateIndexMap[initialState];
         auto const eliminatedInitialComponentStates = normalForm.maybeStates & ~subMatrixRowGroups;
 
+        // Inital component states do not have the correct mapping yet.
+        for (auto state : eliminatedInitialComponentStates) {
+            originalToReducedStateIndexMap[state] = initialStateInSubmatrix;
+        }
+
         // build matrix, rows that sum up to 1, target values, condition values
         storm::storage::SparseMatrixBuilder<ValueType> matrixBuilder(numSubmatrixRows, numSubmatrixRowGroups, 0, true, true, numSubmatrixRowGroups);
         rowsWithSum1 = storm::storage::BitVector(numSubmatrixRows, true);

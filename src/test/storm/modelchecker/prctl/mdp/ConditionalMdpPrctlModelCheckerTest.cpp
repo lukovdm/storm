@@ -119,7 +119,7 @@ class SparseRationalNumberBisectionAdvancedEnvironment {
     static storm::Environment createEnvironment() {
         storm::Environment env;
         env.modelchecker().setConditionalAlgorithmSetting(storm::ConditionalAlgorithmSetting::BisectionAdvanced);
-        env.solver().minMax().setPrecision(storm::utility::convertNumber<storm::RationalNumber>(0));  // TODO: this should not be necessary
+        env.solver().minMax().setPrecision(storm::utility::zero<storm::RationalNumber>());  // TODO: this should not be necessary
         return env;
     }
 };
@@ -144,7 +144,7 @@ class SparseRationalNumberBisectionAdvancedPtEnvironment {
     static storm::Environment createEnvironment() {
         storm::Environment env;
         env.modelchecker().setConditionalAlgorithmSetting(storm::ConditionalAlgorithmSetting::BisectionAdvancedPolicyTracking);
-        env.solver().minMax().setPrecision(storm::utility::convertNumber<storm::RationalNumber>(0));  // TODO: this should not be necessary
+        env.solver().minMax().setPrecision(storm::utility::zero<storm::RationalNumber>());  // TODO: this should not be necessary
         return env;
     }
 };
@@ -253,8 +253,15 @@ TYPED_TEST(ConditionalMdpPrctlModelCheckerTest, two_dice) {
     EXPECT_NEAR(this->parseNumber("0"), result[*mdp->getInitialStates().begin()], this->precision());
     result = checker.check(this->env(), tasks[5])->template asExplicitQuantitativeCheckResult<ValueType>();
     EXPECT_NEAR(this->parseNumber("0"), result[*mdp->getInitialStates().begin()], this->precision());
-    result = checker.check(this->env(), tasks[6])->template asExplicitQuantitativeCheckResult<ValueType>();
-    EXPECT_NEAR(this->parseNumber("1"), result[*mdp->getInitialStates().begin()], this->precision());
+
+    if constexpr (std::is_same_v<TypeParam, SparseDoubleBisectionAdvancedPtEnvironment>) {
+        // Non sound model checking this property with advanced bisection leads to incorrect pMax bound, resulting in inconsistent bisection bounds.
+        EXPECT_DEATH_IF_SUPPORTED(checker.check(this->env(), tasks[6]), "Bisection method bounds are inconsistent");
+    } else {
+        result = checker.check(this->env(), tasks[6])->template asExplicitQuantitativeCheckResult<ValueType>();
+        EXPECT_NEAR(this->parseNumber("1"), result[*mdp->getInitialStates().begin()], this->precision());
+    }
+
     result = checker.check(this->env(), tasks[7])->template asExplicitQuantitativeCheckResult<ValueType>();
     EXPECT_NEAR(this->parseNumber("1"), result[*mdp->getInitialStates().begin()], this->precision());
 }
