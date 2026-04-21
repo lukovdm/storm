@@ -36,9 +36,8 @@ class CheckTask {
     /*!
      * Creates a task object with the default options for the given formula.
      */
-    CheckTask(FormulaType const& formula, bool onlyInitialStatesRelevant = false, UncertaintyResolutionMode = UncertaintyResolutionMode::Unset,
-              ValueType topLevelTolerance = storm::utility::defaultTolerance<ValueType>())
-        : formula(formula), hint(new ModelCheckerHint()), TopLevelTolerance(std::make_shared<ValueType>(std::move(topLevelTolerance))) {
+    CheckTask(FormulaType const& formula, bool onlyInitialStatesRelevant = false, UncertaintyResolutionMode = UncertaintyResolutionMode::Unset)
+        : formula(formula), hint(new ModelCheckerHint()) {
         this->onlyInitialStatesRelevant = onlyInitialStatesRelevant;
         this->produceSchedulers = false;
         this->qualitative = false;
@@ -55,7 +54,7 @@ class CheckTask {
     CheckTask<NewFormulaType, ValueType> substituteFormula(NewFormulaType const& newFormula) const {
         CheckTask<NewFormulaType, ValueType> result(newFormula, this->optimizationDirection, this->playerCoalition, this->rewardModel,
                                                     this->onlyInitialStatesRelevant, this->bound, this->qualitative, this->produceSchedulers, this->hint,
-                                                    this->uncertaintyResolutionMode, *this->TopLevelTolerance);
+                                                    this->uncertaintyResolutionMode);
         result.updateOperatorInformation();
         return result;
     }
@@ -134,7 +133,7 @@ class CheckTask {
     CheckTask<FormulaType, NewValueType> convertValueType() const {
         return CheckTask<FormulaType, NewValueType>(this->formula, this->optimizationDirection, this->playerCoalition, this->rewardModel,
                                                     this->onlyInitialStatesRelevant, this->bound, this->qualitative, this->produceSchedulers, this->hint,
-                                                    this->uncertaintyResolutionMode, storm::utility::convertNumber<NewValueType>(*this->TopLevelTolerance));
+                                                    this->uncertaintyResolutionMode);
     }
 
     /*!
@@ -323,20 +322,6 @@ class CheckTask {
     }
 
     /*!
-     * Retrieves the tolerance for the top-level model checking.
-     */
-    ValueType const& getTopLevelTolerance() const {
-        return *TopLevelTolerance;
-    }
-
-    /*!
-     * Sets the tolerance for the top-level model checking.
-     */
-    void setTopLevelTolerance(ValueType topLevelTolerance) {
-        this->TopLevelTolerance = std::make_shared<ValueType>(std::move(topLevelTolerance));
-    }
-
-    /*!
      * Conversion operator that strips the type of the formula.
      */
     operator CheckTask<storm::logic::Formula, ValueType>() const {
@@ -358,14 +343,11 @@ class CheckTask {
      * with bounds 0/1.
      * @param produceSchedulers If supported by the model checker and the model formalism, schedulers to achieve
      * a value will be produced if this flag is set.
-     * @param hint A hint that might contain information that speeds up the modelchecking process (if supported by the model checker)
-     * @param uncertaintyResolutionMode Whether uncertainty should be resolved be minimizing, maximizing, acting robust or cooperative.
-     * @param topLevelTolerance The tolerance for the top-level model checking.
      */
     CheckTask(std::reference_wrapper<FormulaType const> const& formula, boost::optional<storm::OptimizationDirection> const& optimizationDirection,
               boost::optional<storm::logic::PlayerCoalition> playerCoalition, boost::optional<std::string> const& rewardModel, bool onlyInitialStatesRelevant,
               boost::optional<storm::logic::Bound> const& bound, bool qualitative, bool produceSchedulers, std::shared_ptr<ModelCheckerHint> const& hint,
-              UncertaintyResolutionMode uncertaintyResolutionMode, ValueType topLevelTolerance)
+              UncertaintyResolutionMode uncertaintyResolutionMode)
         : formula(formula),
           optimizationDirection(optimizationDirection),
           playerCoalition(playerCoalition),
@@ -375,8 +357,7 @@ class CheckTask {
           qualitative(qualitative),
           produceSchedulers(produceSchedulers),
           hint(hint),
-          uncertaintyResolutionMode(uncertaintyResolutionMode),
-          TopLevelTolerance(std::make_shared<ValueType>(std::move(topLevelTolerance))) {
+          uncertaintyResolutionMode(uncertaintyResolutionMode) {
         // Intentionally left empty.
     }
 
@@ -410,9 +391,6 @@ class CheckTask {
 
     // Whether uncertainty should be resolved be minimizing, maximizing, acting robust or cooperative.
     UncertaintyResolutionMode uncertaintyResolutionMode;
-
-    // The tolerance for the top-level model checking.
-    std::shared_ptr<ValueType> TopLevelTolerance;
 };
 
 }  // namespace modelchecker

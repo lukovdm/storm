@@ -108,6 +108,7 @@ class SparseRationalNumberBisectionEnvironment {
     static storm::Environment createEnvironment() {
         storm::Environment env;
         env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::Bisection);
+        env.modelchecker().conditional().setTolerance(storm::utility::zero<storm::RationalNumber>());
         return env;
     }
 };
@@ -120,7 +121,7 @@ class SparseRationalNumberBisectionAdvancedEnvironment {
     static storm::Environment createEnvironment() {
         storm::Environment env;
         env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::BisectionAdvanced);
-        env.solver().minMax().setPrecision(storm::utility::zero<storm::RationalNumber>());  // TODO: this should not be necessary
+        env.modelchecker().conditional().setTolerance(storm::utility::zero<storm::RationalNumber>());
         return env;
     }
 };
@@ -133,6 +134,7 @@ class SparseRationalNumberBisectionPtEnvironment {
     static storm::Environment createEnvironment() {
         storm::Environment env;
         env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::BisectionPolicyTracking);
+        env.modelchecker().conditional().setTolerance(storm::utility::zero<storm::RationalNumber>());
         return env;
     }
 };
@@ -145,7 +147,7 @@ class SparseRationalNumberBisectionAdvancedPtEnvironment {
     static storm::Environment createEnvironment() {
         storm::Environment env;
         env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::BisectionAdvancedPolicyTracking);
-        env.solver().minMax().setPrecision(storm::utility::zero<storm::RationalNumber>());  // TODO: this should not be necessary
+        env.modelchecker().conditional().setTolerance(storm::utility::zero<storm::RationalNumber>());
         return env;
     }
 };
@@ -199,11 +201,10 @@ class ConditionalMdpPrctlModelCheckerTest : public ::testing::Test {
     }
 
     std::vector<storm::modelchecker::CheckTask<storm::logic::Formula, ValueType>> getTasks(
-        std::vector<std::shared_ptr<storm::logic::Formula const>> const& formulas, ValueType tolerance) const {
+        std::vector<std::shared_ptr<storm::logic::Formula const>> const& formulas) const {
         std::vector<storm::modelchecker::CheckTask<storm::logic::Formula, ValueType>> result;
         for (auto const& f : formulas) {
             result.emplace_back(*f, true);  // Set onlyInitialStatesRelevant to true for conditional tasks
-            result.back().setTopLevelTolerance(tolerance);
         }
         return result;
     }
@@ -236,7 +237,7 @@ TYPED_TEST(ConditionalMdpPrctlModelCheckerTest, two_dice) {
     auto program = storm::parser::PrismParser::parse(STORM_TEST_RESOURCES_DIR "/mdp/two_dice.nm");
     auto modelFormulas = this->buildModelFormulas(program, formulasString);
     auto model = std::move(modelFormulas.first);
-    auto tasks = this->getTasks(modelFormulas.second, this->precision());
+    auto tasks = this->getTasks(modelFormulas.second);
     EXPECT_EQ(169ul, model->getNumberOfStates());
     EXPECT_EQ(436ul, model->getNumberOfTransitions());
     ASSERT_EQ(model->getType(), storm::models::ModelType::Mdp);
@@ -284,7 +285,7 @@ TYPED_TEST(ConditionalMdpPrctlModelCheckerTest, consensus) {
     auto program = storm::parser::PrismParser::parse(STORM_TEST_RESOURCES_DIR "/mdp/coin2-2.nm");
     auto modelFormulas = this->buildModelFormulas(program, formulasString);
     auto model = std::move(modelFormulas.first);
-    auto tasks = this->getTasks(modelFormulas.second, this->precision());
+    auto tasks = this->getTasks(modelFormulas.second);
     EXPECT_EQ(272ul, model->getNumberOfStates());
     EXPECT_EQ(492ul, model->getNumberOfTransitions());
     ASSERT_EQ(model->getType(), storm::models::ModelType::Mdp);
@@ -328,7 +329,7 @@ endmodule
     auto program = storm::parser::PrismParser::parseFromString(programAsString, "<no filename>");
     auto modelFormulas = this->buildModelFormulas(program, formulasString);
     auto model = std::move(modelFormulas.first);
-    auto tasks = this->getTasks(modelFormulas.second, this->precision());
+    auto tasks = this->getTasks(modelFormulas.second);
     EXPECT_EQ(3ul, model->getNumberOfStates());
     EXPECT_EQ(4ul, model->getNumberOfTransitions());
     ASSERT_EQ(model->getType(), storm::models::ModelType::Mdp);

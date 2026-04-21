@@ -968,12 +968,15 @@ class WeightedReachabilityHelper {
 
 template<typename ValueType, typename SolutionType = ValueType>
 typename internal::ResultReturnType<ValueType> computeViaBisection(Environment const& env, bool const useAdvancedBounds, bool const usePolicyTracking,
-                                                                   SolutionType const precision, uint64_t const initialState,
-                                                                   storm::solver::SolveGoal<ValueType, SolutionType> const& goal, bool computeScheduler,
-                                                                   storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
+                                                                   uint64_t const initialState, storm::solver::SolveGoal<ValueType, SolutionType> const& goal,
+                                                                   bool computeScheduler, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
                                                                    storm::storage::SparseMatrix<ValueType> const& backwardTransitions,
                                                                    NormalFormData<ValueType> const& normalForm) {
     // We currently handle sound model checking incorrectly: we would need the actual lower/upper bounds of the weightedReachabilityHelper
+    SolutionType const precision = [&env]() {
+        // TODO: Discussed that this may be better in the solveGoal or checkTask, but lets be pragmatic today.
+        return storm::utility::convertNumber<SolutionType>(env.modelchecker().conditional().getTolerance());
+    }();
     STORM_LOG_WARN_COND(!(env.solver().isForceSoundness() && storm::utility::isZero(precision)),
                         "Bisection method does not adequately handle propagation of errors. Result is not necessarily sound.");
 
@@ -1147,9 +1150,9 @@ typename internal::ResultReturnType<ValueType> computeViaBisection(Environment c
 }
 
 template<typename ValueType, typename SolutionType = ValueType>
-typename internal::ResultReturnType<ValueType> computeViaBisection(Environment const& env, SolutionType const precision, ConditionalAlgorithmSetting const alg,
-                                                                   uint64_t const initialState, storm::solver::SolveGoal<ValueType, SolutionType> const& goal,
-                                                                   bool computeScheduler, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
+typename internal::ResultReturnType<ValueType> computeViaBisection(Environment const& env, ConditionalAlgorithmSetting const alg, uint64_t const initialState,
+                                                                   storm::solver::SolveGoal<ValueType, SolutionType> const& goal, bool computeScheduler,
+                                                                   storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
                                                                    storm::storage::SparseMatrix<ValueType> const& backwardTransitions,
                                                                    NormalFormData<ValueType> const& normalForm) {
     using enum ConditionalAlgorithmSetting;
@@ -1157,8 +1160,8 @@ typename internal::ResultReturnType<ValueType> computeViaBisection(Environment c
                      "Unhandled Bisection algorithm " << alg << ".");
     bool const useAdvancedBounds = (alg == BisectionAdvanced || alg == BisectionAdvancedPolicyTracking);
     bool const usePolicyTracking = (alg == BisectionPolicyTracking || alg == BisectionAdvancedPolicyTracking);
-    return computeViaBisection(env, useAdvancedBounds, usePolicyTracking, precision, initialState, goal, computeScheduler, transitionMatrix,
-                               backwardTransitions, normalForm);
+    return computeViaBisection(env, useAdvancedBounds, usePolicyTracking, initialState, goal, computeScheduler, transitionMatrix, backwardTransitions,
+                               normalForm);
 }
 
 template<typename ValueType, typename SolutionType = ValueType>
@@ -1327,8 +1330,8 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
                     result = internal::decideThreshold(analysisEnv, initialState, goal.direction(), goal.thresholdValue(), checkTask.isProduceSchedulersSet(),
                                                        transitionMatrix, backwardTransitions, normalFormData);
                 } else {
-                    result = internal::computeViaBisection(analysisEnv, checkTask.getTopLevelTolerance(), alg, initialState, goal,
-                                                           checkTask.isProduceSchedulersSet(), transitionMatrix, backwardTransitions, normalFormData);
+                    result = internal::computeViaBisection(analysisEnv, alg, initialState, goal, checkTask.isProduceSchedulersSet(), transitionMatrix,
+                                                           backwardTransitions, normalFormData);
                 }
                 break;
             }

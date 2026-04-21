@@ -45,6 +45,12 @@ class ModelCheckerSettings : public ModuleSettings {
      */
     ConditionalAlgorithmSetting getConditionalAlgorithmSetting() const;
 
+    /*!
+     * TODO probably generalize
+     * Retrieves
+     */
+    storm::RationalNumber getConditionalTolerance() const;
+
     // The name of the module.
     static const std::string moduleName;
 

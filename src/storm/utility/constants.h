@@ -77,9 +77,6 @@ template<typename ValueType>
 ValueType zero();
 
 template<typename ValueType>
-ValueType defaultTolerance();
-
-template<typename ValueType>
 ValueType infinity();
 
 template<typename ValueType>
