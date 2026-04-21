@@ -1270,16 +1270,6 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
     auto normalFormConstructionEnv = env;
     auto analysisEnv = env;
 
-    //    if (env.solver().isForceSoundness()) {
-    //        // We intuitively have to divide the precision into two parts, one for computations when constructing the normal form and one for the actual
-    //        analysis.
-    //        // As the former is usually less numerically challenging, we use a factor of 1/10 for the normal form construction and 9/10 for the analysis.
-    //        auto const normalFormPrecisionFactor = storm::utility::convertNumber<storm::RationalNumber, std::string>("1/10");
-    //        normalFormConstructionEnv.solver().minMax().setPrecision(env.solver().minMax().getPrecision() * normalFormPrecisionFactor);
-    //        analysisEnv.solver().minMax().setPrecision(env.solver().minMax().getPrecision() *
-    //                                                   (storm::utility::one<storm::RationalNumber>() - normalFormPrecisionFactor));
-    //    }
-
     // We first translate the problem into a normal form.
     // @see doi.org/10.1007/978-3-642-54862-8_43
     STORM_LOG_THROW(goal.hasRelevantValues(), storm::exceptions::NotSupportedException,
@@ -1288,11 +1278,8 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
                     "Only one initial state is supported for conditional probabilities");
     STORM_LOG_TRACE("Computing conditional probabilities for a model with " << transitionMatrix.getRowGroupCount() << " states and "
                                                                             << transitionMatrix.getEntryCount() << " transitions.");
-    // storm::utility::Stopwatch sw(true);
     auto normalFormData = internal::obtainNormalForm(normalFormConstructionEnv, goal.direction(), checkTask.isProduceSchedulersSet(), transitionMatrix,
                                                      backwardTransitions, goal.relevantValues(), targetStates, conditionStates);
-    // sw.stop();
-    // STORM_LOG_INFO("Time for obtaining the normal form: " << sw << ".\n");
     // Then, we solve the induced problem using the selected algorithm
     auto const initialState = *goal.relevantValues().begin();
     ValueType initialStateValue = -storm::utility::one<ValueType>();
@@ -1325,7 +1312,6 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
             alg = ConditionalAlgorithmSetting::Restart;
         }
         STORM_LOG_INFO("Analyzing normal form with " << normalFormData.maybeStates.getNumberOfSetBits() << " maybe states using algorithm '" << alg << ".");
-        // sw.restart();
         internal::ResultReturnType<SolutionType> result{storm::utility::zero<SolutionType>()};
         switch (alg) {
             case ConditionalAlgorithmSetting::Restart: {
@@ -1356,15 +1342,11 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
         }
         initialStateValue = result.initialStateValue;
         scheduler = std::move(result.scheduler);
-
-        // sw.stop();
-        // STORM_LOG_INFO("Time for analyzing the normal form: " << sw << ".\n");
     }
     std::unique_ptr<CheckResult> result(new ExplicitQuantitativeCheckResult<SolutionType>(initialState, initialStateValue));
 
     // if produce schedulers was set, we have to construct a scheduler with memory
     if (checkTask.isProduceSchedulersSet() && scheduler) {
-        // not sure about this
         storm::utility::graph::computeSchedulerProb1E(normalFormData.targetStates, transitionMatrix, backwardTransitions, normalFormData.targetStates,
                                                       targetStates, *scheduler);
         storm::utility::graph::computeSchedulerProb1E(normalFormData.conditionStates, transitionMatrix, backwardTransitions, normalFormData.conditionStates,
@@ -1426,13 +1408,13 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
                 if (normalFormData.schedulerChoicesForReachingTargetStates->isChoiceSelected(state)) {
                     finalScheduler->setChoice(normalFormData.schedulerChoicesForReachingTargetStates->getChoice(state), state, 0);
                 } else {
-                    finalScheduler->setChoice(0, state, 0);  // arbitrary choice if no choice was recorded, TODO: this could be problematic for paynt?
+                    finalScheduler->setChoice(0, state, 0);  // arbitrary choice if no choice was recorded.
                 }
             } else if (targetStates.get(state)) {
                 if (normalFormData.schedulerChoicesForReachingConditionStates->isChoiceSelected(state)) {
                     finalScheduler->setChoice(normalFormData.schedulerChoicesForReachingConditionStates->getChoice(state), state, 0);
                 } else {
-                    finalScheduler->setChoice(0, state, 0);  // arbitrary choice if no choice was recorded, TODO: this could be problematic for paynt?
+                    finalScheduler->setChoice(0, state, 0);  // arbitrary choice if no choice was recorded.
                 }
             } else {
                 finalScheduler->setChoice(scheduler->getChoice(state), state, 0);
@@ -1442,13 +1424,13 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
             if (normalFormData.schedulerChoicesForReachingTargetStates->isChoiceSelected(state)) {
                 finalScheduler->setChoice(normalFormData.schedulerChoicesForReachingTargetStates->getChoice(state), state, 1);
             } else {
-                finalScheduler->setChoice(0, state, 1);  // arbitrary choice if no choice was recorded, TODO: this could be problematic for paynt?
+                finalScheduler->setChoice(0, state, 1);  // arbitrary choice if no choice was recorded.
             }
             // set choices for memory 2, these are the choices after target was reached
             if (normalFormData.schedulerChoicesForReachingConditionStates->isChoiceSelected(state)) {
                 finalScheduler->setChoice(normalFormData.schedulerChoicesForReachingConditionStates->getChoice(state), state, 2);
             } else {
-                finalScheduler->setChoice(0, state, 2);  // arbitrary choice if no choice was recorded, TODO: this could be problematic for paynt?
+                finalScheduler->setChoice(0, state, 2);  // arbitrary choice if no choice was recorded.
             }
         }
 
