@@ -973,11 +973,8 @@ typename internal::ResultReturnType<ValueType> computeViaBisection(Environment c
                                                                    storm::storage::SparseMatrix<ValueType> const& backwardTransitions,
                                                                    NormalFormData<ValueType> const& normalForm) {
     // We currently handle sound model checking incorrectly: we would need the actual lower/upper bounds of the weightedReachabilityHelper
-    SolutionType const precision = [&env]() {
-        // TODO: Discussed that this may be better in the solveGoal or checkTask, but lets be pragmatic today.
-        return storm::utility::convertNumber<SolutionType>(env.modelchecker().conditional().getTolerance());
-    }();
-    STORM_LOG_WARN_COND(!(env.solver().isForceSoundness() && storm::utility::isZero(precision)),
+    SolutionType const precision = [&env]() { return storm::utility::convertNumber<SolutionType>(env.modelchecker().conditional().getTolerance()); }();
+    STORM_LOG_WARN_COND(!env.solver().isForceSoundness(),
                         "Bisection method does not adequately handle propagation of errors. Result is not necessarily sound.");
 
     bool const relative = env.solver().minMax().getRelativeTerminationCriterion();
@@ -1265,8 +1262,7 @@ std::optional<SolutionType> handleTrivialCases(uint64_t const initialState, Norm
 
 template<typename ValueType, typename SolutionType>
 std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& env, storm::solver::SolveGoal<ValueType, SolutionType>&& goal,
-                                                             storm::modelchecker::CheckTask<storm::logic::ConditionalFormula, SolutionType> const& checkTask,
-                                                             storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
+                                                             bool produceSchedulers, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
                                                              storm::storage::SparseMatrix<ValueType> const& backwardTransitions,
                                                              storm::storage::BitVector const& targetStates, storm::storage::BitVector const& conditionStates) {
     // We might require adapting the precision of the solver to counter error propagation (e.g. when computing the normal form).
@@ -1281,15 +1277,15 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
                     "Only one initial state is supported for conditional probabilities");
     STORM_LOG_TRACE("Computing conditional probabilities for a model with " << transitionMatrix.getRowGroupCount() << " states and "
                                                                             << transitionMatrix.getEntryCount() << " transitions.");
-    auto normalFormData = internal::obtainNormalForm(normalFormConstructionEnv, goal.direction(), checkTask.isProduceSchedulersSet(), transitionMatrix,
-                                                     backwardTransitions, goal.relevantValues(), targetStates, conditionStates);
+    auto normalFormData = internal::obtainNormalForm(normalFormConstructionEnv, goal.direction(), produceSchedulers, transitionMatrix, backwardTransitions,
+                                                     goal.relevantValues(), targetStates, conditionStates);
     // Then, we solve the induced problem using the selected algorithm
     auto const initialState = *goal.relevantValues().begin();
     ValueType initialStateValue = -storm::utility::one<ValueType>();
     std::unique_ptr<storm::storage::Scheduler<SolutionType>> scheduler = nullptr;
     if (auto trivialValue = internal::handleTrivialCases<ValueType, SolutionType>(initialState, normalFormData); trivialValue.has_value()) {
         initialStateValue = *trivialValue;
-        if (initialStateValue == storm::utility::zero<ValueType>() && !normalFormData.terminalStates.get(initialState) && checkTask.isProduceSchedulersSet()) {
+        if (initialStateValue == storm::utility::zero<ValueType>() && !normalFormData.terminalStates.get(initialState) && produceSchedulers) {
             // we need to compute a scheduler that at least reaches the condition with non-zero probability
             auto initialStateBitVector = storm::storage::BitVector(transitionMatrix.getRowGroupCount(), false);
             initialStateBitVector.set(initialState, true);
@@ -1318,8 +1314,8 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
         internal::ResultReturnType<SolutionType> result{storm::utility::zero<SolutionType>()};
         switch (alg) {
             case ConditionalAlgorithmSetting::Restart: {
-                result = internal::computeViaRestartMethod(analysisEnv, initialState, goal, checkTask.isProduceSchedulersSet(), transitionMatrix,
-                                                           backwardTransitions, normalFormData);
+                result = internal::computeViaRestartMethod(analysisEnv, initialState, goal, produceSchedulers, transitionMatrix, backwardTransitions,
+                                                           normalFormData);
                 break;
             }
             case ConditionalAlgorithmSetting::Bisection:
@@ -1327,11 +1323,11 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
             case ConditionalAlgorithmSetting::BisectionPolicyTracking:
             case ConditionalAlgorithmSetting::BisectionAdvancedPolicyTracking: {
                 if (goal.isBounded()) {
-                    result = internal::decideThreshold(analysisEnv, initialState, goal.direction(), goal.thresholdValue(), checkTask.isProduceSchedulersSet(),
-                                                       transitionMatrix, backwardTransitions, normalFormData);
+                    result = internal::decideThreshold(analysisEnv, initialState, goal.direction(), goal.thresholdValue(), produceSchedulers, transitionMatrix,
+                                                       backwardTransitions, normalFormData);
                 } else {
-                    result = internal::computeViaBisection(analysisEnv, alg, initialState, goal, checkTask.isProduceSchedulersSet(), transitionMatrix,
-                                                           backwardTransitions, normalFormData);
+                    result = internal::computeViaBisection(analysisEnv, alg, initialState, goal, produceSchedulers, transitionMatrix, backwardTransitions,
+                                                           normalFormData);
                 }
                 break;
             }
@@ -1349,7 +1345,7 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
     std::unique_ptr<CheckResult> result(new ExplicitQuantitativeCheckResult<SolutionType>(initialState, initialStateValue));
 
     // if produce schedulers was set, we have to construct a scheduler with memory
-    if (checkTask.isProduceSchedulersSet() && scheduler) {
+    if (produceSchedulers && scheduler) {
         storm::utility::graph::computeSchedulerProb1E(normalFormData.targetStates, transitionMatrix, backwardTransitions, normalFormData.targetStates,
                                                       targetStates, *scheduler);
         storm::utility::graph::computeSchedulerProb1E(normalFormData.conditionStates, transitionMatrix, backwardTransitions, normalFormData.conditionStates,
@@ -1442,17 +1438,17 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
     return result;
 }
 
-template std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& env, storm::solver::SolveGoal<double>&& goal,
-                                                                      storm::modelchecker::CheckTask<storm::logic::ConditionalFormula, double> const& checkTask,
+template std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& env, storm::solver::SolveGoal<double>&& goal, bool produceSchedulers,
                                                                       storm::storage::SparseMatrix<double> const& transitionMatrix,
                                                                       storm::storage::SparseMatrix<double> const& backwardTransitions,
                                                                       storm::storage::BitVector const& targetStates,
                                                                       storm::storage::BitVector const& conditionStates);
 
-template std::unique_ptr<CheckResult> computeConditionalProbabilities(
-    Environment const& env, storm::solver::SolveGoal<storm::RationalNumber>&& goal,
-    storm::modelchecker::CheckTask<storm::logic::ConditionalFormula, storm::RationalNumber> const& checkTask,
-    storm::storage::SparseMatrix<storm::RationalNumber> const& transitionMatrix, storm::storage::SparseMatrix<storm::RationalNumber> const& backwardTransitions,
-    storm::storage::BitVector const& targetStates, storm::storage::BitVector const& conditionStates);
+template std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& env, storm::solver::SolveGoal<storm::RationalNumber>&& goal,
+                                                                      bool produceSchedulers,
+                                                                      storm::storage::SparseMatrix<storm::RationalNumber> const& transitionMatrix,
+                                                                      storm::storage::SparseMatrix<storm::RationalNumber> const& backwardTransitions,
+                                                                      storm::storage::BitVector const& targetStates,
+                                                                      storm::storage::BitVector const& conditionStates);
 
 }  // namespace storm::modelchecker

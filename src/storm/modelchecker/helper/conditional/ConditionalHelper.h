@@ -24,8 +24,7 @@ class BackwardTransitionCache;
 
 template<typename ValueType, typename SolutionType = ValueType>
 std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& env, storm::solver::SolveGoal<ValueType, SolutionType>&& goal,
-                                                             storm::modelchecker::CheckTask<storm::logic::ConditionalFormula, SolutionType> const& checkTask,
-                                                             storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
+                                                             bool produceSchedulers, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
                                                              storm::storage::SparseMatrix<ValueType> const& backwardTransitions,
                                                              storm::storage::BitVector const& targetStates, storm::storage::BitVector const& conditionStates);
 
