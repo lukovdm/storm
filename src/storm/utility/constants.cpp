@@ -26,6 +26,15 @@ ValueType zero() {
 }
 
 template<typename ValueType>
+ValueType defaultTolerance() {
+    if constexpr (storm::NumberTraits<ValueType>::IsExact) {
+        return zero<ValueType>();
+    } else {
+        return convertNumber<ValueType>(1e-6);
+    }
+}
+
+template<typename ValueType>
 ValueType infinity() {
     return std::numeric_limits<ValueType>::infinity();
 }
@@ -1140,6 +1149,7 @@ storm::RationalInterval abs(storm::RationalInterval const& interval) {
 // double
 template double one();
 template double zero();
+template double defaultTolerance();
 template double infinity();
 template bool isOne(double const& value);
 template bool isZero(double const& value);
@@ -1225,6 +1235,7 @@ template double convertNumber(long const&);
 template storm::ClnRationalNumber one();
 template NumberTraits<storm::ClnRationalNumber>::IntegerType one();
 template storm::ClnRationalNumber zero();
+template storm::ClnRationalNumber defaultTolerance();
 template bool isZero(NumberTraits<storm::ClnRationalNumber>::IntegerType const& value);
 template bool isConstant(storm::ClnRationalNumber const& value);
 template bool isPositive(storm::ClnRationalNumber const& value);
@@ -1256,6 +1267,7 @@ template uint64_t bitsize(storm::ClnIntegerNumber const& number);
 template storm::GmpRationalNumber one();
 template NumberTraits<storm::GmpRationalNumber>::IntegerType one();
 template storm::GmpRationalNumber zero();
+template storm::GmpRationalNumber defaultTolerance();
 template bool isZero(NumberTraits<storm::GmpRationalNumber>::IntegerType const& value);
 template bool isConstant(storm::GmpRationalNumber const& value);
 template bool isPositive(storm::GmpRationalNumber const& value);
@@ -1284,6 +1296,7 @@ template uint64_t bitsize(storm::GmpIntegerNumber const& number);
 // Instantiations for rational function.
 template RationalFunction one();
 template RationalFunction zero();
+template RationalFunction defaultTolerance();
 
 template bool isNan(RationalFunction const&);
 
@@ -1294,6 +1307,7 @@ template Polynomial zero();
 // Instantiations for intervals.
 template Interval one();
 template Interval zero();
+template Interval defaultTolerance();
 template bool isOne(Interval const& value);
 template bool isZero(Interval const& value);
 template bool isInfinity(Interval const& value);
@@ -1308,6 +1322,7 @@ template std::string to_string(storm::Interval const& value);
 // Instantiations for intervals.
 template RationalInterval one();
 template RationalInterval zero();
+template RationalInterval defaultTolerance();
 template bool isOne(RationalInterval const& value);
 template bool isZero(RationalInterval const& value);
 template bool isInfinity(RationalInterval const& value);

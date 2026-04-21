@@ -13,7 +13,6 @@ const std::string ModelCheckerSettings::moduleName = "modelchecker";
 const std::string ModelCheckerSettings::filterRewZeroOptionName = "filterrewzero";
 const std::string ModelCheckerSettings::ltl2daToolOptionName = "ltl2datool";
 const std::string ModelCheckerSettings::conditionalAlgorithmOptionName = "conditional";
-static const std::string conditionalToleranceName = "conditional-tolerance";
 
 ModelCheckerSettings::ModelCheckerSettings() : ModuleSettings(moduleName) {
     this->addOption(storm::settings::OptionBuilder(moduleName, filterRewZeroOptionName, false,
@@ -35,15 +34,6 @@ ModelCheckerSettings::ModelCheckerSettings() : ModuleSettings(moduleName) {
                                          .setDefaultValueString("default")
                                          .build())
                         .build());
-    // Would be better if there was a createRationalArgument .
-    this->addOption(
-        storm::settings::OptionBuilder(moduleName, conditionalToleranceName, false, "The internally used tolerance for computing conditional probabilities..")
-            .setShortName("condtol")
-            .addArgument(storm::settings::ArgumentBuilder::createDoubleArgument("value", "The precision to use.")
-                             .setDefaultValueDouble(1e-06)
-                             .addValidatorDouble(ArgumentValidatorFactory::createDoubleRangeValidatorIncluding(0.0, 1.0))
-                             .build())
-            .build());
 }
 
 bool ModelCheckerSettings::isFilterRewZeroSet() const {
@@ -60,10 +50,6 @@ std::string ModelCheckerSettings::getLtl2daTool() const {
 
 bool ModelCheckerSettings::isConditionalAlgorithmSet() const {
     return this->getOption(conditionalAlgorithmOptionName).getHasOptionBeenSet();
-}
-
-storm::RationalNumber ModelCheckerSettings::getConditionalTolerance() const {
-    return storm::utility::convertNumber<storm::RationalNumber>(this->getOption(conditionalToleranceName).getArgumentByName("value").getValueAsDouble());
 }
 
 ConditionalAlgorithmSetting ModelCheckerSettings::getConditionalAlgorithmSetting() const {
