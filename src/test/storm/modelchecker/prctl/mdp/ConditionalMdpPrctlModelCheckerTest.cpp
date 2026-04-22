@@ -255,10 +255,8 @@ TYPED_TEST(ConditionalMdpPrctlModelCheckerTest, two_dice) {
     result = checker.check(this->env(), tasks[5])->template asExplicitQuantitativeCheckResult<ValueType>();
     EXPECT_NEAR(this->parseNumber("0"), result[*mdp->getInitialStates().begin()], this->precision());
 
-    if constexpr (std::is_same_v<TypeParam, SparseDoubleBisectionAdvancedPtEnvironment>) {
-        // Non sound model checking this property with advanced bisection leads to incorrect pMax bound, resulting in inconsistent bisection bounds.
-        EXPECT_DEATH_IF_SUPPORTED(checker.check(this->env(), tasks[6]), "");
-    } else {
+    // This Environment depending on the platform fails or does not fail an assertion. Thus this env is skipped.
+    if constexpr (!std::is_same_v<TypeParam, SparseDoubleBisectionAdvancedPtEnvironment>) {
         result = checker.check(this->env(), tasks[6])->template asExplicitQuantitativeCheckResult<ValueType>();
         EXPECT_NEAR(this->parseNumber("1"), result[*mdp->getInitialStates().begin()], this->precision());
     }
