@@ -983,7 +983,7 @@ typename internal::ResultReturnType<ValueType> computeViaBisection(Environment c
                         "Bisection method does not adequately handle propagation of errors. Result is not necessarily sound.");
 
     bool const relative = env.modelchecker().conditional().isRelativePrecision();
-    auto const precision = env.modelchecker().conditional().getPrecision();
+    auto const precision = storm::utility::convertNumber<SolutionType>(env.modelchecker().conditional().getPrecision());
 
     WeightedReachabilityHelper wrh(initialState, transitionMatrix, normalForm, computeScheduler);
     SolutionType pMin{storm::utility::zero<SolutionType>()};
