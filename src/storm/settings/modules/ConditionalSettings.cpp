@@ -8,7 +8,7 @@
 namespace storm::settings::modules {
 
 const std::string ConditionalSettings::moduleName = "conditional";
-const std::string ConditionalSettings::conditionalAlgorithmOptionName = "conditional-algorithm";
+const std::string ConditionalSettings::conditionalAlgorithmOptionName = "algorithm";
 const std::string ConditionalSettings::conditionalPrecisionOptionName = "precision";
 const std::string ConditionalSettings::conditionalPrecisionRelativeOptionName = "relative";
 
