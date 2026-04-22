@@ -1271,10 +1271,10 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
                                                              bool produceSchedulers, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
                                                              storm::storage::SparseMatrix<ValueType> const& backwardTransitions,
                                                              storm::storage::BitVector const& targetStates, storm::storage::BitVector const& conditionStates) {
-    auto precision = storm::utility::convertNumber<SolutionType>(env.modelchecker().conditional().getPrecision());
+    auto precision = env.modelchecker().conditional().getPrecision();
     if (storm::NumberTraits<SolutionType>::IsExact && env.modelchecker().conditional().isPrecisionSetFromDefault()) {
         STORM_LOG_INFO("Setting the conditional precision to 0 since the value type is exact and the precision was not explicitly set by the user.");
-        precision = storm::utility::zero<SolutionType>();
+        precision = storm::utility::zero<storm::RationalNumber>();
     }
 
     // We might require adapting the precision of the solver to counter error propagation (e.g. when computing the normal form).
