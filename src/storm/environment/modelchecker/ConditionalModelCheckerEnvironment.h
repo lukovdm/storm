@@ -13,12 +13,18 @@ class ConditionalModelCheckerEnvironment {
     ConditionalAlgorithmSetting getAlgorithm() const;
     void setAlgorithm(ConditionalAlgorithmSetting value);
 
-    storm::RationalNumber getTolerance() const;
-    void setTolerance(storm::RationalNumber const& value);
+    storm::RationalNumber getPrecision() const;
+    bool isPrecisionSetFromDefault() const;
+    void setPrecision(storm::RationalNumber const& value, bool setFromDefault);
+
+    bool isRelativePrecision() const;
+    void setRelativePrecision(bool value);
 
    private:
     ConditionalAlgorithmSetting algorithm;
-    storm::RationalNumber tolerance;
+    storm::RationalNumber precision;
+    bool precisionSetFromDefault;
+    bool relative;
 };
 
 }  // namespace storm

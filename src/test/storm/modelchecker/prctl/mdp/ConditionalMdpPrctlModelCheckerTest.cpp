@@ -22,7 +22,8 @@ class SparseDoubleRestartEnvironment {
     static storm::Environment createEnvironment() {
         storm::Environment env;
         env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::Restart);
-        env.solver().minMax().setPrecision(storm::utility::convertNumber<storm::RationalNumber>(1e-10));  // restart algorithm requires a higher precision
+        env.modelchecker().conditional().setPrecision(storm::utility::convertNumber<storm::RationalNumber>(1e-10),
+                                                      false);  // restart algorithm requires a higher precision
         return env;
     }
 };
@@ -95,7 +96,8 @@ class SparseRationalNumberRestartEnvironment {
     static storm::Environment createEnvironment() {
         storm::Environment env;
         env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::Restart);
-        env.solver().minMax().setPrecision(storm::utility::convertNumber<storm::RationalNumber>(1e-10));  // restart algorithm requires a higher precision
+        env.modelchecker().conditional().setPrecision(storm::utility::convertNumber<storm::RationalNumber>(1e-10),
+                                                      false);  // restart algorithm requires a higher precision
         return env;
     }
 };
@@ -108,7 +110,6 @@ class SparseRationalNumberBisectionEnvironment {
     static storm::Environment createEnvironment() {
         storm::Environment env;
         env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::Bisection);
-        env.modelchecker().conditional().setTolerance(storm::utility::zero<storm::RationalNumber>());
         return env;
     }
 };
@@ -121,7 +122,6 @@ class SparseRationalNumberBisectionAdvancedEnvironment {
     static storm::Environment createEnvironment() {
         storm::Environment env;
         env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::BisectionAdvanced);
-        env.modelchecker().conditional().setTolerance(storm::utility::zero<storm::RationalNumber>());
         return env;
     }
 };
@@ -134,7 +134,6 @@ class SparseRationalNumberBisectionPtEnvironment {
     static storm::Environment createEnvironment() {
         storm::Environment env;
         env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::BisectionPolicyTracking);
-        env.modelchecker().conditional().setTolerance(storm::utility::zero<storm::RationalNumber>());
         return env;
     }
 };
@@ -147,7 +146,6 @@ class SparseRationalNumberBisectionAdvancedPtEnvironment {
     static storm::Environment createEnvironment() {
         storm::Environment env;
         env.modelchecker().conditional().setAlgorithm(storm::ConditionalAlgorithmSetting::BisectionAdvancedPolicyTracking);
-        env.modelchecker().conditional().setTolerance(storm::utility::zero<storm::RationalNumber>());
         return env;
     }
 };

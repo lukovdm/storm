@@ -1,14 +1,18 @@
 #include "storm/environment/modelchecker/ConditionalModelCheckerEnvironment.h"
 
+#include "storm/adapters/RationalNumberForward.h"
 #include "storm/settings/SettingsManager.h"
-#include "storm/settings/modules/ModelCheckerSettings.h"
+#include "storm/settings/modules/ConditionalSettings.h"
+#include "storm/utility/constants.h"
 
 namespace storm {
 
 ConditionalModelCheckerEnvironment::ConditionalModelCheckerEnvironment() {
-    auto const& mcSettings = storm::settings::getModule<storm::settings::modules::ModelCheckerSettings>();
+    auto const& mcSettings = storm::settings::getModule<storm::settings::modules::ConditionalSettings>();
     algorithm = mcSettings.getConditionalAlgorithmSetting();
-    tolerance = mcSettings.getConditionalTolerance();
+    precision = storm::utility::convertNumber<storm::RationalNumber>(mcSettings.getConditionalPrecision());
+    relative = mcSettings.isConditionalPrecisionRelative();
+    precisionSetFromDefault = mcSettings.isConditionalPrecisionSetFromDefaultValue();
 }
 
 ConditionalModelCheckerEnvironment::~ConditionalModelCheckerEnvironment() {
@@ -23,12 +27,25 @@ void ConditionalModelCheckerEnvironment::setAlgorithm(ConditionalAlgorithmSettin
     algorithm = value;
 }
 
-storm::RationalNumber ConditionalModelCheckerEnvironment::getTolerance() const {
-    return tolerance;
+storm::RationalNumber ConditionalModelCheckerEnvironment::getPrecision() const {
+    return precision;
 }
 
-void ConditionalModelCheckerEnvironment::setTolerance(storm::RationalNumber const& value) {
-    tolerance = value;
+void ConditionalModelCheckerEnvironment::setPrecision(storm::RationalNumber const& value, bool setFromDefault) {
+    precision = value;
+    precisionSetFromDefault = setFromDefault;
+}
+
+bool ConditionalModelCheckerEnvironment::isPrecisionSetFromDefault() const {
+    return precisionSetFromDefault;
+}
+
+bool ConditionalModelCheckerEnvironment::isRelativePrecision() const {
+    return relative;
+}
+
+void ConditionalModelCheckerEnvironment::setRelativePrecision(bool value) {
+    relative = value;
 }
 
 }  // namespace storm

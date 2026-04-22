@@ -4,6 +4,7 @@
 #include <stack>
 
 #include "storm/adapters/RationalNumberAdapter.h"
+#include "storm/adapters/RationalNumberForward.h"
 #include "storm/environment/modelchecker/ConditionalModelCheckerEnvironment.h"
 #include "storm/environment/modelchecker/ModelCheckerEnvironment.h"
 #include "storm/environment/solver/MinMaxSolverEnvironment.h"
@@ -18,6 +19,7 @@
 #include "storm/storage/StronglyConnectedComponentDecomposition.h"
 #include "storm/transformer/EndComponentEliminator.h"
 #include "storm/utility/Extremum.h"
+#include "storm/utility/NumberTraits.h"
 #include "storm/utility/OptionalRef.h"
 #include "storm/utility/RationalApproximation.h"
 #include "storm/utility/SignalHandler.h"
@@ -99,7 +101,7 @@ SolutionType solveMinMaxEquationSystem(storm::Environment const& env, storm::sto
     storm::solver::GeneralMinMaxLinearEquationSolverFactory<ValueType, SolutionType> factory;
     storm::storage::BitVector relevantValues(matrix.getRowGroupCount(), false);
     relevantValues.set(initialState, true);
-    auto getGoal = [&env, &goal, &relevantValues]() -> storm::solver::SolveGoal<ValueType, SolutionType> {
+    auto getGoal = [&goal, &relevantValues]() -> storm::solver::SolveGoal<ValueType, SolutionType> {
         if (goal.isBounded()) {
             return {goal.direction(), goal.boundComparisonType(), goal.thresholdValue(), relevantValues};
         } else {
@@ -141,6 +143,10 @@ std::unique_ptr<storm::storage::Scheduler<ValueType>> computeReachabilityProbabi
         scheduler = std::make_unique<storm::storage::Scheduler<ValueType>>(transitionMatrix.getRowGroupCount());
     }
 
+    auto reachabilityEnv = env;
+    reachabilityEnv.solver().minMax().setPrecision(env.modelchecker().conditional().getPrecision());
+    reachabilityEnv.solver().minMax().setRelativeTerminationCriterion(env.modelchecker().conditional().isRelativePrecision());
+
     if (initialStates.empty()) {  // nothing to do
         return scheduler;
     }
@@ -153,8 +159,8 @@ std::unique_ptr<storm::storage::Scheduler<ValueType>> computeReachabilityProbabi
     auto const subInits = initialStates % reachableStates;
     auto const submatrix = transitionMatrix.getSubmatrix(true, reachableStates, reachableStates);
     auto const subResult = helper::SparseMdpPrctlHelper<ValueType, ValueType>::computeUntilProbabilities(
-        env, storm::solver::SolveGoal<ValueType>(dir, subInits), submatrix, submatrix.transpose(true), storm::storage::BitVector(subTargets.size(), true),
-        subTargets, false, computeScheduler);
+        reachabilityEnv, storm::solver::SolveGoal<ValueType>(dir, subInits), submatrix, submatrix.transpose(true),
+        storm::storage::BitVector(subTargets.size(), true), subTargets, false, computeScheduler);
 
     auto origInitIt = initialStates.begin();
     for (auto subInit : subInits) {
@@ -973,11 +979,11 @@ typename internal::ResultReturnType<ValueType> computeViaBisection(Environment c
                                                                    storm::storage::SparseMatrix<ValueType> const& backwardTransitions,
                                                                    NormalFormData<ValueType> const& normalForm) {
     // We currently handle sound model checking incorrectly: we would need the actual lower/upper bounds of the weightedReachabilityHelper
-    SolutionType const precision = [&env]() { return storm::utility::convertNumber<SolutionType>(env.modelchecker().conditional().getTolerance()); }();
     STORM_LOG_WARN_COND(!env.solver().isForceSoundness(),
                         "Bisection method does not adequately handle propagation of errors. Result is not necessarily sound.");
 
-    bool const relative = env.solver().minMax().getRelativeTerminationCriterion();
+    bool const relative = env.modelchecker().conditional().isRelativePrecision();
+    auto const precision = env.modelchecker().conditional().getPrecision();
 
     WeightedReachabilityHelper wrh(initialState, transitionMatrix, normalForm, computeScheduler);
     SolutionType pMin{storm::utility::zero<SolutionType>()};
@@ -1084,7 +1090,7 @@ typename internal::ResultReturnType<ValueType> computeViaBisection(Environment c
         }
         // check for early termination
         if (storm::utility::resources::isTerminate()) {
-            STORM_LOG_INFO("Bisection solver aborted after " << iterationCount << "iterations. Bound difference is "
+            STORM_LOG_WARN("Bisection solver aborted after " << iterationCount << "iterations. Bound difference is "
                                                              << storm::utility::convertNumber<double>(boundDiff) << ".");
             break;
         }
@@ -1265,9 +1271,25 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
                                                              bool produceSchedulers, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
                                                              storm::storage::SparseMatrix<ValueType> const& backwardTransitions,
                                                              storm::storage::BitVector const& targetStates, storm::storage::BitVector const& conditionStates) {
+    auto precision = storm::utility::convertNumber<SolutionType>(env.modelchecker().conditional().getPrecision());
+    if (storm::NumberTraits<SolutionType>::IsExact && env.modelchecker().conditional().isPrecisionSetFromDefault()) {
+        STORM_LOG_INFO("Setting the conditional precision to 0 since the value type is exact and the precision was not explicitly set by the user.");
+        precision = storm::utility::zero<SolutionType>();
+    }
+
     // We might require adapting the precision of the solver to counter error propagation (e.g. when computing the normal form).
     auto normalFormConstructionEnv = env;
     auto analysisEnv = env;
+    if (env.solver().isForceSoundness()) {
+        // We intuitively have to divide the precision into two parts, one for computations when constructing the normal form and one for the actual analysis.
+        // As the former is usually less numerically challenging, we use a factor of 1/10 for the normal form construction and 9/10 for the analysis.
+        auto const normalFormPrecisionFactor = storm::utility::convertNumber<storm::RationalNumber, std::string>("1/10");
+        normalFormConstructionEnv.modelchecker().conditional().setPrecision(precision * normalFormPrecisionFactor, false);
+        analysisEnv.modelchecker().conditional().setPrecision(precision * (storm::utility::one<storm::RationalNumber>() - normalFormPrecisionFactor), false);
+    } else {
+        normalFormConstructionEnv.modelchecker().conditional().setPrecision(precision, false);
+        analysisEnv.modelchecker().conditional().setPrecision(precision, false);
+    }
 
     // We first translate the problem into a normal form.
     // @see doi.org/10.1007/978-3-642-54862-8_43
@@ -1308,14 +1330,19 @@ std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& 
         STORM_LOG_ASSERT(normalFormData.maybeStates.get(initialState), "Initial state must be a maybe state if it is not a terminal state");
         auto alg = analysisEnv.modelchecker().conditional().getAlgorithm();
         if (alg == ConditionalAlgorithmSetting::Default) {
-            alg = ConditionalAlgorithmSetting::Restart;
+            alg = ConditionalAlgorithmSetting::BisectionPolicyTracking;
         }
+
         STORM_LOG_INFO("Analyzing normal form with " << normalFormData.maybeStates.getNumberOfSetBits() << " maybe states using algorithm '" << alg << ".");
         internal::ResultReturnType<SolutionType> result{storm::utility::zero<SolutionType>()};
         switch (alg) {
             case ConditionalAlgorithmSetting::Restart: {
-                result = internal::computeViaRestartMethod(analysisEnv, initialState, goal, produceSchedulers, transitionMatrix, backwardTransitions,
-                                                           normalFormData);
+                auto restartEnv = analysisEnv;
+                restartEnv.solver().minMax().setPrecision(analysisEnv.modelchecker().conditional().getPrecision());
+                restartEnv.solver().minMax().setRelativeTerminationCriterion(analysisEnv.modelchecker().conditional().isRelativePrecision());
+
+                result =
+                    internal::computeViaRestartMethod(restartEnv, initialState, goal, produceSchedulers, transitionMatrix, backwardTransitions, normalFormData);
                 break;
             }
             case ConditionalAlgorithmSetting::Bisection:
