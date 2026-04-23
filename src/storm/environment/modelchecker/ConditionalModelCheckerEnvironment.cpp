@@ -11,7 +11,7 @@ ConditionalModelCheckerEnvironment::ConditionalModelCheckerEnvironment() {
     auto const& mcSettings = storm::settings::getModule<storm::settings::modules::ConditionalSettings>();
     algorithm = mcSettings.getConditionalAlgorithmSetting();
     precision = storm::utility::convertNumber<storm::RationalNumber>(mcSettings.getConditionalPrecision());
-    relative = mcSettings.isConditionalPrecisionRelative();
+    relative = !mcSettings.isConditionalPrecisionAbsolute();
     precisionSetFromDefault = mcSettings.isConditionalPrecisionSetFromDefaultValue();
 }
 

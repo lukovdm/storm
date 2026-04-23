@@ -36,9 +36,9 @@ class ConditionalSettings : public ModuleSettings {
     bool isConditionalPrecisionSetFromDefaultValue() const;
 
     /*!
-     * Retrieves whether the precision for computing conditional probabilities is considered relative.
+     * Retrieves whether the precision for computing conditional probabilities is considered absolute.
      */
-    bool isConditionalPrecisionRelative() const;
+    bool isConditionalPrecisionAbsolute() const;
 
     // The name of the module.
     static const std::string moduleName;
@@ -46,7 +46,7 @@ class ConditionalSettings : public ModuleSettings {
    private:
     static const std::string conditionalAlgorithmOptionName;
     static const std::string conditionalPrecisionOptionName;
-    static const std::string conditionalPrecisionRelativeOptionName;
+    static const std::string conditionalPrecisionAbsoluteOptionName;
 };
 
 }  // namespace modules

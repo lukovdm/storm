@@ -10,7 +10,7 @@ namespace storm::settings::modules {
 const std::string ConditionalSettings::moduleName = "conditional";
 const std::string ConditionalSettings::conditionalAlgorithmOptionName = "algorithm";
 const std::string ConditionalSettings::conditionalPrecisionOptionName = "precision";
-const std::string ConditionalSettings::conditionalPrecisionRelativeOptionName = "relative";
+const std::string ConditionalSettings::conditionalPrecisionAbsoluteOptionName = "absolute";
 
 ConditionalSettings::ConditionalSettings() : ModuleSettings(moduleName) {
     std::vector<std::string> const conditionalAlgs = {"default", "restart", "bisection", "bisection-advanced", "bisection-pt", "bisection-advanced-pt", "pi"};
@@ -31,8 +31,8 @@ ConditionalSettings::ConditionalSettings() : ModuleSettings(moduleName) {
                                          .build())
                         .build());
 
-    this->addOption(storm::settings::OptionBuilder(moduleName, conditionalPrecisionRelativeOptionName, false,
-                                                   "Whether the precision for computing conditional probabilities is considered relative.")
+    this->addOption(storm::settings::OptionBuilder(moduleName, conditionalPrecisionAbsoluteOptionName, false,
+                                                   "Whether the precision for computing conditional probabilities is considered absolute.")
                         .setIsAdvanced()
                         .build());
 }
@@ -54,8 +54,8 @@ bool ConditionalSettings::isConditionalPrecisionSetFromDefaultValue() const {
            this->getOption(conditionalPrecisionOptionName).getArgumentByName("value").wasSetFromDefaultValue();
 }
 
-bool ConditionalSettings::isConditionalPrecisionRelative() const {
-    return this->getOption(conditionalPrecisionRelativeOptionName).getHasOptionBeenSet();
+bool ConditionalSettings::isConditionalPrecisionAbsolute() const {
+    return this->getOption(conditionalPrecisionAbsoluteOptionName).getHasOptionBeenSet();
 }
 
 }  // namespace storm::settings::modules
