@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include "storm/solver/SolutionBounds.h"
 #include "storm/storage/Scheduler.h"
 
 namespace storm {
@@ -30,6 +31,11 @@ struct MDPSparseModelCheckingHelperReturnType {
 
     // A scheduler, if it was computed.
     std::unique_ptr<storm::storage::Scheduler<ValueType>> scheduler;
+
+    // Sound bounds on the values, if the algorithm that computed them provided any. These are bounds on the
+    // values, so they are expressed in the same type as those: a bound on a reward that may be infinite has to
+    // be able to say so.
+    storm::solver::SolutionBounds<ValuesType> solutionBounds;
 };
 }  // namespace helper
 
