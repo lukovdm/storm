@@ -281,15 +281,26 @@ SolverStatus OptimisticValueIterationHelper<ValueType, TrivialRowGrouping>::OVI(
         doublePrec -= precision * 1e-6;  // be slightly more precise to avoid a good chunk of floating point issues
     }
     auto status = OVI(vu, offsets, numIterations, relative, doublePrec, dir, guessValue ? *guessValue : doublePrec, lowerBound, upperBound, iterationCallback);
-    if (solutionBounds != nullptr && status == SolverStatus::Converged) {
+    bool const converged = status == SolverStatus::Converged;
+    if (solutionBounds != nullptr) {
+        // The operand was initialized below the solution and every iteration -- both the ones of the value
+        // iteration phase and the ones of the verification phase -- applies the (monotone) operator to it, so
+        // vu.first lies below the solution no matter why we stopped iterating.
+        solutionBounds->lower = vu.first;
         // Only a converged run has verified that vu.second lies above the solution. Until the verification
         // phase succeeds it is merely a guess, so handing it out as an upper bound would be unsound.
-        *solutionBounds = std::make_pair(vu.first, vu.second);
+        if (converged) {
+            solutionBounds->upper = vu.second;
+        }
     }
-    auto two = storm::utility::convertNumber<ValueType>(2.0);
-    // get the average of lower- and upper result
-    storm::utility::vector::applyPointwise<ValueType, ValueType, ValueType>(
-        vu.first, vu.second, vu.first, [&two](ValueType const& a, ValueType const& b) -> ValueType { return (a + b) / two; });
+    if (converged) {
+        auto two = storm::utility::convertNumber<ValueType>(2.0);
+        // get the average of lower- and upper result
+        storm::utility::vector::applyPointwise<ValueType, ValueType, ValueType>(
+            vu.first, vu.second, vu.first, [&two](ValueType const& a, ValueType const& b) -> ValueType { return (a + b) / two; });
+    }
+    // Otherwise vu.second holds an unverified guess (or, if we never got to guessing, uninitialized data), so
+    // averaging it into the result would be meaningless and could even push the result below vu.first.
     // Swap operand and aux vector back to original positions.
     vu.first.swap(operand);
     vu.second.swap(auxVector);

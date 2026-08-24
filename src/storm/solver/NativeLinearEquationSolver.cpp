@@ -444,8 +444,8 @@ bool NativeLinearEquationSolver<ValueType>::solveEquationsIntervalIteration(Envi
     storm::solver::SolutionBounds<ValueType> solutionBounds;
     auto status = iiHelper.II(x, b, numIterations, env.solver().native().getRelativeTerminationCriterion(), prec, lowerBoundsCallback, upperBoundsCallback, {},
                               iiCallback, optionalRelevantValues, &solutionBounds);
-    if (solutionBounds) {
-        this->setSolutionBounds(std::move(solutionBounds->first), std::move(solutionBounds->second));
+    if (solutionBounds.hasAny()) {
+        this->setSolutionBounds(std::move(solutionBounds));
     }
     this->reportStatus(status, numIterations);
 
@@ -530,10 +530,10 @@ bool NativeLinearEquationSolver<ValueType>::solveEquationsOptimisticValueIterati
     }
     this->startMeasureProgress();
     storm::solver::SolutionBounds<ValueType> solutionBounds;
-    auto status = oviHelper.OVI(x, b, env.solver().native().getRelativeTerminationCriterion(), prec, {}, guessingFactor, lowerBound, upperBound, oviCallback,
-                                &solutionBounds);
-    if (solutionBounds) {
-        this->setSolutionBounds(std::move(solutionBounds->first), std::move(solutionBounds->second));
+    auto status = oviHelper.OVI(x, b, numIterations, env.solver().native().getRelativeTerminationCriterion(), prec, {}, guessingFactor, lowerBound, upperBound,
+                                oviCallback, &solutionBounds);
+    if (solutionBounds.hasAny()) {
+        this->setSolutionBounds(std::move(solutionBounds));
     }
     this->reportStatus(status, numIterations);
 

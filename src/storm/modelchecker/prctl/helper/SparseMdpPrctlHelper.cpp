@@ -487,8 +487,13 @@ MaybeStateResult<SolutionType> computeValuesForMaybeStates(Environment const& en
 
     // Create result.
     MaybeStateResult<SolutionType> result(std::move(x));
-    if (solver->hasSolutionBounds()) {
-        result.solutionBounds = std::make_pair(solver->getSolutionLowerBounds(), solver->getSolutionUpperBounds());
+    // Note that the solver may well know only one of the two bounds, e.g. optimistic value iteration that did
+    // not converge.
+    if (solver->hasSolutionLowerBounds()) {
+        result.solutionBounds.lower = solver->getSolutionLowerBounds();
+    }
+    if (solver->hasSolutionUpperBounds()) {
+        result.solutionBounds.upper = solver->getSolutionUpperBounds();
     }
 
     // If requested, return the requested scheduler.
@@ -774,15 +779,18 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
                 // Set values of resulting vector according to result.
                 if constexpr (!storm::IsIntervalType<ValueType>) {
                     // For non-interval models, we only operated on the maybe states, and we must recover the qualitative values for the other state.
-                    if (resultForMaybeStates.solutionBounds) {
-                        // Outside of the maybe states the probability is exactly zero or one, so the entries
-                        // that result already holds bound those states from both sides.
-                        std::vector<SolutionType> lower(result), upper(result);
-                        storm::utility::vector::setVectorValues<SolutionType>(lower, qualitativeStateSets.maybeStates,
-                                                                              resultForMaybeStates.solutionBounds->first);
-                        storm::utility::vector::setVectorValues<SolutionType>(upper, qualitativeStateSets.maybeStates,
-                                                                              resultForMaybeStates.solutionBounds->second);
-                        resultBounds = std::make_pair(std::move(lower), std::move(upper));
+                    // Outside of the maybe states the probability is exactly zero or one, so the entries that
+                    // result already holds bound those states from both sides.
+                    auto embedBound = [&result, &qualitativeStateSets](std::vector<SolutionType> const& boundForMaybeStates) {
+                        std::vector<SolutionType> bound(result);
+                        storm::utility::vector::setVectorValues<SolutionType>(bound, qualitativeStateSets.maybeStates, boundForMaybeStates);
+                        return bound;
+                    };
+                    if (resultForMaybeStates.solutionBounds.hasLower()) {
+                        resultBounds.lower = embedBound(*resultForMaybeStates.solutionBounds.lower);
+                    }
+                    if (resultForMaybeStates.solutionBounds.hasUpper()) {
+                        resultBounds.upper = embedBound(*resultForMaybeStates.solutionBounds.upper);
                     }
                     storm::utility::vector::setVectorValues<SolutionType>(result, qualitativeStateSets.maybeStates, resultForMaybeStates.getValues());
                 } else {
@@ -840,6 +848,17 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
         for (auto& element : result.values) {
             element = storm::utility::one<SolutionType>() - element;
         }
+        // One minus is antitone, so the complement of the lower bound bounds the result from above and vice
+        // versa. In particular, knowing only one side before means knowing only the other side afterwards.
+        auto& bounds = result.solutionBounds;
+        for (auto* bound : {&bounds.lower, &bounds.upper}) {
+            if (*bound) {
+                for (auto& entry : **bound) {
+                    entry = storm::utility::one<SolutionType>() - entry;
+                }
+            }
+        }
+        std::swap(bounds.lower, bounds.upper);
         return result;
     }
 }

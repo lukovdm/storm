@@ -314,9 +314,11 @@ std::vector<ValueType> SparseLTLHelper<ValueType, Nondeterministic>::computeDAPr
         }
 
     } else {
-        prodNumericResult = storm::modelchecker::helper::SparseDtmcPrctlHelper<ValueType>::computeUntilProbabilities(
-            env, std::move(solveGoalProduct), product->getProductModel().getTransitionMatrix(), product->getProductModel().getBackwardTransitions(), bvTrue,
-            acceptingStates, this->isQualitativeSet());
+        // Any bounds would have to be projected back to the original model alongside the values, which is not done yet.
+        prodNumericResult = std::move(storm::modelchecker::helper::SparseDtmcPrctlHelper<ValueType>::computeUntilProbabilities(
+                                          env, std::move(solveGoalProduct), product->getProductModel().getTransitionMatrix(),
+                                          product->getProductModel().getBackwardTransitions(), bvTrue, acceptingStates, this->isQualitativeSet())
+                                          .values);
     }
 
     std::vector<ValueType> numericResult = product->projectToOriginalModel(this->_transitionMatrix.getRowGroupCount(), prodNumericResult);

@@ -184,15 +184,17 @@ class AbstractEquationSolver {
     void clearBounds();
 
     /*!
-     * Retrieves whether the last call to this solver computed sound bounds on the solution.
+     * Retrieves whether the last call to this solver computed a sound lower resp. upper bound on the solution.
      * Only some algorithms, most notably interval iteration and optimistic value iteration, provide these, and
-     * even those only when they converged.
+     * they need not provide both: optimistic value iteration, for instance, only verifies its upper bound once
+     * it converges, while its lower bound is available in any case.
      */
-    bool hasSolutionBounds() const;
+    bool hasSolutionLowerBounds() const;
+    bool hasSolutionUpperBounds() const;
 
     /*!
      * Retrieves sound bounds on the solution that the last call to this solver computed.
-     * @pre Such bounds were computed, see hasSolutionBounds().
+     * @pre The respective bound was computed, see hasSolutionLowerBounds() resp. hasSolutionUpperBounds().
      */
     std::vector<ValueType> const& getSolutionLowerBounds() const;
     std::vector<ValueType> const& getSolutionUpperBounds() const;
@@ -230,7 +232,7 @@ class AbstractEquationSolver {
      * Stores sound bounds on the solution that were obtained while solving. Note that solving is const, so
      * that this is as well.
      */
-    void setSolutionBounds(std::vector<ValueType> lower, std::vector<ValueType> upper) const;
+    void setSolutionBounds(SolutionBounds<ValueType> bounds) const;
 
     /*!
      * Discards any bounds on the solution obtained by a previous call. This must happen whenever solving

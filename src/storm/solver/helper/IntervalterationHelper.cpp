@@ -140,9 +140,10 @@ SolverStatus IntervalIterationHelper<ValueType, TrivialRowGrouping>::II(
     }
     if (solutionBounds != nullptr) {
         // Hand out the enclosure before it is collapsed into the point estimate below. Interval iteration
-        // maintains xy.first below and xy.second above the solution in every iteration, so these are sound
-        // even if the iteration was aborted before converging.
-        *solutionBounds = std::make_pair(xy.first, xy.second);
+        // maintains xy.first below and xy.second above the solution in every iteration, so both sides are
+        // sound even if the iteration was aborted before converging.
+        solutionBounds->lower = xy.first;
+        solutionBounds->upper = xy.second;
     }
     auto two = storm::utility::convertNumber<ValueType>(2.0);
     // get the average of lower- and upper result

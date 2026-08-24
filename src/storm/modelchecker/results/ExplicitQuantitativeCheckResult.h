@@ -8,6 +8,7 @@
 #include "storm/adapters/JsonForward.h"
 #include "storm/modelchecker/results/QuantitativeCheckResult.h"
 #include "storm/models/sparse/StateLabeling.h"
+#include "storm/solver/SolutionBounds.h"
 #include "storm/storage/Scheduler.h"
 #include "storm/storage/sparse/StateType.h"
 #include "storm/storage/valuations/Valuations.h"
@@ -163,5 +164,19 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
     // An optional scheduler that accompanies the values.
     std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler;
 };
+
+/*!
+ * Transfers the sound bounds that an algorithm computed to the given check result. Each of the two sides is
+ * transferred only if the algorithm established it; the other side is left alone.
+ */
+template<typename ValueType>
+void setBounds(ExplicitQuantitativeCheckResult<ValueType>& result, storm::solver::SolutionBounds<ValueType>& bounds) {
+    if (bounds.hasLower()) {
+        result.setLowerBounds(std::move(*bounds.lower));
+    }
+    if (bounds.hasUpper()) {
+        result.setUpperBounds(std::move(*bounds.upper));
+    }
+}
 }  // namespace modelchecker
 }  // namespace storm

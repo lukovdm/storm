@@ -166,10 +166,11 @@ std::vector<SolutionType> computeRobustValuesForMaybeStates(Environment const& e
 }
 
 template<typename ValueType, typename RewardModelType, typename SolutionType>
-std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeUntilProbabilities(
+DTMCSparseModelCheckingHelperReturnType<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeUntilProbabilities(
     Environment const& env, storm::solver::SolveGoal<ValueType, SolutionType>&& goal, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
     storm::storage::SparseMatrix<ValueType> const& backwardTransitions, storm::storage::BitVector const& phiStates, storm::storage::BitVector const& psiStates,
-    bool qualitative, ModelCheckerHint const& hint, storm::solver::SolutionBounds<SolutionType>* solutionBounds) {
+    bool qualitative, ModelCheckerHint const& hint) {
+    storm::solver::SolutionBounds<SolutionType> solutionBounds;
     std::vector<SolutionType> result(transitionMatrix.getRowCount(), storm::utility::zero<SolutionType>());
 
     // We need to identify the maybe states (states which have a probability for satisfying the until formula
@@ -274,13 +275,19 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
                 solver->setBounds(storm::utility::zero<ValueType>(), storm::utility::one<ValueType>());
                 solver->solveEquations(env, x, b);
 
-                if (solutionBounds != nullptr && solver->hasSolutionBounds()) {
-                    // Outside of the maybe states the probability is exactly zero or one, so the entries that
-                    // result already holds bound those states from both sides.
-                    std::vector<SolutionType> lower(result), upper(result);
-                    storm::utility::vector::setVectorValues<SolutionType>(lower, maybeStates, solver->getSolutionLowerBounds());
-                    storm::utility::vector::setVectorValues<SolutionType>(upper, maybeStates, solver->getSolutionUpperBounds());
-                    *solutionBounds = std::make_pair(std::move(lower), std::move(upper));
+                // Outside of the maybe states the probability is exactly zero or one, so the entries that
+                // result already holds bound those states from both sides. Note that the solver may well know
+                // only one of the two bounds, e.g. optimistic value iteration that did not converge.
+                auto embedBound = [&result, &maybeStates](std::vector<SolutionType> const& boundForMaybeStates) {
+                    std::vector<SolutionType> bound(result);
+                    storm::utility::vector::setVectorValues<SolutionType>(bound, maybeStates, boundForMaybeStates);
+                    return bound;
+                };
+                if (solver->hasSolutionLowerBounds()) {
+                    solutionBounds.lower = embedBound(solver->getSolutionLowerBounds());
+                }
+                if (solver->hasSolutionUpperBounds()) {
+                    solutionBounds.upper = embedBound(solver->getSolutionUpperBounds());
                 }
 
                 // Set values of resulting vector according to result.
@@ -288,7 +295,9 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
             }
         }
     }
-    return result;
+    DTMCSparseModelCheckingHelperReturnType<SolutionType> returnValue(std::move(result));
+    returnValue.solutionBounds = std::move(solutionBounds);
+    return returnValue;
 }
 
 template<typename ValueType, typename RewardModelType, typename SolutionType>
@@ -359,32 +368,31 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
 }
 
 template<typename ValueType, typename RewardModelType, typename SolutionType>
-std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeGloballyProbabilities(
+DTMCSparseModelCheckingHelperReturnType<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeGloballyProbabilities(
     Environment const& env, storm::solver::SolveGoal<ValueType, SolutionType>&& goal, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
-    storm::storage::SparseMatrix<ValueType> const& backwardTransitions, storm::storage::BitVector const& psiStates, bool qualitative,
-    storm::solver::SolutionBounds<SolutionType>* solutionBounds) {
+    storm::storage::SparseMatrix<ValueType> const& backwardTransitions, storm::storage::BitVector const& psiStates, bool qualitative) {
     if constexpr (storm::IsIntervalType<ValueType>) {
         STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We do not support computing globally probabilities with interval models.");
     } else {
         goal.oneMinus();
-        std::vector<SolutionType> result = computeUntilProbabilities(env, std::move(goal), transitionMatrix, backwardTransitions,
-                                                                     storm::storage::BitVector(transitionMatrix.getRowCount(), true), ~psiStates, qualitative,
-                                                                     ModelCheckerHint(), solutionBounds);
-        for (auto& entry : result) {
+        DTMCSparseModelCheckingHelperReturnType<SolutionType> returnValue =
+            computeUntilProbabilities(env, std::move(goal), transitionMatrix, backwardTransitions,
+                                      storm::storage::BitVector(transitionMatrix.getRowCount(), true), ~psiStates, qualitative);
+        for (auto& entry : returnValue.values) {
             entry = storm::utility::one<SolutionType>() - entry;
         }
-        if (solutionBounds != nullptr && *solutionBounds) {
-            // One minus is antitone, so the complement of the lower bound bounds the result from above.
-            auto& bounds = **solutionBounds;
-            for (auto& entry : bounds.first) {
-                entry = storm::utility::one<SolutionType>() - entry;
+        // One minus is antitone, so the complement of the lower bound bounds the result from above and vice
+        // versa. In particular, knowing only one side before means knowing only the other side afterwards.
+        auto& bounds = returnValue.solutionBounds;
+        for (auto* bound : {&bounds.lower, &bounds.upper}) {
+            if (*bound) {
+                for (auto& entry : **bound) {
+                    entry = storm::utility::one<SolutionType>() - entry;
+                }
             }
-            for (auto& entry : bounds.second) {
-                entry = storm::utility::one<SolutionType>() - entry;
-            }
-            std::swap(bounds.first, bounds.second);
         }
-        return result;
+        std::swap(bounds.lower, bounds.upper);
+        return returnValue;
     }
 }
 
@@ -738,8 +746,9 @@ SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeBaierTra
 
         // Start by computing all 'before' states, i.e. the states for which the conditional probability is defined.
         std::vector<ValueType> probabilitiesToReachConditionStates =
-            computeUntilProbabilities(env, storm::solver::SolveGoal<ValueType>(), transitionMatrix, backwardTransitions,
-                                      storm::storage::BitVector(transitionMatrix.getRowCount(), true), conditionStates, false);
+            std::move(computeUntilProbabilities(env, storm::solver::SolveGoal<ValueType>(), transitionMatrix, backwardTransitions,
+                                                storm::storage::BitVector(transitionMatrix.getRowCount(), true), conditionStates, false)
+                          .values);
 
         result.beforeStates = storm::storage::BitVector(targetStates.size(), true);
         uint_fast64_t state = 0;
@@ -909,9 +918,11 @@ SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeConditio
                     newRelevantValues = transformedModel.getNewRelevantStates();
                 }
                 goal.setRelevantValues(std::move(newRelevantValues));
-                std::vector<ValueType> conditionalProbabilities = computeUntilProbabilities(
-                    env, std::move(goal), newTransitionMatrix, newTransitionMatrix.transpose(),
-                    storm::storage::BitVector(newTransitionMatrix.getRowCount(), true), transformedModel.targetStates.get(), qualitative);
+                std::vector<ValueType> conditionalProbabilities =
+                    std::move(computeUntilProbabilities(env, std::move(goal), newTransitionMatrix, newTransitionMatrix.transpose(),
+                                                        storm::storage::BitVector(newTransitionMatrix.getRowCount(), true), transformedModel.targetStates.get(),
+                                                        qualitative)
+                                  .values);
 
                 storm::utility::vector::setVectorValues(result, transformedModel.beforeStates, conditionalProbabilities);
             }

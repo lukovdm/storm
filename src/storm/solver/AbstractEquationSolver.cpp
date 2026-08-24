@@ -241,31 +241,37 @@ void AbstractEquationSolver<ValueType>::setBoundsFromOtherSolver(AbstractEquatio
 }
 
 template<typename ValueType>
-bool AbstractEquationSolver<ValueType>::hasSolutionBounds() const {
-    return solutionBounds.has_value();
+bool AbstractEquationSolver<ValueType>::hasSolutionLowerBounds() const {
+    return solutionBounds.hasLower();
+}
+
+template<typename ValueType>
+bool AbstractEquationSolver<ValueType>::hasSolutionUpperBounds() const {
+    return solutionBounds.hasUpper();
 }
 
 template<typename ValueType>
 std::vector<ValueType> const& AbstractEquationSolver<ValueType>::getSolutionLowerBounds() const {
-    STORM_LOG_ASSERT(this->hasSolutionBounds(), "No bounds on the solution were computed.");
-    return solutionBounds->first;
+    STORM_LOG_ASSERT(this->hasSolutionLowerBounds(), "No lower bound on the solution was computed.");
+    return *solutionBounds.lower;
 }
 
 template<typename ValueType>
 std::vector<ValueType> const& AbstractEquationSolver<ValueType>::getSolutionUpperBounds() const {
-    STORM_LOG_ASSERT(this->hasSolutionBounds(), "No bounds on the solution were computed.");
-    return solutionBounds->second;
+    STORM_LOG_ASSERT(this->hasSolutionUpperBounds(), "No upper bound on the solution was computed.");
+    return *solutionBounds.upper;
 }
 
 template<typename ValueType>
-void AbstractEquationSolver<ValueType>::setSolutionBounds(std::vector<ValueType> lower, std::vector<ValueType> upper) const {
-    STORM_LOG_ASSERT(lower.size() == upper.size(), "Bounds on the solution must have the same size.");
-    solutionBounds = std::make_pair(std::move(lower), std::move(upper));
+void AbstractEquationSolver<ValueType>::setSolutionBounds(SolutionBounds<ValueType> bounds) const {
+    STORM_LOG_ASSERT(!bounds.hasLower() || !bounds.hasUpper() || bounds.lower->size() == bounds.upper->size(),
+                     "Bounds on the solution must have the same size.");
+    solutionBounds = std::move(bounds);
 }
 
 template<typename ValueType>
 void AbstractEquationSolver<ValueType>::clearSolutionBounds() const {
-    solutionBounds = std::nullopt;
+    solutionBounds.clear();
 }
 
 template<typename ValueType>

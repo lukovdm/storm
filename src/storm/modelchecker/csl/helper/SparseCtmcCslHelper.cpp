@@ -258,8 +258,10 @@ std::vector<ValueType> SparseCtmcCslHelper::computeUntilProbabilities(Environmen
                                                                       storm::storage::SparseMatrix<ValueType> const& backwardTransitions,
                                                                       std::vector<ValueType> const& exitRateVector, storm::storage::BitVector const& phiStates,
                                                                       storm::storage::BitVector const& psiStates, bool qualitative) {
-    return SparseDtmcPrctlHelper<ValueType>::computeUntilProbabilities(env, std::move(goal), computeProbabilityMatrix(rateMatrix, exitRateVector),
-                                                                       backwardTransitions, phiStates, psiStates, qualitative);
+    // The CTMC helper does not expose bounds to its callers yet.
+    return std::move(SparseDtmcPrctlHelper<ValueType>::computeUntilProbabilities(env, std::move(goal), computeProbabilityMatrix(rateMatrix, exitRateVector),
+                                                                                 backwardTransitions, phiStates, psiStates, qualitative)
+                         .values);
 }
 
 template<typename ValueType>
