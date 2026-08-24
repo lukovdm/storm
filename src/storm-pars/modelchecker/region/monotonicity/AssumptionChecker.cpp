@@ -54,7 +54,7 @@ void AssumptionChecker<ValueType, ConstantType>::initializeCheckingOnSamples(std
             STORM_LOG_THROW(false, exceptions::NotSupportedException, "Expecting until or eventually formula.");
         }
         auto quantitativeResult = checkResult->asExplicitQuantitativeCheckResult<ConstantType>();
-        std::vector<ConstantType> values = quantitativeResult.getValueVector();
+        std::vector<ConstantType> values = quantitativeResult.getFiniteValueVector();
         samples.push_back(values);
     }
     useSamples = true;

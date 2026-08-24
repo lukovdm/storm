@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "storm/exceptions/InvalidOperationException.h"
+#include "storm/exceptions/NotSupportedException.h"
 #include "storm/utility/NumberTraits.h"
 #include "storm/utility/constants.h"
 #include "storm/utility/macros.h"
@@ -324,6 +325,110 @@ ExtendedValueType<ValueType> negativeInfinity() {
 }
 
 /*!
+ * @pre the value is finite
+ * @return the finite value, whether or not the type it is held in is an extended one. This is for the places that read
+ * a single entry out of a result they know to be finite, where copying the whole vector would be wasteful.
+ */
+template<typename ValueType>
+ValueType const& getFinite(ExtendedNumber<ValueType> const& value) {
+    return value.getFinite();
+}
+
+template<typename ValueType>
+    requires(!detail::IsExtendedNumber<ValueType>::value)
+ValueType const& getFinite(ValueType const& value) {
+    return value;
+}
+
+/*!
+ * Recognises the value that storm::utility::infinity still yields for the value types that have no infinity of their
+ * own -- the literal 100000000000 -- and turns it into a real infinity.
+ *
+ * This is a bridge for the parts of Storm that still produce that sentinel, most of all the decision diagram leaves. It
+ * inherits the sentinel's weaknesses, so it is not a place to build on; it disappears together with the sentinel.
+ */
+template<typename ValueType>
+ExtendedValueType<ValueType> fromSentinel(ValueType const& value) {
+    if (storm::utility::isInfinity(value)) {
+        return storm::utility::positiveInfinity<ValueType>();
+    }
+    return value;
+}
+
+/*!
+ * The counterpart of fromSentinel: hands an extended value back to a part of Storm that still expects the sentinel,
+ * most of all a decision diagram leaf. The sentinel has no negative infinity, so that direction is rejected rather than
+ * silently turned into something else.
+ */
+template<typename ValueType>
+ValueType toSentinel(ExtendedValueType<ValueType> const& value) {
+    if constexpr (detail::IsExtendedNumber<ExtendedValueType<ValueType>>::value) {
+        if (value.isInfinite()) {
+            STORM_LOG_THROW(value.isPositiveInfinity(), storm::exceptions::NotSupportedException, "There is no representation of " << value << " here.");
+            return storm::utility::infinity<ValueType>();
+        }
+        return value.getFinite();
+    } else {
+        return value;
+    }
+}
+
+/*!
+ * The generic storm::utility::zero, one and infinity are declared for every value type but defined only for the ones
+ * that are explicitly instantiated. These overloads are more constrained than those declarations, so they are picked for
+ * the extended types and the extended types alone.
+ */
+template<typename ValueType>
+    requires(detail::IsExtendedNumber<ValueType>::value)
+ValueType zero() {
+    return ValueType(storm::utility::zero<FiniteValueType<ValueType>>());
+}
+
+template<typename ValueType>
+    requires(detail::IsExtendedNumber<ValueType>::value)
+ValueType one() {
+    return ValueType(storm::utility::one<FiniteValueType<ValueType>>());
+}
+
+template<typename ValueType>
+    requires(detail::IsExtendedNumber<ValueType>::value)
+ValueType infinity() {
+    return ValueType::infinity();
+}
+
+/*!
+ * @return true if the given value is +infinity. This mirrors the meaning that isInfinity has for the value types that
+ * bring their own infinity, where -infinity is not reported either.
+ */
+template<typename ValueType>
+bool isInfinity(ExtendedNumber<ValueType> const& number) {
+    return number.isPositiveInfinity();
+}
+
+template<typename ValueType>
+bool isZero(ExtendedNumber<ValueType> const& number) {
+    return number.isFinite() && storm::utility::isZero(number.getFinite());
+}
+
+template<typename ValueType>
+bool isOne(ExtendedNumber<ValueType> const& number) {
+    return number.isFinite() && storm::utility::isOne(number.getFinite());
+}
+
+template<typename ValueType>
+bool isConstant(ExtendedNumber<ValueType> const& number) {
+    return number.isInfinite() || storm::utility::isConstant(number.getFinite());
+}
+
+template<typename ValueType>
+ExtendedNumber<ValueType> abs(ExtendedNumber<ValueType> const& number) {
+    if (number.isInfinite()) {
+        return ExtendedNumber<ValueType>::infinity();
+    }
+    return ExtendedNumber<ValueType>(storm::utility::abs(number.getFinite()));
+}
+
+/*!
  * Converts a possibly infinite value to another type, which may itself be an ExtendedNumber or a type that has its own
  * infinity. This is what lets an infinite value cross value types without every call site restating what infinity means
  * in the source and in the target type.
@@ -342,12 +447,21 @@ TargetType convertNumber(ExtendedNumber<SourceType> const& number) {
 }
 
 /*!
- * Converts a finite value into an extended one. Widening a value never has to look at what it holds, so this is just the
- * underlying conversion followed by the implicit constructor.
+ * Converts a value into an extended one. If the source type has an infinity of its own it is carried over; otherwise
+ * this is just the underlying conversion followed by the implicit constructor.
  */
 template<typename TargetType, typename SourceType>
     requires(detail::IsExtendedNumber<TargetType>::value && !detail::IsExtendedNumber<SourceType>::value)
 TargetType convertNumber(SourceType const& number) {
+    if constexpr (storm::NumberTraits<SourceType>::HasInfinity) {
+        // The source brings its own infinity, which the underlying conversion has no way of expressing.
+        if (storm::utility::isInfinity(number)) {
+            return TargetType::infinity();
+        }
+        if (storm::utility::isInfinity(SourceType(-number))) {
+            return TargetType::negativeInfinity();
+        }
+    }
     return TargetType(convertNumber<FiniteValueType<TargetType>, SourceType>(number));
 }
 

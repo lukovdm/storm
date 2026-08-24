@@ -108,7 +108,7 @@ void evaluateScheduler(storm::Environment const& env, storm::models::sparse::Mdp
         auto objRes = modelChecker.check(env, *obj);
         EXPECT_TRUE(objRes->isExplicitQuantitativeCheckResult()) << "Objective " << *obj << " did not produce a quantitative result.";
         auto const& quantitativeResult = objRes->template asExplicitQuantitativeCheckResult<ValueType>();
-        result.push_back(quantitativeResult[*dtmc.getInitialStates().begin()]);
+        result.push_back(storm::utility::getFinite(quantitativeResult[*dtmc.getInitialStates().begin()]));
     }
 }
 

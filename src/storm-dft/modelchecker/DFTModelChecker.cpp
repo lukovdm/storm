@@ -465,7 +465,8 @@ std::vector<ValueType> DFTModelChecker<ValueType>::checkModel(std::shared_ptr<st
 
         if (result) {
             result->filter(storm::modelchecker::ExplicitQualitativeCheckResult<ValueType>(model->getInitialStates()));
-            ValueType resultValue = result->asExplicitQuantitativeCheckResult<ValueType>().getValueMap().begin()->second;
+            // The DFT results are still kept in the plain value type, so an infinite one goes back to the sentinel here.
+            ValueType resultValue = storm::utility::toSentinel<ValueType>(result->asExplicitQuantitativeCheckResult<ValueType>().getValueMap().begin()->second);
             results.push_back(resultValue);
         } else {
             STORM_LOG_WARN("The property '" << *property << "' could not be checked with the current settings.");

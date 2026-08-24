@@ -8,6 +8,7 @@
 #include "storm/exceptions/InvalidArgumentException.h"
 #include "storm/exceptions/NotSupportedException.h"
 #include "storm/storage/sparse/StateType.h"
+#include "storm/utility/ExtendedNumber.h"
 #include "storm/utility/NumberTraits.h"
 #include "storm/utility/logging.h"
 #include "storm/utility/macros.h"
@@ -1352,5 +1353,25 @@ template bool isBetween(RationalInterval const&, RationalInterval const&, Ration
 template RationalInterval convertNumber(RationalInterval const&);
 
 template std::string to_string(storm::RationalInterval const& value);
+
+// Instantiations for the value types extended with the infinities. Their order already puts the infinities at the two
+// ends, so the generic definitions above are correct for them and none of the sentinel patches is needed.
+template std::pair<ExtendedNumber<storm::RationalNumber>, ExtendedNumber<storm::RationalNumber>> minmax(
+    std::vector<ExtendedNumber<storm::RationalNumber>> const& values);
+template ExtendedNumber<storm::RationalNumber> minimum(std::vector<ExtendedNumber<storm::RationalNumber>> const& values);
+template ExtendedNumber<storm::RationalNumber> maximum(std::vector<ExtendedNumber<storm::RationalNumber>> const& values);
+template std::pair<ExtendedNumber<storm::RationalNumber>, ExtendedNumber<storm::RationalNumber>> minmax(
+    std::map<uint64_t, ExtendedNumber<storm::RationalNumber>> const& values);
+template ExtendedNumber<storm::RationalNumber> minimum(std::map<uint64_t, ExtendedNumber<storm::RationalNumber>> const& values);
+template ExtendedNumber<storm::RationalNumber> maximum(std::map<uint64_t, ExtendedNumber<storm::RationalNumber>> const& values);
+
+template std::pair<ExtendedNumber<storm::RationalFunction>, ExtendedNumber<storm::RationalFunction>> minmax(
+    std::vector<ExtendedNumber<storm::RationalFunction>> const& values);
+template ExtendedNumber<storm::RationalFunction> minimum(std::vector<ExtendedNumber<storm::RationalFunction>> const& values);
+template ExtendedNumber<storm::RationalFunction> maximum(std::vector<ExtendedNumber<storm::RationalFunction>> const& values);
+template std::pair<ExtendedNumber<storm::RationalFunction>, ExtendedNumber<storm::RationalFunction>> minmax(
+    std::map<uint64_t, ExtendedNumber<storm::RationalFunction>> const& values);
+template ExtendedNumber<storm::RationalFunction> minimum(std::map<uint64_t, ExtendedNumber<storm::RationalFunction>> const& values);
+template ExtendedNumber<storm::RationalFunction> maximum(std::map<uint64_t, ExtendedNumber<storm::RationalFunction>> const& values);
 }  // namespace utility
 }  // namespace storm

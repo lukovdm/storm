@@ -73,13 +73,13 @@ std::unique_ptr<CheckResult> SparseDtmcInstantiationModelChecker<SparseModelType
             auto newCheckTask = *this->currentCheckTask;
             newCheckTask.setQualitative(true);
             newCheckTask.setOnlyInitialStatesRelevant(false);
-            qualitativeResult = modelChecker.check(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector();
+            qualitativeResult = modelChecker.check(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector();
         } else {
             auto newCheckTask = this->currentCheckTask->substituteFormula(this->currentCheckTask->getFormula().asOperatorFormula().getSubformula());
             newCheckTask.setQualitative(true);
             newCheckTask.setOnlyInitialStatesRelevant(false);
             qualitativeResult =
-                modelChecker.computeProbabilities(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector();
+                modelChecker.computeProbabilities(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector();
         }
         storm::storage::BitVector maybeStates = storm::utility::vector::filter<ConstantType>(qualitativeResult, [](ConstantType const& value) -> bool {
             return !(storm::utility::isZero<ConstantType>(value) || storm::utility::isOne<ConstantType>(value));
@@ -94,7 +94,7 @@ std::unique_ptr<CheckResult> SparseDtmcInstantiationModelChecker<SparseModelType
     // For qualitative properties, we still want a quantitative result hint. Hence we perform the check on the subformula
     if (this->currentCheckTask->getFormula().asOperatorFormula().hasQuantitativeResult()) {
         result = modelChecker.check(env, *this->currentCheckTask);
-        hint.setResultHint(result->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector());
+        hint.setResultHint(result->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector());
     } else {
         auto newCheckTask = this->currentCheckTask->substituteFormula(this->currentCheckTask->getFormula().asOperatorFormula().getSubformula())
                                 .setOnlyInitialStatesRelevant(false);
@@ -102,7 +102,7 @@ std::unique_ptr<CheckResult> SparseDtmcInstantiationModelChecker<SparseModelType
         result = quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().compareAgainstBound(
             this->currentCheckTask->getFormula().asOperatorFormula().getComparisonType(),
             this->currentCheckTask->getFormula().asOperatorFormula().template getThresholdAs<ConstantType>());
-        hint.setResultHint(std::move(quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector()));
+        hint.setResultHint(std::move(quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector()));
     }
 
     return result;
@@ -123,12 +123,13 @@ std::unique_ptr<CheckResult> SparseDtmcInstantiationModelChecker<SparseModelType
             auto newCheckTask = *this->currentCheckTask;
             newCheckTask.setQualitative(true);
             newCheckTask.setOnlyInitialStatesRelevant(false);
-            qualitativeResult = modelChecker.check(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector();
+            qualitativeResult = modelChecker.check(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector();
         } else {
             auto newCheckTask = this->currentCheckTask->substituteFormula(this->currentCheckTask->getFormula().asOperatorFormula().getSubformula());
             newCheckTask.setQualitative(true);
             newCheckTask.setOnlyInitialStatesRelevant(false);
-            qualitativeResult = modelChecker.computeRewards(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector();
+            qualitativeResult =
+                modelChecker.computeRewards(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector();
         }
         storm::storage::BitVector maybeStates = storm::utility::vector::filter<ConstantType>(qualitativeResult, [](ConstantType const& value) -> bool {
             return !(storm::utility::isZero<ConstantType>(value) || storm::utility::isInfinity<ConstantType>(value));
@@ -145,7 +146,7 @@ std::unique_ptr<CheckResult> SparseDtmcInstantiationModelChecker<SparseModelType
     if (this->currentCheckTask->getFormula().asOperatorFormula().hasQuantitativeResult()) {
         result = modelChecker.check(env, *this->currentCheckTask);
         this->currentCheckTask->getHint().template asExplicitModelCheckerHint<ConstantType>().setResultHint(
-            result->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector());
+            result->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector());
     } else {
         auto newCheckTask = this->currentCheckTask->substituteFormula(this->currentCheckTask->getFormula().asOperatorFormula().getSubformula())
                                 .setOnlyInitialStatesRelevant(false);
@@ -154,7 +155,7 @@ std::unique_ptr<CheckResult> SparseDtmcInstantiationModelChecker<SparseModelType
             this->currentCheckTask->getFormula().asOperatorFormula().getComparisonType(),
             this->currentCheckTask->getFormula().asOperatorFormula().template getThresholdAs<ConstantType>());
         this->currentCheckTask->getHint().template asExplicitModelCheckerHint<ConstantType>().setResultHint(
-            std::move(quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector()));
+            std::move(quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector()));
     }
 
     return result;
@@ -174,7 +175,7 @@ std::unique_ptr<CheckResult> SparseDtmcInstantiationModelChecker<SparseModelType
         // For qualitative properties, we still need a quantitative result. Hence we perform the check on the subformula
         if (this->currentCheckTask->getFormula().asOperatorFormula().hasQuantitativeResult()) {
             result = modelChecker.check(env, *this->currentCheckTask);
-            hint.setResultHint(result->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector());
+            hint.setResultHint(result->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector());
         } else {
             auto newCheckTask = this->currentCheckTask->substituteFormula(this->currentCheckTask->getFormula().asOperatorFormula().getSubformula())
                                     .setOnlyInitialStatesRelevant(false);
@@ -182,7 +183,7 @@ std::unique_ptr<CheckResult> SparseDtmcInstantiationModelChecker<SparseModelType
             result = quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().compareAgainstBound(
                 this->currentCheckTask->getFormula().asOperatorFormula().getComparisonType(),
                 this->currentCheckTask->getFormula().asOperatorFormula().template getThresholdAs<ConstantType>());
-            hint.setResultHint(std::move(quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector()));
+            hint.setResultHint(std::move(quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector()));
         }
 
         storm::storage::BitVector maybeStates = storm::utility::vector::filterGreaterZero(hint.getResultHint());

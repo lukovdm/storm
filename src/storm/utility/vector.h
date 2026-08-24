@@ -539,7 +539,9 @@ storm::storage::BitVector filterOne(std::vector<T> const& values) {
  */
 template<class T>
 storm::storage::BitVector filterInfinity(std::vector<T> const& values) {
-    return filter<T>(values, storm::utility::isInfinity<T>);
+    // The lambda is what lets the overload for the extended types be found; naming isInfinity<T> would always pick the
+    // primary template.
+    return filter<T>(values, [](T const& value) { return storm::utility::isInfinity(value); });
 }
 
 /**

@@ -41,11 +41,11 @@ class SymbolicQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
 
     virtual void filter(QualitativeCheckResult const& filter) override;
 
-    virtual ValueType getMin() const override;
-    virtual ValueType getMax() const override;
+    virtual typename QuantitativeCheckResult<ValueType>::extended_value_type getMin() const override;
+    virtual typename QuantitativeCheckResult<ValueType>::extended_value_type getMax() const override;
 
-    virtual ValueType average() const override;
-    virtual ValueType sum() const override;
+    virtual typename QuantitativeCheckResult<ValueType>::extended_value_type average() const override;
+    virtual typename QuantitativeCheckResult<ValueType>::extended_value_type sum() const override;
 
     virtual void oneMinus() override;
 

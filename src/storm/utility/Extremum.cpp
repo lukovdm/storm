@@ -1,6 +1,7 @@
 #include "storm/utility/Extremum.h"
 
 #include "storm/adapters/RationalNumberAdapter.h"
+#include "storm/utility/ExtendedNumber.h"
 #include "storm/utility/macros.h"
 
 namespace storm::utility {
@@ -151,10 +152,14 @@ template class Extremum<storm::OptimizationDirection::Maximize, double>;
 #if defined(STORM_HAVE_CLN)
 template class Extremum<storm::OptimizationDirection::Minimize, storm::ClnRationalNumber>;
 template class Extremum<storm::OptimizationDirection::Maximize, storm::ClnRationalNumber>;
+template class Extremum<storm::OptimizationDirection::Minimize, ExtendedNumber<storm::ClnRationalNumber>>;
+template class Extremum<storm::OptimizationDirection::Maximize, ExtendedNumber<storm::ClnRationalNumber>>;
 #endif
 #if defined(STORM_HAVE_GMP)
 template class Extremum<storm::OptimizationDirection::Minimize, storm::GmpRationalNumber>;
 template class Extremum<storm::OptimizationDirection::Maximize, storm::GmpRationalNumber>;
+template class Extremum<storm::OptimizationDirection::Minimize, ExtendedNumber<storm::GmpRationalNumber>>;
+template class Extremum<storm::OptimizationDirection::Maximize, ExtendedNumber<storm::GmpRationalNumber>>;
 #endif
 
 }  // namespace storm::utility

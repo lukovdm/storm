@@ -26,6 +26,7 @@ class SparseParameterLiftingModelChecker : public RegionModelChecker<typename Sp
    public:
     using ParametricType = typename SparseModelType::ValueType;
     using CoefficientType = typename RegionModelChecker<ParametricType>::CoefficientType;
+    using ExtendedCoefficientType = typename RegionModelChecker<ParametricType>::ExtendedCoefficientType;
     using VariableType = typename RegionModelChecker<ParametricType>::VariableType;
     using Valuation = typename RegionModelChecker<ParametricType>::Valuation;
 
@@ -80,8 +81,8 @@ class SparseParameterLiftingModelChecker : public RegionModelChecker<typename Sp
      * @param dirForParameters whether to maximize or minimize the value in the region
      * @return the over-approximated value within the region
      */
-    virtual CoefficientType getBoundAtInitState(Environment const& env, AnnotatedRegion<ParametricType>& region,
-                                                storm::solver::OptimizationDirection const& dirForParameters) override;
+    virtual ExtendedCoefficientType getBoundAtInitState(Environment const& env, AnnotatedRegion<ParametricType>& region,
+                                                        storm::solver::OptimizationDirection const& dirForParameters) override;
 
     /*!
      * Heuristically finds a point within the region and computes the value at the initial state for that point.
@@ -91,8 +92,8 @@ class SparseParameterLiftingModelChecker : public RegionModelChecker<typename Sp
      * @param dirForParameters whether the heuristic tries to find a point with a high or low value
      * @return a pair of the value at the initial state and the point at which the value was computed
      */
-    virtual std::pair<CoefficientType, Valuation> getAndEvaluateGoodPoint(Environment const& env, AnnotatedRegion<ParametricType>& region,
-                                                                          storm::solver::OptimizationDirection const& dirForParameters) override;
+    virtual std::pair<ExtendedCoefficientType, Valuation> getAndEvaluateGoodPoint(Environment const& env, AnnotatedRegion<ParametricType>& region,
+                                                                                  storm::solver::OptimizationDirection const& dirForParameters) override;
 
     SparseModelType const& getConsideredParametricModel() const;
     CheckTask<storm::logic::Formula, ConstantType> const& getCurrentCheckTask() const;

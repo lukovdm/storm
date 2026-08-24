@@ -114,7 +114,8 @@ void printFilteredResult(std::unique_ptr<storm::modelchecker::CheckResult> const
         if (ft == storm::modelchecker::FilterType::VALUES) {
             STORM_PRINT(*result);
         } else {
-            ValueType resultValue;
+            // A filtered reward or expected time can be infinite, so the value is held in the extended type.
+            storm::utility::ExtendedValueType<ValueType> resultValue;
             switch (ft) {
                 case storm::modelchecker::FilterType::SUM:
                     resultValue = result->asQuantitativeCheckResult<ValueType>().sum();

@@ -771,14 +771,14 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
             auto const center = region.getCenterPoint();
 
             std::unique_ptr<storm::modelchecker::CheckResult> result = instantiationModelChecker.check(env, center);
-            auto const reachabilityProbabilities = result->asExplicitQuantitativeCheckResult<ConstantType>().getValueVector();
+            auto const reachabilityProbabilities = result->asExplicitQuantitativeCheckResult<ConstantType>().getFiniteValueVector();
 
             STORM_LOG_ASSERT(this->derivativeChecker, "Derivative checker not intialized.");
 
             for (auto const& param : region.getVariables()) {
                 auto result = this->derivativeChecker->check(env, center, param, reachabilityProbabilities);
-                ConstantType derivative =
-                    result->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector()[this->derivativeChecker->getInitialState()];
+                ConstantType derivative = storm::utility::getFinite(
+                    result->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector()[this->derivativeChecker->getInitialState()]);
                 cachedRegionSplitEstimates[param] = utility::abs(derivative) * utility::convertNumber<ConstantType>(region.getDifference(param));
             }
             break;

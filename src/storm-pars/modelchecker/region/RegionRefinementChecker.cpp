@@ -207,11 +207,11 @@ std::unique_ptr<storm::modelchecker::RegionRefinementCheckResult<ParametricType>
 }
 
 template<typename ParametricType>
-std::pair<typename storm::storage::ParameterRegion<ParametricType>::CoefficientType, typename storm::storage::ParameterRegion<ParametricType>::Valuation>
+std::pair<typename RegionRefinementChecker<ParametricType>::ExtendedCoefficientType, typename storm::storage::ParameterRegion<ParametricType>::Valuation>
 RegionRefinementChecker<ParametricType>::computeExtremalValueHelper(Environment const& env, storm::storage::ParameterRegion<ParametricType> const& region,
                                                                     storm::solver::OptimizationDirection const& dir,
-                                                                    std::function<bool(CoefficientType, CoefficientType)> acceptGlobalBound,
-                                                                    std::function<bool(CoefficientType)> rejectInstance) {
+                                                                    std::function<bool(ExtendedCoefficientType, ExtendedCoefficientType)> acceptGlobalBound,
+                                                                    std::function<bool(ExtendedCoefficientType)> rejectInstance) {
     auto progress = PartitioningProgress<CoefficientType>(region.area());
 
     // Holds the initial region as well as all considered (sub)-regions and their annotations as a tree
@@ -301,7 +301,7 @@ RegionRefinementChecker<ParametricType>::computeExtremalValueHelper(Environment 
 }
 
 template<typename ParametricType>
-std::pair<typename storm::storage::ParameterRegion<ParametricType>::CoefficientType, typename storm::storage::ParameterRegion<ParametricType>::Valuation>
+std::pair<typename RegionRefinementChecker<ParametricType>::ExtendedCoefficientType, typename storm::storage::ParameterRegion<ParametricType>::Valuation>
 RegionRefinementChecker<ParametricType>::computeExtremalValue(Environment const& env, storm::storage::ParameterRegion<ParametricType> const& region,
                                                               storm::solver::OptimizationDirection const& dir, ParametricType const& precision,
                                                               bool absolutePrecision, std::optional<storm::logic::Bound> const& boundInvariant) {
@@ -310,12 +310,12 @@ RegionRefinementChecker<ParametricType>::computeExtremalValue(Environment const&
                     "Precision must be a constant value. Got " << precision << " instead.");
     CoefficientType convertedPrecision = storm::utility::convertNumber<CoefficientType>(precision);
 
-    auto acceptGlobalBound = [&](CoefficientType value, CoefficientType newValue) {
-        CoefficientType const usedPrecision = convertedPrecision * (absolutePrecision ? storm::utility::one<CoefficientType>() : value);
+    auto acceptGlobalBound = [&](ExtendedCoefficientType value, ExtendedCoefficientType newValue) {
+        ExtendedCoefficientType const usedPrecision = convertedPrecision * (absolutePrecision ? storm::utility::one<ExtendedCoefficientType>() : value);
         return storm::solver::minimize(dir) ? newValue >= value - usedPrecision : newValue <= value + usedPrecision;
     };
 
-    auto rejectInstance = [&](CoefficientType currentValue) { return boundInvariant && !boundInvariant->isSatisfied(currentValue); };
+    auto rejectInstance = [&](ExtendedCoefficientType currentValue) { return boundInvariant && !boundInvariant->isSatisfied(currentValue); };
 
     return computeExtremalValueHelper(env, region, dir, acceptGlobalBound, rejectInstance);
 }
@@ -329,9 +329,9 @@ bool RegionRefinementChecker<ParametricType>::verifyRegion(const storm::Environm
     storm::solver::OptimizationDirection dir =
         isLowerBound(bound.comparisonType) ? storm::solver::OptimizationDirection::Minimize : storm::solver::OptimizationDirection::Maximize;
     // We pass the bound as an invariant; as soon as it is obtained, we can stop the search.
-    auto acceptGlobalBound = [&](CoefficientType value, CoefficientType newValue) { return bound.isSatisfied(newValue); };
+    auto acceptGlobalBound = [&](ExtendedCoefficientType, ExtendedCoefficientType newValue) { return bound.isSatisfied(newValue); };
 
-    auto rejectInstance = [&](CoefficientType currentValue) { return !bound.isSatisfied(currentValue); };
+    auto rejectInstance = [&](ExtendedCoefficientType currentValue) { return !bound.isSatisfied(currentValue); };
 
     auto res = computeExtremalValueHelper(env, region, dir, acceptGlobalBound, rejectInstance).first;
     STORM_LOG_INFO("Extremal value: " << res);

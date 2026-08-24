@@ -919,7 +919,7 @@ void BeliefMdpExplorer<PomdpType, BeliefValueType>::computeValuesOfExploredMdp(s
 
     std::unique_ptr<storm::modelchecker::CheckResult> res(storm::api::verifyWithSparseEngine<ValueType>(env, exploredMdp, task));
     if (res) {
-        values = std::move(res->asExplicitQuantitativeCheckResult<ValueType>().getValueVector());
+        values = std::move(res->asExplicitQuantitativeCheckResult<ValueType>().getSentinelValueVector());
         scheduler = std::make_shared<storm::storage::Scheduler<ValueType>>(res->asExplicitQuantitativeCheckResult<ValueType>().getScheduler());
         STORM_LOG_WARN_COND_DEBUG(storm::utility::vector::compareElementWise(lowerValueBounds, values, std::less_equal<ValueType>()),
                                   "Computed values are smaller than the lower bound.");

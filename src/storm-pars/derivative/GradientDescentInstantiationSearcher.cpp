@@ -300,7 +300,7 @@ ConstantType GradientDescentInstantiationSearcher<FunctionType, ConstantType>::s
 
         if (computeValue) {
             std::unique_ptr<storm::modelchecker::CheckResult> intermediateResult = instantiationModelChecker->check(env, nesterovPredictedPosition);
-            std::vector<ConstantType> valueVector = intermediateResult->asExplicitQuantitativeCheckResult<ConstantType>().getValueVector();
+            std::vector<ConstantType> valueVector = intermediateResult->asExplicitQuantitativeCheckResult<ConstantType>().getFiniteValueVector();
             if (boost::get<Nesterov>(&gradientDescentType)) {
                 std::map<VariableType<FunctionType>, CoefficientType<FunctionType>> modelCheckPosition(position);
                 if (constraintMethod == GradientDescentConstraintMethod::LOGISTIC_SIGMOID) {
@@ -312,7 +312,7 @@ ConstantType GradientDescentInstantiationSearcher<FunctionType, ConstantType>::s
                     }
                 }
                 std::unique_ptr<storm::modelchecker::CheckResult> terminationResult = instantiationModelChecker->check(env, modelCheckPosition);
-                std::vector<ConstantType> terminationValueVector = terminationResult->asExplicitQuantitativeCheckResult<ConstantType>().getValueVector();
+                std::vector<ConstantType> terminationValueVector = terminationResult->asExplicitQuantitativeCheckResult<ConstantType>().getFiniteValueVector();
                 currentValue = terminationValueVector[initialStateModel];
             } else {
                 currentValue = valueVector[initialStateModel];
@@ -324,7 +324,7 @@ ConstantType GradientDescentInstantiationSearcher<FunctionType, ConstantType>::s
 
             for (auto const& parameter : miniBatch) {
                 auto checkResult = derivativeEvaluationHelper->check(env, nesterovPredictedPosition, parameter, valueVector);
-                ConstantType delta = checkResult->getValueVector()[derivativeEvaluationHelper->getInitialState()];
+                ConstantType delta = storm::utility::getFinite(checkResult->getValueVector()[derivativeEvaluationHelper->getInitialState()]);
                 if (synthesisTask->getBound().comparisonType == logic::ComparisonType::Less ||
                     synthesisTask->getBound().comparisonType == logic::ComparisonType::LessEqual) {
                     delta = -delta;

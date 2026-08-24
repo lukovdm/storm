@@ -118,7 +118,7 @@ class QuantileQueryTest : public ::testing::Test {
             if (!result->isExplicitQuantitativeCheckResult()) {
                 return {false, "The CheckResult has unexpected type."};
             }
-            resultPoints = {{result->asExplicitQuantitativeCheckResult<ValueType>().getMax()}};
+            resultPoints = {{storm::utility::getFinite(result->asExplicitQuantitativeCheckResult<ValueType>().getMax())}};
         }
         std::vector<std::vector<ValueType>> expectedPoints;
         for (auto const& pointAsString : expected) {

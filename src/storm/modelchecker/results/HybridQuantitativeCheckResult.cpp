@@ -107,8 +107,8 @@ std::vector<ValueType> const& HybridQuantitativeCheckResult<Type, ValueType>::ge
 }
 
 template<typename ValueType>
-void print(std::ostream& out, ValueType const& value) {
-    if (value == storm::utility::infinity<ValueType>()) {
+void print(std::ostream& out, storm::utility::ExtendedValueType<ValueType> const& value) {
+    if (storm::utility::isInfinity(value)) {
         out << "inf";
     } else {
         out << value;
@@ -119,29 +119,28 @@ void print(std::ostream& out, ValueType const& value) {
 }
 
 template<typename ValueType>
-void printRange(std::ostream& out, ValueType const& min, ValueType const& max) {
+void printRange(std::ostream& out, storm::utility::ExtendedValueType<ValueType> const& min, storm::utility::ExtendedValueType<ValueType> const& max) {
+    auto printBound = [&out](storm::utility::ExtendedValueType<ValueType> const& bound) {
+        if (storm::utility::isInfinity(bound)) {
+            out << "inf";
+        } else {
+            out << bound;
+        }
+    };
     out << "[";
-    if (min == storm::utility::infinity<ValueType>()) {
-        out << "inf";
-    } else {
-        out << min;
-    }
+    printBound(min);
     out << ", ";
-    if (max == storm::utility::infinity<ValueType>()) {
-        out << "inf";
-    } else {
-        out << max;
-    }
+    printBound(max);
     out << "]";
     if (std::is_same<ValueType, storm::RationalNumber>::value) {
         out << " (approx. [";
-        if (min == storm::utility::infinity<ValueType>()) {
+        if (storm::utility::isInfinity(min)) {
             out << "inf";
         } else {
             out << storm::utility::convertNumber<double>(min);
         }
         out << ", ";
-        if (max == storm::utility::infinity<ValueType>()) {
+        if (storm::utility::isInfinity(max)) {
             out << "inf";
         } else {
             out << storm::utility::convertNumber<double>(max);
@@ -159,9 +158,9 @@ std::ostream& HybridQuantitativeCheckResult<Type, ValueType>::writeToStream(std:
 
     if (totalNumberOfStates == 1) {
         if (this->symbolicStates.isZero()) {
-            print(out, *this->explicitValues.begin());
+            print<ValueType>(out, storm::utility::fromSentinel(*this->explicitValues.begin()));
         } else {
-            print(out, this->symbolicValues.sumAbstract(this->symbolicValues.getContainedMetaVariables()).getValue());
+            print<ValueType>(out, storm::utility::fromSentinel(this->symbolicValues.sumAbstract(this->symbolicValues.getContainedMetaVariables()).getValue()));
         }
     } else if (totalNumberOfStates >= 10 && minMaxSupported) {
         printAsRange = true;
@@ -179,7 +178,7 @@ std::ostream& HybridQuantitativeCheckResult<Type, ValueType>::writeToStream(std:
                     } else {
                         first = false;
                     }
-                    print(out, valuationValuePair.second);
+                    print<ValueType>(out, storm::utility::fromSentinel(valuationValuePair.second));
                 }
                 if (symbolicStates.getNonZeroCount() != this->symbolicValues.getNonZeroCount()) {
                     out << ", 0";
@@ -193,16 +192,14 @@ std::ostream& HybridQuantitativeCheckResult<Type, ValueType>::writeToStream(std:
                 } else {
                     first = false;
                 }
-                print(out, element);
+                print<ValueType>(out, storm::utility::fromSentinel(element));
             }
         }
         out << "}";
     }
 
     if (printAsRange) {
-        ValueType min = this->getMin();
-        ValueType max = this->getMax();
-        printRange(out, min, max);
+        printRange<ValueType>(out, this->getMin(), this->getMax());
     }
     return out;
 }
@@ -229,43 +226,44 @@ void HybridQuantitativeCheckResult<Type, ValueType>::filter(QualitativeCheckResu
 }
 
 template<storm::dd::DdType Type, typename ValueType>
-ValueType HybridQuantitativeCheckResult<Type, ValueType>::getMin() const {
+typename QuantitativeCheckResult<ValueType>::extended_value_type HybridQuantitativeCheckResult<Type, ValueType>::getMin() const {
     // In order to not get false zeros, we need to set the values of all states whose values is not stored
     // symbolically to infinity.
     storm::dd::Add<Type, ValueType> tmp =
         symbolicStates.ite(this->symbolicValues, reachableStates.getDdManager().getConstant(storm::utility::infinity<ValueType>()));
-    ValueType min = tmp.getMin();
+    auto min = storm::utility::fromSentinel(tmp.getMin());
     if (!explicitStates.isZero()) {
         for (auto const& element : explicitValues) {
-            min = std::min(min, element);
+            min = std::min(min, storm::utility::fromSentinel(element));
         }
     }
     return min;
 }
 
 template<storm::dd::DdType Type, typename ValueType>
-ValueType HybridQuantitativeCheckResult<Type, ValueType>::getMax() const {
-    ValueType max = this->symbolicValues.getMax();
+typename QuantitativeCheckResult<ValueType>::extended_value_type HybridQuantitativeCheckResult<Type, ValueType>::getMax() const {
+    auto max = storm::utility::fromSentinel(this->symbolicValues.getMax());
     if (!explicitStates.isZero()) {
         for (auto const& element : explicitValues) {
-            max = std::max(max, element);
+            max = std::max(max, storm::utility::fromSentinel(element));
         }
     }
     return max;
 }
 
 template<storm::dd::DdType Type, typename ValueType>
-ValueType HybridQuantitativeCheckResult<Type, ValueType>::sum() const {
-    ValueType sum = symbolicValues.sumAbstract(symbolicValues.getContainedMetaVariables()).getValue();
+typename QuantitativeCheckResult<ValueType>::extended_value_type HybridQuantitativeCheckResult<Type, ValueType>::sum() const {
+    auto sum = storm::utility::fromSentinel(symbolicValues.sumAbstract(symbolicValues.getContainedMetaVariables()).getValue());
     for (auto const& value : explicitValues) {
-        sum += value;
+        sum += storm::utility::fromSentinel(value);
     }
     return sum;
 }
 
 template<storm::dd::DdType Type, typename ValueType>
-ValueType HybridQuantitativeCheckResult<Type, ValueType>::average() const {
-    return this->sum() / storm::utility::convertNumber<ValueType>((symbolicStates || explicitStates).getNonZeroCount());
+typename QuantitativeCheckResult<ValueType>::extended_value_type HybridQuantitativeCheckResult<Type, ValueType>::average() const {
+    return this->sum() / storm::utility::convertNumber<typename QuantitativeCheckResult<ValueType>::extended_value_type>(
+                             (symbolicStates || explicitStates).getNonZeroCount());
 }
 
 template<storm::dd::DdType Type, typename ValueType>

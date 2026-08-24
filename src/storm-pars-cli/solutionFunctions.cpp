@@ -60,12 +60,14 @@ void computeSolutionFunctionsWithSparseEngine(std::shared_ptr<storm::models::spa
             auto parametricSettings = storm::settings::getModule<storm::settings::modules::ParametricSettings>();
             if (parametricSettings.exportResultToFile() && model->isOfType(storm::models::ModelType::Dtmc)) {
                 auto dtmc = model->template as<storm::models::sparse::Dtmc<ValueType>>();
-                std::optional<ValueType> rationalFunction = result->asExplicitQuantitativeCheckResult<ValueType>()[*model->getInitialStates().begin()];
+                std::optional<ValueType> rationalFunction =
+                    storm::utility::getFinite(result->asExplicitQuantitativeCheckResult<ValueType>()[*model->getInitialStates().begin()]);
                 auto constraintCollector = storm::analysis::ConstraintCollector<ValueType>(*dtmc);
                 api::exportParametricResultToFile<ValueType>(rationalFunction, constraintCollector, parametricSettings.exportResultPath());
             } else if (parametricSettings.exportResultToFile() && model->isOfType(storm::models::ModelType::Ctmc)) {
                 auto ctmc = model->template as<storm::models::sparse::Ctmc<ValueType>>();
-                std::optional<ValueType> rationalFunction = result->asExplicitQuantitativeCheckResult<ValueType>()[*model->getInitialStates().begin()];
+                std::optional<ValueType> rationalFunction =
+                    storm::utility::getFinite(result->asExplicitQuantitativeCheckResult<ValueType>()[*model->getInitialStates().begin()]);
                 auto constraintCollector = storm::analysis::ConstraintCollector<ValueType>(*ctmc);
                 api::exportParametricResultToFile<ValueType>(rationalFunction, constraintCollector, parametricSettings.exportResultPath());
             }
@@ -89,7 +91,7 @@ void computeSolutionFunctionsWithSymbolicEngine(std::shared_ptr<storm::models::s
             auto parametricSettings = storm::settings::getModule<storm::settings::modules::ParametricSettings>();
             if (parametricSettings.exportResultToFile() && model->isOfType(storm::models::ModelType::Dtmc)) {
                 STORM_LOG_WARN("For symbolic engines, we currently do not support collecting graph-preserving constraints.");
-                std::optional<ValueType> rationalFunction = result->asSymbolicQuantitativeCheckResult<DdType, ValueType>().sum();
+                std::optional<ValueType> rationalFunction = storm::utility::getFinite(result->asSymbolicQuantitativeCheckResult<DdType, ValueType>().sum());
                 api::exportParametricResultToFile<ValueType>(rationalFunction, storm::NullRef, parametricSettings.exportResultPath());
             }
         });

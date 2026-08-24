@@ -325,7 +325,7 @@ void MonotonicityHelper<ValueType, ConstantType>::checkMonotonicityOnSamples(std
             }
 
             auto quantitativeResult = checkResult->asExplicitQuantitativeCheckResult<ConstantType>();
-            std::vector<ConstantType> values = quantitativeResult.getValueVector();
+            std::vector<ConstantType> values = quantitativeResult.getFiniteValueVector();
             auto initialStates = model->getInitialStates();
             ConstantType initial = 0;
             // Get total probability from initial states
