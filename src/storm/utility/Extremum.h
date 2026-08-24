@@ -5,6 +5,8 @@
 #include <type_traits>
 
 #include "storm/solver/OptimizationDirection.h"
+#include "storm/utility/ExtendedNumber.h"
+#include "storm/utility/NumberTraits.h"
 
 namespace storm::utility {
 
@@ -92,13 +94,21 @@ class Extremum {
     std::optional<ValueType> getOptionalValue() const;
 
     /*!
+     * @return the stored extremal value, where an empty extremum is expressed as the infinity it stands for: +infinity
+     * if we minimize and -infinity if we maximize. Unlike getOptionalValue, this is total, so callers that can handle
+     * infinite values do not have to special-case the empty extremum.
+     */
+    storm::utility::ExtendedValueType<ValueType> getExtendedValue() const;
+
+    /*!
      * Forgets the extremal value so that this represents the extremum over an empty set.
      */
     void reset();
 
    private:
     /// indicates whether ValueType supports +/- infinity. If this is true we can use those values to encode an extremum over an empty set
-    static bool const SupportsInfinity = std::numeric_limits<ValueType>::is_iec559;
+    static bool const SupportsInfinity = storm::NumberTraits<ValueType>::HasInfinity;
+    static_assert(!SupportsInfinity || std::numeric_limits<ValueType>::has_infinity, "NumberTraits claims an infinity that numeric_limits cannot provide.");
 
     /// Data for the case that ValueType does not have infinity
     struct DefaultData {

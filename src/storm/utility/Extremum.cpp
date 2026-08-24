@@ -123,6 +123,20 @@ std::optional<ValueType> Extremum<Dir, ValueType>::getOptionalValue() const {
 }
 
 template<storm::OptimizationDirection Dir, typename ValueType>
+storm::utility::ExtendedValueType<ValueType> Extremum<Dir, ValueType>::getExtendedValue() const {
+    if (empty()) {
+        // The extremum over an empty set is the infinity that every value improves upon.
+        if constexpr (storm::solver::minimize(Dir)) {
+            return storm::utility::positiveInfinity<ValueType>();
+        } else {
+            static_assert(storm::solver::maximize(Dir));
+            return storm::utility::negativeInfinity<ValueType>();
+        }
+    }
+    return data.value;
+}
+
+template<storm::OptimizationDirection Dir, typename ValueType>
 void Extremum<Dir, ValueType>::reset() {
     if constexpr (SupportsInfinity) {
         data.value = data.baseValue();
