@@ -5,6 +5,7 @@
 #include <ostream>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "storm/exceptions/InvalidOperationException.h"
 #include "storm/exceptions/NotSupportedException.h"
@@ -338,6 +339,24 @@ template<typename ValueType>
     requires(!detail::IsExtendedNumber<ValueType>::value)
 ValueType const& getFinite(ValueType const& value) {
     return value;
+}
+
+/*!
+ * Widens a vector of finite values into the extended value type. Used where a computation that cannot produce an
+ * infinite value feeds an interface that can hold one.
+ */
+template<typename ValueType>
+std::vector<ExtendedValueType<ValueType>> widen(std::vector<ValueType>&& values) {
+    if constexpr (std::is_same_v<ExtendedValueType<ValueType>, ValueType>) {
+        return std::move(values);
+    } else {
+        std::vector<ExtendedValueType<ValueType>> result;
+        result.reserve(values.size());
+        for (auto& value : values) {
+            result.push_back(ExtendedValueType<ValueType>(std::move(value)));
+        }
+        return result;
+    }
 }
 
 /*!

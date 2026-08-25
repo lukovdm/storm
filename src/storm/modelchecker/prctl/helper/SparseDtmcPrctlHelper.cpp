@@ -277,7 +277,7 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
                 solver->solveEquations(env, x, b);
 
                 // Set values of resulting vector according to result.
-                storm::utility::vector::setVectorValues<SolutionType>(result, maybeStates, x);
+                storm::utility::vector::setVectorValues(result, maybeStates, x);
             }
         }
     }
@@ -429,7 +429,8 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
 }
 
 template<typename ValueType, typename RewardModelType, typename SolutionType>
-std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeTotalRewards(
+std::vector<typename SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::ExtendedSolutionType>
+SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeTotalRewards(
     Environment const& env, storm::solver::SolveGoal<ValueType, SolutionType>&& goal, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
     storm::storage::SparseMatrix<ValueType> const& backwardTransitions, RewardModelType const& rewardModel, bool qualitative, ModelCheckerHint const& hint) {
     if constexpr (storm::IsIntervalType<ValueType>) {
@@ -511,7 +512,8 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
 }
 
 template<typename ValueType, typename RewardModelType, typename SolutionType>
-std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabilityRewards(
+std::vector<typename SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::ExtendedSolutionType>
+SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabilityRewards(
     Environment const& env, storm::solver::SolveGoal<ValueType, SolutionType>&& goal, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
     storm::storage::SparseMatrix<ValueType> const& backwardTransitions, RewardModelType const& rewardModel, storm::storage::BitVector const& targetStates,
     bool qualitative, ModelCheckerHint const& hint) {
@@ -524,7 +526,8 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
 }
 
 template<typename ValueType, typename RewardModelType, typename SolutionType>
-std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabilityRewards(
+std::vector<typename SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::ExtendedSolutionType>
+SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabilityRewards(
     Environment const& env, storm::solver::SolveGoal<ValueType, SolutionType>&& goal, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
     storm::storage::SparseMatrix<ValueType> const& backwardTransitions, std::vector<ValueType> const& totalStateRewardVector,
     storm::storage::BitVector const& targetStates, bool qualitative, ModelCheckerHint const& hint) {
@@ -539,10 +542,13 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
 }
 
 template<typename ValueType, typename RewardModelType, typename SolutionType>
-std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabilityTimes(
-    Environment const& env, storm::solver::SolveGoal<ValueType, SolutionType>&& goal, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
-    storm::storage::SparseMatrix<ValueType> const& backwardTransitions, storm::storage::BitVector const& targetStates, bool qualitative,
-    ModelCheckerHint const& hint) {
+std::vector<typename SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::ExtendedSolutionType>
+SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabilityTimes(Environment const& env,
+                                                                                          storm::solver::SolveGoal<ValueType, SolutionType>&& goal,
+                                                                                          storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
+                                                                                          storm::storage::SparseMatrix<ValueType> const& backwardTransitions,
+                                                                                          storm::storage::BitVector const& targetStates, bool qualitative,
+                                                                                          ModelCheckerHint const& hint) {
     if constexpr (storm::IsIntervalType<ValueType>) {
         STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We do not support computing reachability times with interval models.");
     } else {
@@ -576,14 +582,15 @@ std::vector<storm::RationalFunction> computeUpperRewardBounds(storm::storage::Sp
 }
 
 template<typename ValueType, typename RewardModelType, typename SolutionType>
-std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabilityRewards(
+std::vector<typename SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::ExtendedSolutionType>
+SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabilityRewards(
     Environment const& env, storm::solver::SolveGoal<ValueType, SolutionType>&& goal, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
     storm::storage::SparseMatrix<ValueType> const& backwardTransitions,
     std::function<std::vector<ValueType>(uint_fast64_t, storm::storage::SparseMatrix<ValueType> const&, storm::storage::BitVector const&)> const&
         totalStateRewardVectorGetter,
     storm::storage::BitVector const& targetStates, bool qualitative, std::function<storm::storage::BitVector()> const& zeroRewardStatesGetter,
     ModelCheckerHint const& hint) {
-    std::vector<SolutionType> result(transitionMatrix.getRowCount(), storm::utility::zero<SolutionType>());
+    std::vector<ExtendedSolutionType> result(transitionMatrix.getRowCount(), storm::utility::zero<ExtendedSolutionType>());
 
     // Determine which states have reward zero
     storm::storage::BitVector rew0States;
@@ -597,7 +604,7 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
     storm::storage::BitVector maybeStates;
     if (hint.isExplicitModelCheckerHint() && hint.template asExplicitModelCheckerHint<ValueType>().getComputeOnlyMaybeStates()) {
         maybeStates = hint.template asExplicitModelCheckerHint<ValueType>().getMaybeStates();
-        storm::utility::vector::setVectorValues(result, ~(maybeStates | rew0States), storm::utility::infinity<SolutionType>());
+        storm::utility::vector::setVectorValues(result, ~(maybeStates | rew0States), storm::utility::positiveInfinity<SolutionType>());
 
         STORM_LOG_INFO("Preprocessing: " << rew0States.getNumberOfSetBits() << " States with reward zero (" << maybeStates.getNumberOfSetBits()
                                          << " states remaining).");
@@ -610,7 +617,7 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
         STORM_LOG_INFO("Preprocessing: " << infinityStates.getNumberOfSetBits() << " states with reward infinity, " << rew0States.getNumberOfSetBits()
                                          << " states with reward zero (" << maybeStates.getNumberOfSetBits() << " states remaining).");
 
-        storm::utility::vector::setVectorValues(result, infinityStates, storm::utility::infinity<SolutionType>());
+        storm::utility::vector::setVectorValues(result, infinityStates, storm::utility::positiveInfinity<SolutionType>());
     }
 
     // Check if the values of the maybe states are relevant for the SolveGoal
@@ -620,7 +627,7 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
     if (qualitative || maybeStatesNotRelevant) {
         // Set the values for all maybe-states to 1 to indicate that their reward values
         // are neither 0 nor infinity.
-        storm::utility::vector::setVectorValues<SolutionType>(result, maybeStates, storm::utility::one<SolutionType>());
+        storm::utility::vector::setVectorValues(result, maybeStates, storm::utility::one<ExtendedSolutionType>());
     } else {
         if (!maybeStates.empty()) {
             if constexpr (storm::IsIntervalType<ValueType>) {
@@ -635,7 +642,7 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
                 std::vector<SolutionType> x = computeRobustValuesForMaybeStates(env, std::move(goal), std::move(submatrix), b, true);
 
                 // Set values of resulting vector according to result.
-                storm::utility::vector::setVectorValues<SolutionType>(result, maybeStates, x);
+                storm::utility::vector::setVectorValues(result, maybeStates, x);
             } else {
                 // Check whether we need to convert the input to equation system format.
                 storm::solver::GeneralLinearEquationSolverFactory<ValueType> linearEquationSolverFactory;
@@ -687,7 +694,7 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
                 solver->solveEquations(env, x, b);
 
                 // Set values of resulting vector according to result.
-                storm::utility::vector::setVectorValues<SolutionType>(result, maybeStates, x);
+                storm::utility::vector::setVectorValues(result, maybeStates, x);
             }
         }
     }
@@ -849,15 +856,16 @@ storm::storage::BitVector SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
 }
 
 template<typename ValueType, typename RewardModelType, typename SolutionType>
-std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeConditionalProbabilities(
+std::vector<typename SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::ExtendedSolutionType>
+SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeConditionalProbabilities(
     Environment const& env, storm::solver::SolveGoal<ValueType, SolutionType>&& goal, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
     storm::storage::SparseMatrix<ValueType> const& backwardTransitions, storm::storage::BitVector const& targetStates,
     storm::storage::BitVector const& conditionStates, bool qualitative) {
     if constexpr (storm::IsIntervalType<ValueType>) {
         STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We do not support computing conditional probabilities with interval models.");
     } else {
-        // Prepare result vector.
-        std::vector<ValueType> result(transitionMatrix.getRowCount(), storm::utility::infinity<ValueType>());
+        // Prepare result vector. A state from which the condition cannot be reached has no conditional probability.
+        std::vector<ExtendedSolutionType> result(transitionMatrix.getRowCount(), storm::utility::positiveInfinity<SolutionType>());
 
         if (!conditionStates.empty()) {
             BaierTransformedModel transformedModel =
@@ -892,15 +900,16 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
 }
 
 template<typename ValueType, typename RewardModelType, typename SolutionType>
-std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeConditionalRewards(
+std::vector<typename SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::ExtendedSolutionType>
+SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeConditionalRewards(
     Environment const& env, storm::solver::SolveGoal<ValueType, SolutionType>&& goal, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
     storm::storage::SparseMatrix<ValueType> const& backwardTransitions, RewardModelType const& rewardModel, storm::storage::BitVector const& targetStates,
     storm::storage::BitVector const& conditionStates, bool qualitative) {
     if constexpr (storm::IsIntervalType<ValueType>) {
         STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We do not support computing conditional rewards with interval models.");
     } else {
-        // Prepare result vector.
-        std::vector<ValueType> result(transitionMatrix.getRowCount(), storm::utility::infinity<ValueType>());
+        // Prepare result vector. A state from which the condition cannot be reached has no conditional reward.
+        std::vector<ExtendedSolutionType> result(transitionMatrix.getRowCount(), storm::utility::positiveInfinity<SolutionType>());
 
         if (!conditionStates.empty()) {
             BaierTransformedModel transformedModel = computeBaierTransformation(env, transitionMatrix, backwardTransitions, targetStates, conditionStates,
@@ -922,9 +931,8 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
                     newRelevantValues = transformedModel.getNewRelevantStates();
                 }
                 goal.setRelevantValues(std::move(newRelevantValues));
-                std::vector<ValueType> conditionalRewards =
-                    computeReachabilityRewards(env, std::move(goal), newTransitionMatrix, newTransitionMatrix.transpose(), transformedModel.stateRewards.get(),
-                                               transformedModel.targetStates.get(), qualitative);
+                auto conditionalRewards = computeReachabilityRewards(env, std::move(goal), newTransitionMatrix, newTransitionMatrix.transpose(),
+                                                                     transformedModel.stateRewards.get(), transformedModel.targetStates.get(), qualitative);
                 storm::utility::vector::setVectorValues(result, transformedModel.beforeStates, conditionalRewards);
             }
         }

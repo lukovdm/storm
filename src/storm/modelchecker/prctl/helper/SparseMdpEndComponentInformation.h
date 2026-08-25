@@ -3,9 +3,11 @@
 #include <cstdint>
 #include <vector>
 
+#include "storm/storage/BitVector.h"
+#include "storm/utility/macros.h"
+
 namespace storm {
 namespace storage {
-class BitVector;
 
 template<typename ValueType>
 class SparseMatrix;
@@ -66,7 +68,27 @@ class SparseMdpEndComponentInformation {
         storm::storage::SparseMatrix<ValueType> const& transitionMatrix, std::vector<ValueType>& rhsVector, storm::storage::BitVector const& maybeStates,
         storm::storage::SparseMatrix<ValueType>& submatrix, std::vector<ValueType>& subvector, bool gatherExitChoices = false);
 
-    void setValues(std::vector<ValueType>& result, storm::storage::BitVector const& maybeStates, std::vector<ValueType> const& fromResult);
+    /*!
+     * Writes the values computed on the reduced system back to the states of the original one.
+     * @tparam ResultValueType the element type of the result, which may be extended with the infinities even when the
+     *         values that were solved for -- and that are necessarily finite -- are not.
+     */
+    template<typename ResultValueType, typename SolvedValueType>
+    void setValues(std::vector<ResultValueType>& result, storm::storage::BitVector const& maybeStates, std::vector<SolvedValueType> const& fromResult) {
+        // The following assumes that row groups associated to EC states are at the very end.
+        auto notInEcResultIt = fromResult.begin();
+        for (uint64_t state : maybeStates) {
+            if (this->isStateInEc(state)) {
+                STORM_LOG_ASSERT(this->getRowGroupAfterElimination(state) >= this->getNumberOfMaybeStatesNotInEc(),
+                                 "Expected introduced EC states to be located at the end of the matrix.");
+                result[state] = fromResult[this->getRowGroupAfterElimination(state)];
+            } else {
+                result[state] = *notInEcResultIt;
+                ++notInEcResultIt;
+            }
+        }
+        STORM_LOG_ASSERT(notInEcResultIt == fromResult.begin() + this->getNumberOfMaybeStatesNotInEc(), "Mismatching iterators.");
+    }
 
     template<typename SolutionType>
     void setScheduler(storm::storage::Scheduler<SolutionType>& scheduler, storm::storage::BitVector const& maybeStates,

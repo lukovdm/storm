@@ -11,12 +11,17 @@ class BitVector;
 
 namespace modelchecker {
 namespace helper {
-template<typename ValueType>
+/*!
+ * @tparam ValueType the value type of the model, and hence of any scheduler that is produced.
+ * @tparam ValuesType the type of the computed values. A reward or a time can be infinite while the model's value type
+ *         has no representation for that, so the two are not always the same.
+ */
+template<typename ValueType, typename ValuesType = ValueType>
 struct MDPSparseModelCheckingHelperReturnType {
     MDPSparseModelCheckingHelperReturnType(MDPSparseModelCheckingHelperReturnType const&) = delete;
     MDPSparseModelCheckingHelperReturnType(MDPSparseModelCheckingHelperReturnType&&) = default;
 
-    MDPSparseModelCheckingHelperReturnType(std::vector<ValueType>&& values, std::unique_ptr<storm::storage::Scheduler<ValueType>>&& scheduler = nullptr)
+    MDPSparseModelCheckingHelperReturnType(std::vector<ValuesType>&& values, std::unique_ptr<storm::storage::Scheduler<ValueType>>&& scheduler = nullptr)
         : values(std::move(values)), scheduler(std::move(scheduler)) {
         // Intentionally left empty.
     }
@@ -26,7 +31,7 @@ struct MDPSparseModelCheckingHelperReturnType {
     }
 
     // The values computed for the states.
-    std::vector<ValueType> values;
+    std::vector<ValuesType> values;
 
     // A scheduler, if it was computed.
     std::unique_ptr<storm::storage::Scheduler<ValueType>> scheduler;

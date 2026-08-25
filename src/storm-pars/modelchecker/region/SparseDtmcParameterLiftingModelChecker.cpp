@@ -557,7 +557,14 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
         auto const visitingTimes = visitingTimesHelper.computeExpectedVisitingTimes(env, this->parametricModel->getInitialStates());
         uint64_t rowIndex = 0;
         for (uint64_t state : maybeStates) {
-            weighting[rowIndex++] = visitingTimes[state];
+            // A maybe-state is transient, so it is visited finitely often. Were that ever not to hold, the default
+            // weight of one is kept rather than letting an infinite weight swamp the estimate for every parameter.
+            auto const& visitingTime = visitingTimes[state];
+            STORM_LOG_WARN_COND(!storm::utility::isInfinity(visitingTime), "Expected a finite number of visits to maybe-state " << state << ".");
+            if (!storm::utility::isInfinity(visitingTime)) {
+                weighting[rowIndex] = storm::utility::getFinite(visitingTime);
+            }
+            ++rowIndex;
         }
     }
 

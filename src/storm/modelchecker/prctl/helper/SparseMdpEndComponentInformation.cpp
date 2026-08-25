@@ -353,24 +353,6 @@ SparseMdpEndComponentInformation<ValueType> SparseMdpEndComponentInformation<Val
 }
 
 template<typename ValueType>
-void SparseMdpEndComponentInformation<ValueType>::setValues(std::vector<ValueType>& result, storm::storage::BitVector const& maybeStates,
-                                                            std::vector<ValueType> const& fromResult) {
-    // The following assumes that row groups associated to EC states are at the very end.
-    auto notInEcResultIt = fromResult.begin();
-    for (uint64_t state : maybeStates) {
-        if (this->isStateInEc(state)) {
-            STORM_LOG_ASSERT(this->getRowGroupAfterElimination(state) >= this->getNumberOfMaybeStatesNotInEc(),
-                             "Expected introduced EC states to be located at the end of the matrix.");
-            result[state] = fromResult[this->getRowGroupAfterElimination(state)];
-        } else {
-            result[state] = *notInEcResultIt;
-            ++notInEcResultIt;
-        }
-    }
-    STORM_LOG_ASSERT(notInEcResultIt == fromResult.begin() + this->getNumberOfMaybeStatesNotInEc(), "Mismatching iterators.");
-}
-
-template<typename ValueType>
 template<typename SolutionType>
 void SparseMdpEndComponentInformation<ValueType>::setScheduler(storm::storage::Scheduler<SolutionType>& scheduler, storm::storage::BitVector const& maybeStates,
                                                                storm::storage::SparseMatrix<ValueType> const& transitionMatrix,

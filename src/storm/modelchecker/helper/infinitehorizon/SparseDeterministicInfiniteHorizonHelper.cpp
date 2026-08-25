@@ -764,7 +764,8 @@ std::vector<ValueType> SparseDeterministicInfiniteHorizonHelper<ValueType>::comp
             bsccVal += initialDistributionGetter(state);
             for (auto const& pred : this->_backwardTransitions->getRow(state)) {
                 if (nonBsccStates.get(pred.getColumn())) {
-                    bsccVal += pred.getValue() * expVisitTimes[pred.getColumn()];
+                    // Only the bottom SCCs have an infinite expected visiting time, and those are excluded here.
+                    bsccVal += pred.getValue() * storm::utility::getFinite(expVisitTimes[pred.getColumn()]);
                 }
             }
         }
