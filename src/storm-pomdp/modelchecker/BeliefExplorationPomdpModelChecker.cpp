@@ -27,16 +27,21 @@ namespace modelchecker {
 /* Struct Functions */
 
 template<typename PomdpModelType, typename BeliefValueType, typename BeliefMDPType>
-BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPType>::Result::Result(ValueType lower, ValueType upper)
+BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPType>::Result::Result(ExtendedValueType lower, ExtendedValueType upper)
     : lowerBound(lower), upperBound(upper) {
     // Intentionally left empty
 }
 
 template<typename PomdpModelType, typename BeliefValueType, typename BeliefMDPType>
-typename BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPType>::ValueType
+typename BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPType>::Result::ExtendedValueType
 BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPType>::Result::diff(bool relative) const {
-    ValueType diff = upperBound - lowerBound;
-    if (diff < storm::utility::zero<ValueType>()) {
+    if (!storm::utility::isFinite(lowerBound) || !storm::utility::isFinite(upperBound)) {
+        // As long as one of the bounds is infinite there is nothing to subtract, and the gap is unbounded unless the
+        // two coincide.
+        return lowerBound == upperBound ? storm::utility::zero<ExtendedValueType>() : storm::utility::positiveInfinity<ValueType>();
+    }
+    ExtendedValueType diff = upperBound - lowerBound;
+    if (diff < storm::utility::zero<ExtendedValueType>()) {
         STORM_LOG_WARN_COND(diff >= storm::utility::convertNumber<ValueType>(1e-6),
                             "Upper bound '" << upperBound << "' is smaller than lower bound '" << lowerBound << "': Difference is " << diff << ".");
         diff = storm::utility::zero<ValueType>();
@@ -49,8 +54,11 @@ BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPTyp
 
 template<typename PomdpModelType, typename BeliefValueType, typename BeliefMDPType>
 bool BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPType>::Result::updateLowerBound(ValueType const& value) {
-    if (value > lowerBound) {
-        lowerBound = value;
+    // The belief exploration still computes its values in the plain value type, so an infinite one arrives as the
+    // sentinel. This is where it becomes a real infinity again; it goes away with the sentinel.
+    auto const extendedValue = storm::utility::fromSentinel(value);
+    if (extendedValue > lowerBound) {
+        lowerBound = extendedValue;
         return true;
     }
     return false;
@@ -58,8 +66,10 @@ bool BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefM
 
 template<typename PomdpModelType, typename BeliefValueType, typename BeliefMDPType>
 bool BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPType>::Result::updateUpperBound(ValueType const& value) {
-    if (value < upperBound) {
-        upperBound = value;
+    // See updateLowerBound on why the sentinel is interpreted here.
+    auto const extendedValue = storm::utility::fromSentinel(value);
+    if (extendedValue < upperBound) {
+        upperBound = extendedValue;
         return true;
     }
     return false;
@@ -151,8 +161,9 @@ BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPTyp
         pomdpValueBounds.fmSchedulerValueList = additionalUnderApproximationBounds;
     }
     uint64_t initialPomdpState = pomdp().getInitialStates().getNextSetIndex(0);
-    Result result(pomdpValueBounds.trivialPomdpValueBounds.getHighestLowerBound(initialPomdpState),
-                  pomdpValueBounds.trivialPomdpValueBounds.getSmallestUpperBound(initialPomdpState));
+    // The trivial bounds are still computed in the plain value type, so an infinite one arrives as the sentinel.
+    Result result(storm::utility::fromSentinel(pomdpValueBounds.trivialPomdpValueBounds.getHighestLowerBound(initialPomdpState)),
+                  storm::utility::fromSentinel(pomdpValueBounds.trivialPomdpValueBounds.getSmallestUpperBound(initialPomdpState)));
     STORM_LOG_INFO("Initial value bounds are [" << result.lowerBound << ", " << result.upperBound << "]");
 
     std::optional<std::string> rewardModelName;
@@ -204,10 +215,10 @@ BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPTyp
     }
     // "clear" results in case they were actually not requested (this will make the output a bit more clear)
     if ((formulaInfo.minimize() && !options.discretize) || (formulaInfo.maximize() && !options.unfold)) {
-        result.lowerBound = -storm::utility::infinity<ValueType>();
+        result.lowerBound = storm::utility::negativeInfinity<ValueType>();
     }
     if ((formulaInfo.maximize() && !options.discretize) || (formulaInfo.minimize() && !options.unfold)) {
-        result.upperBound = storm::utility::infinity<ValueType>();
+        result.upperBound = storm::utility::positiveInfinity<ValueType>();
     }
 
     if (storm::utility::resources::isTerminate()) {
