@@ -9,6 +9,7 @@
 #include "storm/adapters/RationalNumberAdapter.h"
 #include "storm/solver/OptimizationDirection.h"
 #include "storm/storage/BitVector.h"
+#include "storm/utility/ExtendedNumber.h"
 #include "storm/utility/constants.h"
 #include "storm/utility/macros.h"
 
@@ -731,8 +732,12 @@ void reduceVectorMinOrMax(storm::solver::OptimizationDirection dir, std::vector<
  */
 template<class T>
 bool equalModuloPrecision(T const& val1, T const& val2, T const& precision, bool relativeError = true) {
+    if (!storm::utility::isFinite(val1) || !storm::utility::isFinite(val2)) {
+        // No difference of an infinite value from anything is meaningful, so equality is the only comparison left.
+        return val1 == val2;
+    }
     if (relativeError) {
-        if (storm::utility::isZero<T>(val1)) {
+        if (storm::utility::isZero(val1)) {
             return storm::utility::isZero(val2);
         }
         T relDiff = (val1 - val2) / val1;

@@ -12,6 +12,7 @@ template<typename ValueType>
 class ExplicitParetoCurveCheckResult : public ParetoCurveCheckResult<ValueType> {
    public:
     using point_type = typename ParetoCurveCheckResult<ValueType>::point_type;
+    using plain_point_type = typename ParetoCurveCheckResult<ValueType>::plain_point_type;
     using polytope_type = typename ParetoCurveCheckResult<ValueType>::polytope_type;
     using scheduler_type = storm::storage::Scheduler<ValueType>;
     ExplicitParetoCurveCheckResult();
@@ -21,6 +22,21 @@ class ExplicitParetoCurveCheckResult : public ParetoCurveCheckResult<ValueType> 
                                    polytope_type&& underApproximation = nullptr, polytope_type&& overApproximation = nullptr);
     ExplicitParetoCurveCheckResult(storm::storage::sparse::state_type const& state, std::vector<point_type>&& points, std::vector<scheduler_type>&& schedulers,
                                    polytope_type&& underApproximation = nullptr, polytope_type&& overApproximation = nullptr);
+
+    /*!
+     * Takes points whose coordinates are all finite.
+     */
+    ExplicitParetoCurveCheckResult(storm::storage::sparse::state_type const& state, std::vector<plain_point_type> const& points,
+                                   polytope_type const& underApproximation = nullptr, polytope_type const& overApproximation = nullptr)
+        requires(!std::is_same_v<point_type, plain_point_type>);
+
+    /*!
+     * Takes points whose coordinates are all finite, together with the schedulers that achieve them.
+     */
+    ExplicitParetoCurveCheckResult(storm::storage::sparse::state_type const& state, std::vector<plain_point_type>&& points,
+                                   std::vector<scheduler_type>&& schedulers, polytope_type&& underApproximation = nullptr,
+                                   polytope_type&& overApproximation = nullptr)
+        requires(!std::is_same_v<point_type, plain_point_type>);
 
     ExplicitParetoCurveCheckResult(ExplicitParetoCurveCheckResult const& other) = default;
     ExplicitParetoCurveCheckResult& operator=(ExplicitParetoCurveCheckResult const& other) = default;

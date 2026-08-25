@@ -342,6 +342,40 @@ ValueType const& getFinite(ValueType const& value) {
 }
 
 /*!
+ * @return whether the value is neither of the two infinities, whether or not the type it is held in is an extended one.
+ */
+template<typename ValueType>
+bool isFinite(ExtendedNumber<ValueType> const& value) {
+    return value.isFinite();
+}
+
+template<typename ValueType>
+    requires(!detail::IsExtendedNumber<ValueType>::value)
+bool isFinite(ValueType const& value) {
+    if constexpr (storm::NumberTraits<ValueType>::HasInfinity) {
+        return !storm::utility::isInfinity(value) && !storm::utility::isInfinity(ValueType(-value));
+    } else {
+        return true;
+    }
+}
+
+/*!
+ * Narrows an extended value back into the plain value type, for the interfaces that cannot hold an infinite one --
+ * a coordinate of a polytope, say. A plain type that has an infinity of its own keeps the value; one that has none
+ * has nothing to narrow an infinite value to, so this throws rather than inventing a number for it.
+ */
+template<typename ValueType>
+ValueType narrow(ExtendedValueType<ValueType> const& value) {
+    if constexpr (detail::IsExtendedNumber<ExtendedValueType<ValueType>>::value) {
+        STORM_LOG_THROW(!value.isInfinite(), storm::exceptions::NotSupportedException,
+                        "There is no representation of " << value << " in the value type it would have to be narrowed to.");
+        return value.getFinite();
+    } else {
+        return value;
+    }
+}
+
+/*!
  * Widens a vector of finite values into the extended value type. Used where a computation that cannot produce an
  * infinite value feeds an interface that can hold one.
  */

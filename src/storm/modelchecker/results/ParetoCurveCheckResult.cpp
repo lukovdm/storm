@@ -26,6 +26,17 @@ ParetoCurveCheckResult<ValueType>::ParetoCurveCheckResult(std::vector<point_type
 }
 
 template<typename ValueType>
+ParetoCurveCheckResult<ValueType>::ParetoCurveCheckResult(std::vector<plain_point_type> const& points, polytope_type const& underApproximation,
+                                                          polytope_type const& overApproximation)
+    requires(!std::is_same_v<point_type, plain_point_type>)
+    : underApproximation(underApproximation), overApproximation(overApproximation) {
+    this->points.reserve(points.size());
+    for (auto const& point : points) {
+        this->points.push_back(storm::utility::widen(plain_point_type(point)));
+    }
+}
+
+template<typename ValueType>
 bool ParetoCurveCheckResult<ValueType>::isParetoCurveCheckResult() const {
     return true;
 }

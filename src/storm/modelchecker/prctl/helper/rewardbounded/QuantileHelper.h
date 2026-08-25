@@ -8,6 +8,7 @@
 #include "storm/modelchecker/prctl/helper/rewardbounded/CostLimitClosure.h"
 #include "storm/modelchecker/prctl/helper/rewardbounded/MultiDimensionalRewardUnfolding.h"
 #include "storm/storage/BitVector.h"
+#include "storm/utility/ExtendedNumber.h"
 #include "storm/utility/Stopwatch.h"
 
 namespace storm {
@@ -24,7 +25,11 @@ class QuantileHelper {
    public:
     QuantileHelper(ModelType const& model, storm::logic::QuantileFormula const& quantileFormula);
 
-    std::vector<std::vector<ValueType>> computeQuantile(Environment const& env);
+    /*!
+     * @return for each quantile point the bound in every open dimension. A dimension that needs no bound at all has an
+     * infinite value there.
+     */
+    std::vector<std::vector<storm::utility::ExtendedValueType<ValueType>>> computeQuantile(Environment const& env);
 
    private:
     std::pair<CostLimitClosure, std::vector<ValueType>> computeQuantile(Environment& env, storm::storage::BitVector const& consideredDimensions,

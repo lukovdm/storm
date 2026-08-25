@@ -34,6 +34,24 @@ ExplicitParetoCurveCheckResult<ValueType>::ExplicitParetoCurveCheckResult(storm:
     : ParetoCurveCheckResult<ValueType>(points, underApproximation, overApproximation), state(state), schedulers(schedulers) {}
 
 template<typename ValueType>
+ExplicitParetoCurveCheckResult<ValueType>::ExplicitParetoCurveCheckResult(storm::storage::sparse::state_type const& state,
+                                                                          std::vector<plain_point_type> const& points, polytope_type const& underApproximation,
+                                                                          polytope_type const& overApproximation)
+    requires(!std::is_same_v<point_type, plain_point_type>)
+    : ParetoCurveCheckResult<ValueType>(points, underApproximation, overApproximation), state(state) {
+    // Intentionally left empty.
+}
+
+template<typename ValueType>
+ExplicitParetoCurveCheckResult<ValueType>::ExplicitParetoCurveCheckResult(storm::storage::sparse::state_type const& state,
+                                                                          std::vector<plain_point_type>&& points, std::vector<scheduler_type>&& schedulers,
+                                                                          polytope_type&& underApproximation, polytope_type&& overApproximation)
+    requires(!std::is_same_v<point_type, plain_point_type>)
+    : ParetoCurveCheckResult<ValueType>(points, std::move(underApproximation), std::move(overApproximation)), state(state), schedulers(std::move(schedulers)) {
+    // Intentionally left empty.
+}
+
+template<typename ValueType>
 std::unique_ptr<CheckResult> ExplicitParetoCurveCheckResult<ValueType>::clone() const {
     return std::make_unique<ExplicitParetoCurveCheckResult<ValueType>>(this->state, this->points, this->underApproximation, this->overApproximation);
 }
