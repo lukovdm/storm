@@ -360,6 +360,25 @@ bool isFinite(ValueType const& value) {
 }
 
 /*!
+ * The counterpart of widen for a vector all of whose values are finite. The values are taken over rather than copied.
+ * @pre none of the values is infinite
+ */
+template<typename ValueType>
+std::vector<ValueType> narrowFinite(std::vector<ExtendedValueType<ValueType>>&& values) {
+    if constexpr (std::is_same_v<ExtendedValueType<ValueType>, ValueType>) {
+        return std::move(values);
+    } else {
+        std::vector<ValueType> result;
+        result.reserve(values.size());
+        for (auto& value : values) {
+            STORM_LOG_ASSERT(value.isFinite(), "Tried to narrow " << value << " to a type that cannot hold it.");
+            result.push_back(std::move(value.getFinite()));
+        }
+        return result;
+    }
+}
+
+/*!
  * Narrows an extended value back into the plain value type, for the interfaces that cannot hold an infinite one --
  * a coordinate of a polytope, say. A plain type that has an infinity of its own keeps the value; one that has none
  * has nothing to narrow an infinite value to, so this throws rather than inventing a number for it.

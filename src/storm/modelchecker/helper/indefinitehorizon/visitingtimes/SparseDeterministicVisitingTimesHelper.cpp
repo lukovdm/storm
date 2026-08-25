@@ -441,11 +441,7 @@ std::vector<ValueType> SparseDeterministicVisitingTimesHelper<ValueType>::comput
         }
         ++valIt;
     }
-    std::vector<ValueType> sccVector;
-    sccVector.reserve(extendedSccVector.size());
-    for (auto const& value : extendedSccVector) {
-        sccVector.push_back(storm::utility::getFinite(value));
-    }
+    auto const sccVector = storm::utility::narrowFinite<ValueType>(std::move(extendedSccVector));
     return computeExpectedVisitingTimes(env, stateSetAsBitvector, sccVector);
 }
 
