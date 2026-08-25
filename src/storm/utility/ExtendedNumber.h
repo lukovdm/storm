@@ -401,6 +401,39 @@ std::vector<ExtendedValueType<ValueType>> widen(std::vector<ValueType>&& values)
  * inherits the sentinel's weaknesses, so it is not a place to build on; it disappears together with the sentinel.
  */
 template<typename ValueType>
+    requires(!std::is_reference_v<ValueType>)
+ExtendedValueType<ValueType> fromSentinel(ValueType&& value) {
+    if (storm::utility::isInfinity(value)) {
+        return storm::utility::positiveInfinity<ValueType>();
+    }
+    return std::move(value);
+}
+
+/*!
+ * The vector form. It builds the sentinel once instead of once per element: for a value type whose infinity is a
+ * number rather than a bit pattern, constructing it allocates, and doing that per element costs more than the
+ * widening itself. The values are taken over rather than copied.
+ */
+template<typename ValueType>
+std::vector<ExtendedValueType<ValueType>> fromSentinel(std::vector<ValueType>&& values) {
+    if constexpr (std::is_same_v<ExtendedValueType<ValueType>, ValueType>) {
+        return std::move(values);
+    } else {
+        std::vector<ExtendedValueType<ValueType>> result;
+        result.reserve(values.size());
+        ValueType const sentinel = storm::utility::infinity<ValueType>();
+        for (auto& value : values) {
+            if (value == sentinel) {
+                result.push_back(storm::utility::positiveInfinity<ValueType>());
+            } else {
+                result.push_back(std::move(value));
+            }
+        }
+        return result;
+    }
+}
+
+template<typename ValueType>
 ExtendedValueType<ValueType> fromSentinel(ValueType const& value) {
     if (storm::utility::isInfinity(value)) {
         return storm::utility::positiveInfinity<ValueType>();

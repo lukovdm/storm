@@ -44,6 +44,8 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
      */
     ExplicitQuantitativeCheckResult(std::vector<ValueType> const& values)
         requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>);
+    ExplicitQuantitativeCheckResult(std::vector<ValueType>&& values)
+        requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>);
     ExplicitQuantitativeCheckResult(std::map<storm::storage::sparse::state_type, ValueType> const& values)
         requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>);
     ExplicitQuantitativeCheckResult(boost::variant<vector_type, map_type> const& values,

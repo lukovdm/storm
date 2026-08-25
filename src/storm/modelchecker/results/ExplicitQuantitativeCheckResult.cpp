@@ -50,12 +50,14 @@ template<typename ValueType>
 ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(std::vector<ValueType> const& values)
     requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>)
     : values(map_type()) {
-    vector_type widened;
-    widened.reserve(values.size());
-    for (auto const& value : values) {
-        widened.push_back(storm::utility::fromSentinel(value));
-    }
-    this->values = std::move(widened);
+    this->values = storm::utility::fromSentinel(std::vector<ValueType>(values));
+}
+
+template<typename ValueType>
+ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(std::vector<ValueType>&& values)
+    requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>)
+    : values(storm::utility::fromSentinel(std::move(values))) {
+    // Intentionally left empty.
 }
 
 template<typename ValueType>
