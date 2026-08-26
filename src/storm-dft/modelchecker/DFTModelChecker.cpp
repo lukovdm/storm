@@ -44,9 +44,9 @@ typename DFTModelChecker<ValueType>::dft_results DFTModelChecker<ValueType>::che
         std::shared_ptr<storm::models::sparse::Model<ValueType>> model =
             buildModelViaComposition(dft, properties, symred, true, relevantEvents, allowDCForRelevant);
         // Model checking
-        std::vector<ValueType> resultsValue = checkModel(model, properties);
-        for (ValueType result : resultsValue) {
-            results.push_back(result);
+        std::vector<result_value_type> resultsValue = checkModel(model, properties);
+        for (auto& result : resultsValue) {
+            results.push_back(std::move(result));
         }
     } else {
         results = checkHelper(dft, properties, symred, allowModularisation, relevantEvents, allowDCForRelevant, approximationError, approximationHeuristic,
@@ -109,12 +109,16 @@ typename DFTModelChecker<ValueType>::dft_results DFTModelChecker<ValueType>::che
                 STORM_LOG_WARN("Could not check property: " << *property);
             } else {
                 // Recursively call model checking
+                // Modularisation only handles probability formulas, so every module result is a probability in [0,1]
+                // and none of them can be infinite. Combining them below is ordinary arithmetic, so it is done in the
+                // plain value type: wrapping it would defeat the expression templates of the parametric types for no
+                // gain. The combined result is widened again on its way back out.
                 std::vector<ValueType> res;
                 for (auto const& ft : dfts) {
                     // TODO: allow approximation in modularisation
                     dft_results ftResults = checkHelper(ft, {property}, symred, true, relevantEvents, allowDCForRelevant, 0.0);
                     STORM_LOG_ASSERT(ftResults.size() == 1, "Wrong number of results.");
-                    res.push_back(boost::get<ValueType>(ftResults[0]));
+                    res.push_back(storm::utility::narrow<ValueType>(boost::get<result_value_type>(ftResults[0])));
                 }
 
                 // Combine modularisation results
@@ -306,9 +310,11 @@ typename DFTModelChecker<ValueType>::dft_results DFTModelChecker<ValueType>::che
         storm::utility::ConstantsComparator<ValueType> comparator(precision);
 
         // Build approximate Markov Automata for lower and upper bound
-        approximation_result approxResult = std::make_pair(storm::utility::zero<ValueType>(), storm::utility::zero<ValueType>());
+        // The bounds are kept in the plain value type here: approximation is rejected outright for an infinite result
+        // (see below), and the comparator that drives the refinement is only instantiated for the plain types.
+        std::pair<ValueType, ValueType> approxResult = std::make_pair(storm::utility::zero<ValueType>(), storm::utility::zero<ValueType>());
         std::shared_ptr<storm::models::sparse::Model<ValueType>> model;
-        std::vector<ValueType> newResult;
+        std::vector<result_value_type> newResult;
         storm::dft::builder::ExplicitDFTModelBuilder<ValueType> builder(dft, symmetries);
 
         // TODO: compute approximation for all properties simultaneously?
@@ -354,9 +360,12 @@ typename DFTModelChecker<ValueType>::dft_results DFTModelChecker<ValueType>::che
             // Check lower bounds
             newResult = checkModel(model, {property});
             STORM_LOG_ASSERT(newResult.size() == 1, "Wrong size for result vector.");
-            STORM_LOG_ASSERT(iteration == 0 || !comparator.isLess(newResult[0], approxResult.first),
-                             "New under-approximation " << newResult[0] << " is smaller than old result " << approxResult.first);
-            approxResult.first = newResult[0];
+            STORM_LOG_THROW(storm::utility::isFinite(newResult[0]), storm::exceptions::NotSupportedException,
+                            "Approximation does not work if result might be infinity.");
+            ValueType lowerBound = storm::utility::narrow<ValueType>(newResult[0]);
+            STORM_LOG_ASSERT(iteration == 0 || !comparator.isLess(lowerBound, approxResult.first),
+                             "New under-approximation " << lowerBound << " is smaller than old result " << approxResult.first);
+            approxResult.first = std::move(lowerBound);
 
             // Build model for upper bound
             STORM_LOG_DEBUG("Getting model for upper bound...");
@@ -366,9 +375,12 @@ typename DFTModelChecker<ValueType>::dft_results DFTModelChecker<ValueType>::che
             // Check upper bound
             newResult = checkModel(model, {property});
             STORM_LOG_ASSERT(newResult.size() == 1, "Wrong size for result vector.");
-            STORM_LOG_ASSERT(iteration == 0 || !comparator.isLess(approxResult.second, newResult[0]),
-                             "New over-approximation " << newResult[0] << " is greater than old result " << approxResult.second);
-            approxResult.second = newResult[0];
+            STORM_LOG_THROW(storm::utility::isFinite(newResult[0]), storm::exceptions::NotSupportedException,
+                            "Approximation does not work if result might be infinity.");
+            ValueType upperBound = storm::utility::narrow<ValueType>(newResult[0]);
+            STORM_LOG_ASSERT(iteration == 0 || !comparator.isLess(approxResult.second, upperBound),
+                             "New over-approximation " << upperBound << " is greater than old result " << approxResult.second);
+            approxResult.second = std::move(upperBound);
 
             STORM_LOG_ASSERT(comparator.isLess(approxResult.first, approxResult.second) || comparator.isEqual(approxResult.first, approxResult.second),
                              "Under-approximation " << approxResult.first << " is greater than over-approximation " << approxResult.second);
@@ -382,8 +394,6 @@ typename DFTModelChecker<ValueType>::dft_results DFTModelChecker<ValueType>::che
             }
 
             totalTimer.start();
-            STORM_LOG_THROW(!storm::utility::isInfinity<ValueType>(approxResult.first) && !storm::utility::isInfinity<ValueType>(approxResult.second),
-                            storm::exceptions::NotSupportedException, "Approximation does not work if result might be infinity.");
             ++iteration;
         } while (!isApproximationSufficient(approxResult.first, approxResult.second, approximationError, probabilityFormula));
 
@@ -392,7 +402,7 @@ typename DFTModelChecker<ValueType>::dft_results DFTModelChecker<ValueType>::che
             model->printModelInformationToStream(std::cout);
         }
         dft_results results;
-        results.push_back(approxResult);
+        results.push_back(approximation_result(std::move(approxResult.first), std::move(approxResult.second)));
         return results;
     } else {
         // Build a single Markov Automaton
@@ -425,18 +435,18 @@ typename DFTModelChecker<ValueType>::dft_results DFTModelChecker<ValueType>::che
         }
 
         // Model checking
-        std::vector<ValueType> resultsValue = checkModel(model, properties);
+        std::vector<result_value_type> resultsValue = checkModel(model, properties);
         dft_results results;
-        for (ValueType result : resultsValue) {
-            results.push_back(result);
+        for (auto& result : resultsValue) {
+            results.push_back(std::move(result));
         }
         return results;
     }
 }
 
 template<typename ValueType>
-std::vector<ValueType> DFTModelChecker<ValueType>::checkModel(std::shared_ptr<storm::models::sparse::Model<ValueType>>& model,
-                                                              property_vector const& properties) {
+std::vector<typename DFTModelChecker<ValueType>::result_value_type> DFTModelChecker<ValueType>::checkModel(
+    std::shared_ptr<storm::models::sparse::Model<ValueType>>& model, property_vector const& properties) {
     // Bisimulation
     if (model->isOfType(storm::models::ModelType::Ctmc) && storm::settings::getModule<storm::settings::modules::GeneralSettings>().isBisimulationSet()) {
         bisimulationTimer.start();
@@ -452,7 +462,7 @@ std::vector<ValueType> DFTModelChecker<ValueType>::checkModel(std::shared_ptr<st
     // Check the model
     STORM_LOG_DEBUG("Model checking...");
     modelCheckingTimer.start();
-    std::vector<ValueType> results;
+    std::vector<result_value_type> results;
 
     // Check each property
     storm::utility::Stopwatch singleModelCheckingTimer;
@@ -465,12 +475,10 @@ std::vector<ValueType> DFTModelChecker<ValueType>::checkModel(std::shared_ptr<st
 
         if (result) {
             result->filter(storm::modelchecker::ExplicitQualitativeCheckResult<ValueType>(model->getInitialStates()));
-            // The DFT results are still kept in the plain value type, so an infinite one goes back to the sentinel here.
-            ValueType resultValue = storm::utility::toSentinel<ValueType>(result->asExplicitQuantitativeCheckResult<ValueType>().getValueMap().begin()->second);
-            results.push_back(resultValue);
+            results.push_back(result->asExplicitQuantitativeCheckResult<ValueType>().getValueMap().begin()->second);
         } else {
             STORM_LOG_WARN("The property '" << *property << "' could not be checked with the current settings.");
-            results.push_back(-storm::utility::one<ValueType>());
+            results.push_back(-storm::utility::one<result_value_type>());
         }
         // STORM_PRINT_AND_LOG("Result (initial states): " << resultValue << '\n');
         singleModelCheckingTimer.stop();

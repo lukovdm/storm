@@ -77,7 +77,9 @@ std::shared_ptr<storm::dft::storage::DFT<ValueType>> DftModularizationChecker<Va
         // Remember probabilities for module
         std::map<ValueType, ValueType> activeSamples{};
         for (size_t i{0}; i < timepoints.size(); ++i) {
-            auto const probability{boost::get<ValueType>(result[i])};
+            // The module is analysed for a probability, which is finite, and it becomes a sample of a basic element,
+            // which is held in the plain value type.
+            auto const probability{storm::utility::narrow<ValueType>(boost::get<typename DFTModelChecker<ValueType>::result_value_type>(result[i]))};
             auto const timebound{timepoints[i]};
             activeSamples[timebound] = probability;
         }
