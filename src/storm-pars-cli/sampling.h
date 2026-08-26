@@ -3,6 +3,7 @@
 #include "storm-cli-utilities/cli.h"
 #include "storm-cli-utilities/model-handling.h"
 
+#include "storm-pars-cli/finiteValues.h"
 #include "storm-pars-cli/print.h"
 #include "storm/exceptions/WrongFormatException.h"
 
@@ -120,7 +121,8 @@ void verifyPropertiesAtSamplePointsDerivative(ModelType const& model, cli::Symbo
 
                 boost::optional<std::vector<SolveValueType>> valueVector = boost::none;
                 if (originalResult) {
-                    valueVector = originalResult->template asExplicitQuantitativeCheckResult<SolveValueType>().getFiniteValueVector();
+                    valueVector = getFiniteValues<SolveValueType>(originalResult->template asExplicitQuantitativeCheckResult<SolveValueType>(),
+                                                                  *property.getRawFormula());
                     originalResult->filter(storm::modelchecker::ExplicitQualitativeCheckResult<SolveValueType>(model.getInitialStates()));
                 }
                 STORM_PRINT_AND_LOG("Model checking result:\n");
