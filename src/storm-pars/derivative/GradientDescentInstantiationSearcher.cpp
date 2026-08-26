@@ -205,19 +205,21 @@ ConstantType GradientDescentInstantiationSearcher<FunctionType, ConstantType>::d
 }
 
 template<typename FunctionType, typename ConstantType>
-ConstantType GradientDescentInstantiationSearcher<FunctionType, ConstantType>::stochasticGradientDescent(
+typename GradientDescentInstantiationSearcher<FunctionType, ConstantType>::ExtendedConstantType
+GradientDescentInstantiationSearcher<FunctionType, ConstantType>::stochasticGradientDescent(
     std::map<VariableType<FunctionType>, CoefficientType<FunctionType>>& position) {
     uint_fast64_t initialStateModel = model.getStates("init").getNextSetIndex(0);
 
-    ConstantType currentValue;
+    // Start out at the worst value there is, so that the first step taken is never mistaken for a tiny one.
+    ExtendedConstantType currentValue;
     switch (this->synthesisTask->getBound().comparisonType) {
         case logic::ComparisonType::Greater:
         case logic::ComparisonType::GreaterEqual:
-            currentValue = -utility::infinity<ConstantType>();
+            currentValue = utility::negativeInfinity<ConstantType>();
             break;
         case logic::ComparisonType::Less:
         case logic::ComparisonType::LessEqual:
-            currentValue = utility::infinity<ConstantType>();
+            currentValue = utility::positiveInfinity<ConstantType>();
             break;
     }
 
@@ -248,7 +250,7 @@ ConstantType GradientDescentInstantiationSearcher<FunctionType, ConstantType>::s
             miniBatch.push_back(parameterEnumeration[i]);
         }
 
-        ConstantType oldValue = currentValue;
+        ExtendedConstantType oldValue = currentValue;
         CoefficientType<FunctionType> const precision = storm::utility::convertNumber<CoefficientType<FunctionType>>(
             storm::settings::getModule<storm::settings::modules::GeneralSettings>().getPrecision());
 
@@ -332,11 +334,12 @@ ConstantType GradientDescentInstantiationSearcher<FunctionType, ConstantType>::s
                 deltaVector[parameter] = delta;
             }
         } else {
+            // The barrier methods do not compute a value outside the region: such a position is infinitely bad.
             if (synthesisTask->getBound().comparisonType == logic::ComparisonType::Less ||
                 synthesisTask->getBound().comparisonType == logic::ComparisonType::LessEqual) {
-                currentValue = utility::infinity<ConstantType>();
+                currentValue = utility::positiveInfinity<ConstantType>();
             } else {
-                currentValue = -utility::infinity<ConstantType>();
+                currentValue = utility::negativeInfinity<ConstantType>();
             }
         }
 
@@ -356,7 +359,8 @@ ConstantType GradientDescentInstantiationSearcher<FunctionType, ConstantType>::s
             doStep(parameter, position, deltaVector, stepNum);
         }
 
-        if (storm::utility::abs<ConstantType>(oldValue - currentValue) < terminationEpsilon) {
+        // An infinite value means that no value was computed here, so there is nothing to call a tiny change.
+        if (storm::utility::isFinite(oldValue) && storm::utility::isFinite(currentValue) && storm::utility::abs(oldValue - currentValue) < terminationEpsilon) {
             tinyChangeIterations += miniBatch.size();
             if (tinyChangeIterations > parameterEnumeration.size()) {
                 break;
@@ -380,7 +384,8 @@ ConstantType GradientDescentInstantiationSearcher<FunctionType, ConstantType>::s
 }
 
 template<typename FunctionType, typename ConstantType>
-std::pair<std::map<VariableType<FunctionType>, CoefficientType<FunctionType>>, ConstantType>
+std::pair<std::map<VariableType<FunctionType>, CoefficientType<FunctionType>>,
+          typename GradientDescentInstantiationSearcher<FunctionType, ConstantType>::ExtendedConstantType>
 GradientDescentInstantiationSearcher<FunctionType, ConstantType>::gradientDescent() {
     STORM_LOG_ASSERT(this->synthesisTask, "Call setup before calling gradientDescent.");
 
@@ -390,7 +395,7 @@ GradientDescentInstantiationSearcher<FunctionType, ConstantType>::gradientDescen
 
     std::map<VariableType<FunctionType>, CoefficientType<FunctionType>> bestInstantiation;
     // No value has been found yet; the first one we see is the best one so far, whichever direction we optimize in.
-    std::optional<ConstantType> bestValue;
+    std::optional<ExtendedConstantType> bestValue;
 
     std::random_device device;
     std::default_random_engine engine(device());
@@ -425,7 +430,7 @@ GradientDescentInstantiationSearcher<FunctionType, ConstantType>::gradientDescen
 
         stochasticWatch.start();
         STORM_LOG_PROGRESS("Starting at " << point << "\n");
-        ConstantType prob = stochasticGradientDescent(point);
+        ExtendedConstantType prob = stochasticGradientDescent(point);
         stochasticWatch.stop();
 
         bool isFoundPointBetter = !bestValue;

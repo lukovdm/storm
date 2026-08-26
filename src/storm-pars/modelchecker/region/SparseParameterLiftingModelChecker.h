@@ -8,6 +8,7 @@
 #include "storm/modelchecker/CheckTask.h"
 #include "storm/modelchecker/results/CheckResult.h"
 #include "storm/solver/OptimizationDirection.h"
+#include "storm/utility/ExtendedNumber.h"
 
 namespace storm {
 namespace modelchecker {
@@ -29,6 +30,9 @@ class SparseParameterLiftingModelChecker : public RegionModelChecker<typename Sp
     using ExtendedCoefficientType = typename RegionModelChecker<ParametricType>::ExtendedCoefficientType;
     using VariableType = typename RegionModelChecker<ParametricType>::VariableType;
     using Valuation = typename RegionModelChecker<ParametricType>::Valuation;
+    /// The type the values of a region check are held in: a reward property may find that a state cannot reach the
+    /// target at all, which the plain constant type has no value for.
+    using ExtendedConstantType = storm::utility::ExtendedValueType<ConstantType>;
 
     SparseParameterLiftingModelChecker();
     virtual ~SparseParameterLiftingModelChecker() = default;
@@ -117,11 +121,11 @@ class SparseParameterLiftingModelChecker : public RegionModelChecker<typename Sp
     virtual storm::modelchecker::SparseInstantiationModelChecker<SparseModelType, ConstantType>& getInstantiationCheckerSAT(bool quantitative);
     virtual storm::modelchecker::SparseInstantiationModelChecker<SparseModelType, ConstantType>& getInstantiationCheckerVIO(bool quantitative);
 
-    virtual std::vector<ConstantType> computeQuantitativeValues(Environment const& env, AnnotatedRegion<ParametricType>& region,
-                                                                storm::solver::OptimizationDirection const& dirForParameters) = 0;
+    virtual std::vector<ExtendedConstantType> computeQuantitativeValues(Environment const& env, AnnotatedRegion<ParametricType>& region,
+                                                                        storm::solver::OptimizationDirection const& dirForParameters) = 0;
 
     void updateKnownValueBoundInRegion(AnnotatedRegion<ParametricType>& region, storm::solver::OptimizationDirection dir,
-                                       std::vector<ConstantType> const& newValues);
+                                       std::vector<ExtendedConstantType> const& newValues);
 
     std::shared_ptr<SparseModelType> parametricModel;
     std::unique_ptr<CheckTask<storm::logic::Formula, ConstantType>> currentCheckTask;

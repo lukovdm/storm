@@ -324,11 +324,9 @@ SparseParameterLiftingModelChecker<SparseModelType, ConstantType>::getAndEvaluat
 template<typename SparseModelType, typename ConstantType>
 void SparseParameterLiftingModelChecker<SparseModelType, ConstantType>::updateKnownValueBoundInRegion(AnnotatedRegion<ParametricType>& region,
                                                                                                       storm::solver::OptimizationDirection dir,
-                                                                                                      std::vector<ConstantType> const& newValues) {
+                                                                                                      std::vector<ExtendedConstantType> const& newValues) {
     if (hasUniqueInitialState()) {
-        // The values still arrive in the sentinel form, so an infinite one is recognised on the way into the region.
-        auto const& newValue = newValues.at(getUniqueInitialState());
-        region.updateValueBound(storm::utility::convertNumber<ExtendedCoefficientType>(storm::utility::fromSentinel(newValue)), dir);
+        region.updateValueBound(storm::utility::convertNumber<ExtendedCoefficientType>(newValues.at(getUniqueInitialState())), dir);
     }
 }
 

@@ -39,6 +39,7 @@ class SparseDtmcParameterLiftingModelChecker : public SparseParameterLiftingMode
     using CoefficientType = typename RegionModelChecker<ParametricType>::CoefficientType;
     using VariableType = typename RegionModelChecker<ParametricType>::VariableType;
     using Valuation = typename RegionModelChecker<ParametricType>::Valuation;
+    using ExtendedConstantType = typename SparseParameterLiftingModelChecker<SparseModelType, ConstantType>::ExtendedConstantType;
 
     SparseDtmcParameterLiftingModelChecker();
     SparseDtmcParameterLiftingModelChecker(std::unique_ptr<SolverFactoryType<ConstantType, Robust>>&& solverFactory);
@@ -74,8 +75,8 @@ class SparseDtmcParameterLiftingModelChecker : public SparseParameterLiftingMode
     virtual storm::modelchecker::SparseInstantiationModelChecker<SparseModelType, ConstantType>& getInstantiationCheckerSAT(bool qualitative) override;
     virtual storm::modelchecker::SparseInstantiationModelChecker<SparseModelType, ConstantType>& getInstantiationCheckerVIO(bool qualitative) override;
 
-    virtual std::vector<ConstantType> computeQuantitativeValues(Environment const& env, AnnotatedRegion<ParametricType>& region,
-                                                                storm::solver::OptimizationDirection const& dirForParameters) override;
+    virtual std::vector<ExtendedConstantType> computeQuantitativeValues(Environment const& env, AnnotatedRegion<ParametricType>& region,
+                                                                        storm::solver::OptimizationDirection const& dirForParameters) override;
 
     void computeStateValueDeltaRegionSplitEstimates(Environment const& env, std::vector<ConstantType> const& quantitativeResult,
                                                     std::vector<uint64_t> const& schedulerChoices,
@@ -91,7 +92,7 @@ class SparseDtmcParameterLiftingModelChecker : public SparseParameterLiftingMode
     bool isValueDeltaRegionSplitEstimates() const;
 
     storm::storage::BitVector maybeStates;
-    std::vector<ConstantType> resultsForNonMaybeStates;
+    std::vector<ExtendedConstantType> resultsForNonMaybeStates;
     std::optional<uint64_t> stepBound;
 
     std::unique_ptr<storm::modelchecker::SparseDtmcInstantiationModelChecker<SparseModelType, ConstantType>> instantiationChecker;
