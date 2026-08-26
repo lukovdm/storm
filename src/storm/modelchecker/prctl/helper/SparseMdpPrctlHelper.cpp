@@ -312,7 +312,20 @@ void extractValueAndSchedulerHint(SparseMdpHintType<SolutionType>& hintStorage, 
         (skipECWithinMaybeStatesCheck || hintStorage.hasSchedulerHint() ||
          storm::utility::graph::performProb1A(transitionMatrix, transitionMatrix.getRowGroupIndices(), backwardTransitions, maybeStates, ~maybeStates)
              .full())) {
-        hintStorage.valueHint = storm::utility::vector::filterVector(hint.template asExplicitModelCheckerHint<SolutionType>().getResultHint(), maybeStates);
+        // The solver works on the plain value type, which for a reward computation has no infinite value to start
+        // from. A hint is allowed to be stale -- the computation it came from may have found a state unable to reach
+        // the target at all where this one does not -- so an infinite entry falls back to the default starting value.
+        auto const& resultHint = hint.template asExplicitModelCheckerHint<SolutionType>().getResultHint();
+        std::vector<SolutionType> valueHint;
+        valueHint.reserve(maybeStates.getNumberOfSetBits());
+        for (uint64_t state : maybeStates) {
+            if (storm::utility::isFinite(resultHint[state])) {
+                valueHint.push_back(storm::utility::getFinite(resultHint[state]));
+            } else {
+                valueHint.push_back(storm::utility::zero<SolutionType>());
+            }
+        }
+        hintStorage.valueHint = std::move(valueHint);
     }
 }
 
@@ -505,7 +518,7 @@ QualitativeStateSetsUntilProbabilities getQualitativeStateSetsUntilProbabilities
     result.maybeStates = hint.template asExplicitModelCheckerHint<ValueType>().getMaybeStates();
 
     // Treat the states with probability zero/one.
-    std::vector<ValueType> const& resultsForNonMaybeStates = hint.template asExplicitModelCheckerHint<ValueType>().getResultHint();
+    auto const& resultsForNonMaybeStates = hint.template asExplicitModelCheckerHint<ValueType>().getResultHint();
     result.statesWithProbability1 = storm::storage::BitVector(result.maybeStates.size());
     result.statesWithProbability0 = storm::storage::BitVector(result.maybeStates.size());
     storm::storage::BitVector nonMaybeStates = ~result.maybeStates;
@@ -1103,7 +1116,7 @@ QualitativeStateSetsReachabilityRewards getQualitativeStateSetsReachabilityRewar
     result.maybeStates = hint.template asExplicitModelCheckerHint<ValueType>().getMaybeStates();
 
     // Treat the states with reward zero/infinity.
-    std::vector<ValueType> const& resultsForNonMaybeStates = hint.template asExplicitModelCheckerHint<ValueType>().getResultHint();
+    auto const& resultsForNonMaybeStates = hint.template asExplicitModelCheckerHint<ValueType>().getResultHint();
     result.infinityStates = storm::storage::BitVector(result.maybeStates.size());
     result.rewardZeroStates = storm::storage::BitVector(result.maybeStates.size());
     storm::storage::BitVector nonMaybeStates = ~result.maybeStates;

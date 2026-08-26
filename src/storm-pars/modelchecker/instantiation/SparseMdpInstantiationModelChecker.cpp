@@ -77,24 +77,23 @@ std::unique_ptr<CheckResult> SparseMdpInstantiationModelChecker<SparseModelType,
 
     if (this->getInstantiationsAreGraphPreserving() && !hint.hasMaybeStates()) {
         // Perform purely qualitative analysis once
-        std::vector<ConstantType> qualitativeResult;
+        std::vector<ExtendedConstantType> qualitativeResult;
         if (this->currentCheckTask->getFormula().asOperatorFormula().hasQuantitativeResult()) {
             auto newCheckTask = *this->currentCheckTask;
             newCheckTask.setQualitative(true);
             newCheckTask.setOnlyInitialStatesRelevant(false);
             newCheckTask.setProduceSchedulers(false);
-            qualitativeResult = modelChecker.check(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector();
+            qualitativeResult = std::move(modelChecker.check(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector());
         } else {
             auto newCheckTask = this->currentCheckTask->substituteFormula(this->currentCheckTask->getFormula().asOperatorFormula().getSubformula());
             newCheckTask.setQualitative(true);
             newCheckTask.setOnlyInitialStatesRelevant(false);
             newCheckTask.setProduceSchedulers(false);
             qualitativeResult =
-                modelChecker.computeProbabilities(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector();
+                std::move(modelChecker.computeProbabilities(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector());
         }
-        storm::storage::BitVector maybeStates = storm::utility::vector::filter<ConstantType>(qualitativeResult, [](ConstantType const& value) -> bool {
-            return !(storm::utility::isZero<ConstantType>(value) || storm::utility::isOne<ConstantType>(value));
-        });
+        storm::storage::BitVector maybeStates = storm::utility::vector::filter<ExtendedConstantType>(
+            qualitativeResult, [](ExtendedConstantType const& value) -> bool { return !(storm::utility::isZero(value) || storm::utility::isOne(value)); });
         hint.setMaybeStates(std::move(maybeStates));
         hint.setResultHint(std::move(qualitativeResult));
         hint.setComputeOnlyMaybeStates(true);
@@ -113,7 +112,7 @@ std::unique_ptr<CheckResult> SparseMdpInstantiationModelChecker<SparseModelType,
     // For qualitative properties, we still want a quantitative result hint. Hence we perform the check on the subformula
     if (this->currentCheckTask->getFormula().asOperatorFormula().hasQuantitativeResult()) {
         result = modelChecker.check(env, *this->currentCheckTask);
-        hint.setResultHint(result->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector());
+        hint.setResultHint(result->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector());
         if (produceScheduler) {
             storm::storage::Scheduler<ConstantType> const& scheduler = result->template asExplicitQuantitativeCheckResult<ConstantType>().getScheduler();
             hint.setSchedulerHint(dynamic_cast<storm::storage::Scheduler<ConstantType> const&>(scheduler));
@@ -125,7 +124,7 @@ std::unique_ptr<CheckResult> SparseMdpInstantiationModelChecker<SparseModelType,
         result = quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().compareAgainstBound(
             this->currentCheckTask->getFormula().asOperatorFormula().getComparisonType(),
             this->currentCheckTask->getFormula().asOperatorFormula().template getThresholdAs<ConstantType>());
-        hint.setResultHint(std::move(quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector()));
+        hint.setResultHint(std::move(quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector()));
         if (produceScheduler) {
             storm::storage::Scheduler<ConstantType>& scheduler = quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().getScheduler();
             hint.setSchedulerHint(std::move(dynamic_cast<storm::storage::Scheduler<ConstantType>&>(scheduler)));
@@ -148,24 +147,23 @@ std::unique_ptr<CheckResult> SparseMdpInstantiationModelChecker<SparseModelType,
 
     if (this->getInstantiationsAreGraphPreserving() && !hint.hasMaybeStates()) {
         // Perform purely qualitative analysis once
-        std::vector<ConstantType> qualitativeResult;
+        std::vector<ExtendedConstantType> qualitativeResult;
         if (this->currentCheckTask->getFormula().asOperatorFormula().hasQuantitativeResult()) {
             auto newCheckTask = *this->currentCheckTask;
             newCheckTask.setQualitative(true);
             newCheckTask.setOnlyInitialStatesRelevant(false);
             newCheckTask.setProduceSchedulers(false);
-            qualitativeResult = modelChecker.check(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector();
+            qualitativeResult = std::move(modelChecker.check(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector());
         } else {
             auto newCheckTask = this->currentCheckTask->substituteFormula(this->currentCheckTask->getFormula().asOperatorFormula().getSubformula());
             newCheckTask.setQualitative(true);
             newCheckTask.setOnlyInitialStatesRelevant(false);
             newCheckTask.setProduceSchedulers(false);
             qualitativeResult =
-                modelChecker.computeRewards(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector();
+                std::move(modelChecker.computeRewards(env, newCheckTask)->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector());
         }
-        storm::storage::BitVector maybeStates = storm::utility::vector::filter<ConstantType>(qualitativeResult, [](ConstantType const& value) -> bool {
-            return !(storm::utility::isZero<ConstantType>(value) || storm::utility::isInfinity<ConstantType>(value));
-        });
+        storm::storage::BitVector maybeStates = storm::utility::vector::filter<ExtendedConstantType>(
+            qualitativeResult, [](ExtendedConstantType const& value) -> bool { return !(storm::utility::isZero(value) || storm::utility::isInfinity(value)); });
         hint.setMaybeStates(std::move(maybeStates));
         hint.setResultHint(std::move(qualitativeResult));
         hint.setComputeOnlyMaybeStates(true);
@@ -185,7 +183,7 @@ std::unique_ptr<CheckResult> SparseMdpInstantiationModelChecker<SparseModelType,
     if (this->currentCheckTask->getFormula().asOperatorFormula().hasQuantitativeResult()) {
         result = modelChecker.check(env, *this->currentCheckTask);
         storm::storage::Scheduler<ConstantType> const& scheduler = result->template asExplicitQuantitativeCheckResult<ConstantType>().getScheduler();
-        hint.setResultHint(result->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector());
+        hint.setResultHint(result->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector());
         hint.setSchedulerHint(dynamic_cast<storm::storage::Scheduler<ConstantType> const&>(scheduler));
     } else {
         auto newCheckTask = this->currentCheckTask->substituteFormula(this->currentCheckTask->getFormula().asOperatorFormula().getSubformula())
@@ -195,7 +193,7 @@ std::unique_ptr<CheckResult> SparseMdpInstantiationModelChecker<SparseModelType,
             this->currentCheckTask->getFormula().asOperatorFormula().getComparisonType(),
             this->currentCheckTask->getFormula().asOperatorFormula().template getThresholdAs<ConstantType>());
         storm::storage::Scheduler<ConstantType>& scheduler = quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().getScheduler();
-        hint.setResultHint(std::move(quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector()));
+        hint.setResultHint(std::move(quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector()));
         hint.setSchedulerHint(std::move(dynamic_cast<storm::storage::Scheduler<ConstantType>&>(scheduler)));
     }
 
@@ -216,7 +214,7 @@ std::unique_ptr<CheckResult> SparseMdpInstantiationModelChecker<SparseModelType,
         // For qualitative properties, we still need a quantitative result. Hence we perform the check on the subformula
         if (this->currentCheckTask->getFormula().asOperatorFormula().hasQuantitativeResult()) {
             result = modelChecker.check(env, *this->currentCheckTask);
-            hint.setResultHint(result->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector());
+            hint.setResultHint(result->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector());
         } else {
             auto newCheckTask = this->currentCheckTask->substituteFormula(this->currentCheckTask->getFormula().asOperatorFormula().getSubformula())
                                     .setOnlyInitialStatesRelevant(false);
@@ -224,7 +222,7 @@ std::unique_ptr<CheckResult> SparseMdpInstantiationModelChecker<SparseModelType,
             result = quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().compareAgainstBound(
                 this->currentCheckTask->getFormula().asOperatorFormula().getComparisonType(),
                 this->currentCheckTask->getFormula().asOperatorFormula().template getThresholdAs<ConstantType>());
-            hint.setResultHint(std::move(quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().getSentinelValueVector()));
+            hint.setResultHint(std::move(quantitativeResult->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector()));
         }
         storm::storage::BitVector maybeStates = storm::utility::vector::filterGreaterZero(hint.getResultHint());
         // We need to exclude the target states from the maybe states.

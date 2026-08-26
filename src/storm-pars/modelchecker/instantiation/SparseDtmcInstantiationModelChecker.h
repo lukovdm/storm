@@ -7,6 +7,7 @@
 #include "storm-pars/utility/ModelInstantiator.h"
 #include "storm/modelchecker/prctl/SparseDtmcPrctlModelChecker.h"
 #include "storm/models/sparse/Dtmc.h"
+#include "storm/utility/ExtendedNumber.h"
 
 namespace storm {
 namespace modelchecker {
@@ -25,6 +26,10 @@ class SparseDtmcInstantiationModelChecker : public SparseInstantiationModelCheck
     virtual bool isWellDefined(storm::utility::parametric::Valuation<typename SparseModelType::ValueType> const& valuation) override;
 
    protected:
+    /// The type a checked or hinted value is held in: a reward property may find that a state cannot reach the target
+    /// at all, which the plain constant type has no value for.
+    typedef storm::utility::ExtendedValueType<ConstantType> ExtendedConstantType;
+
     // Optimizations for the different formula types
     std::unique_ptr<CheckResult> checkReachabilityProbabilityFormula(
         Environment const& env, storm::modelchecker::SparseDtmcPrctlModelChecker<storm::models::sparse::Dtmc<ConstantType>>& modelChecker);

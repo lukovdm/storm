@@ -183,7 +183,7 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
         maybeStates = hint.template asExplicitModelCheckerHint<ValueType>().getMaybeStates();
 
         // Treat the states with probability one
-        std::vector<SolutionType> const& resultsForNonMaybeStates = hint.template asExplicitModelCheckerHint<SolutionType>().getResultHint();
+        auto const& resultsForNonMaybeStates = hint.template asExplicitModelCheckerHint<SolutionType>().getResultHint();
         statesWithProbability1 = storm::storage::BitVector(maybeStates.size(), false);
         storm::storage::BitVector nonMaybeStates = ~maybeStates;
         for (uint64_t state : nonMaybeStates) {
@@ -260,7 +260,10 @@ std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, Solu
                 // 'maybe' states we know that the probability is strictly larger than 0.
                 std::vector<SolutionType> x;
                 if (hint.isExplicitModelCheckerHint() && hint.template asExplicitModelCheckerHint<ValueType>().hasResultHint()) {
-                    x = storm::utility::vector::filterVector(hint.template asExplicitModelCheckerHint<SolutionType>().getResultHint(), maybeStates);
+                    // The solver works on the plain value type. A probability hint holds values in [0,1], so there is
+                    // nothing here that the plain type could not express.
+                    x = storm::utility::narrowFinite<SolutionType>(
+                        storm::utility::vector::filterVector(hint.template asExplicitModelCheckerHint<SolutionType>().getResultHint(), maybeStates));
                 } else {
                     x = std::vector<SolutionType>(maybeStates.getNumberOfSetBits(), storm::utility::convertNumber<SolutionType>(0.5));
                 }
@@ -657,7 +660,18 @@ SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabi
                 // This is the initial guess for the iterative solvers.
                 std::vector<ValueType> x;
                 if (hint.isExplicitModelCheckerHint() && hint.template asExplicitModelCheckerHint<ValueType>().hasResultHint()) {
-                    x = storm::utility::vector::filterVector(hint.template asExplicitModelCheckerHint<ValueType>().getResultHint(), maybeStates);
+                    // The solver works on the plain value type, which has no infinite value to start from. A hint is
+                    // allowed to be stale -- the computation it came from may have found a state unable to reach the
+                    // target at all where this one does not -- so an infinite entry falls back to the default guess.
+                    auto const& resultHint = hint.template asExplicitModelCheckerHint<ValueType>().getResultHint();
+                    x.reserve(submatrix.getColumnCount());
+                    for (uint64_t state : maybeStates) {
+                        if (storm::utility::isFinite(resultHint[state])) {
+                            x.push_back(storm::utility::getFinite(resultHint[state]));
+                        } else {
+                            x.push_back(storm::utility::one<ValueType>());
+                        }
+                    }
                 } else {
                     x = std::vector<ValueType>(submatrix.getColumnCount(), storm::utility::one<ValueType>());
                 }

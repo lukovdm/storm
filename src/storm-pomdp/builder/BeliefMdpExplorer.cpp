@@ -11,6 +11,7 @@
 #include "storm/models/sparse/Pomdp.h"
 #include "storm/storage/SparseMatrix.h"
 #include "storm/storage/jani/Property.h"
+#include "storm/utility/ExtendedNumber.h"
 #include "storm/utility/SignalHandler.h"
 #include "storm/utility/constants.h"
 #include "storm/utility/graph.h"
@@ -1083,7 +1084,8 @@ BeliefMdpExplorer<PomdpType, BeliefValueType>::createStandardCheckTask(std::shar
     //  Therefore, this method needs the property by reference (and not const reference)
     auto task = storm::api::createTask<ValueType>(property, false);
     auto hint = storm::modelchecker::ExplicitModelCheckerHint<ValueType>();
-    hint.setResultHint(values);
+    // The hint can hold an infinite value; the values kept here still cannot, so they are widened on their way in.
+    hint.setResultHint(storm::utility::widen(std::vector<ValueType>(values)));
     auto hintPtr = std::make_shared<storm::modelchecker::ExplicitModelCheckerHint<ValueType>>(hint);
     task.setHint(hintPtr);
     task.setProduceSchedulers();

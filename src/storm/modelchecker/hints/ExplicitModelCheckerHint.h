@@ -5,6 +5,7 @@
 
 #include "storm/modelchecker/hints/ModelCheckerHint.h"
 #include "storm/storage/Scheduler.h"
+#include "storm/utility/ExtendedNumber.h"
 
 namespace storm {
 namespace modelchecker {
@@ -16,6 +17,12 @@ namespace modelchecker {
 template<typename ValueType>
 class ExplicitModelCheckerHint : public ModelCheckerHint {
    public:
+    /*!
+     * The type a hinted value is held in. A hint for a reward computation says of some states that they cannot reach
+     * the target at all, so the hint has to be able to hold an infinite value even where the plain value type cannot.
+     */
+    typedef storm::utility::ExtendedValueType<ValueType> extended_value_type;
+
     ExplicitModelCheckerHint() = default;
     ExplicitModelCheckerHint(ExplicitModelCheckerHint<ValueType> const& other) = default;
     ExplicitModelCheckerHint(ExplicitModelCheckerHint<ValueType>&& other) = default;
@@ -27,10 +34,15 @@ class ExplicitModelCheckerHint : public ModelCheckerHint {
     virtual bool isExplicitModelCheckerHint() const override;
 
     bool hasResultHint() const;
-    std::vector<ValueType> const& getResultHint() const;
-    std::vector<ValueType>& getResultHint();
-    void setResultHint(boost::optional<std::vector<ValueType>> const& resultHint);
-    void setResultHint(boost::optional<std::vector<ValueType>>&& resultHint);
+
+    /*!
+     * @return the hinted values. A consumer that cannot hold an infinite value -- a solver, above all -- narrows them
+     * at the point where they enter it, rather than the hint handing out a value that stands in for infinity.
+     */
+    std::vector<extended_value_type> const& getResultHint() const;
+    std::vector<extended_value_type>& getResultHint();
+    void setResultHint(boost::optional<std::vector<extended_value_type>> const& resultHint);
+    void setResultHint(boost::optional<std::vector<extended_value_type>>&& resultHint);
 
     // Set whether only the maybestates need to be computed, i.e., skips the qualitative check.
     // The result for non-maybe states is taken from the result hint.
@@ -55,7 +67,7 @@ class ExplicitModelCheckerHint : public ModelCheckerHint {
     void setNoEndComponentsInMaybeStates(bool value);
 
    private:
-    boost::optional<std::vector<ValueType>> resultHint;
+    boost::optional<std::vector<extended_value_type>> resultHint;
     boost::optional<storm::storage::Scheduler<ValueType>> schedulerHint;
 
     bool computeOnlyMaybeStates;
