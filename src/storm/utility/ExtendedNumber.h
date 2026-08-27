@@ -110,7 +110,7 @@ class ExtendedNumber {
      * @return the finite value
      */
     ValueType const& getFinite() const {
-        STORM_LOG_ASSERT(isFinite(), "Tried to get the finite value of " << *this << ".");
+        STORM_LOG_THROW(isFinite(), storm::exceptions::InvalidOperationException, "Tried to get the finite value of " << *this << ".");
         return value;
     }
 
@@ -119,7 +119,7 @@ class ExtendedNumber {
      * @return the finite value
      */
     ValueType& getFinite() {
-        STORM_LOG_ASSERT(isFinite(), "Tried to get the finite value of " << *this << ".");
+        STORM_LOG_THROW(isFinite(), storm::exceptions::InvalidOperationException, "Tried to get the finite value of " << *this << ".");
         return value;
     }
 
@@ -353,7 +353,9 @@ template<typename ValueType>
     requires(!detail::IsExtendedNumber<ValueType>::value)
 bool isFinite(ValueType const& value) {
     if constexpr (storm::NumberTraits<ValueType>::HasInfinity) {
-        return !storm::utility::isInfinity(value) && !storm::utility::isInfinity(ValueType(-value));
+        // A NaN is not infinite, but it is not a finite value either: the guards built on this predicate are there to
+        // keep a value that is not a number out of a computation, and a NaN is exactly that.
+        return !storm::utility::isInfinity(value) && !storm::utility::isInfinity(ValueType(-value)) && !storm::utility::isNan(value);
     } else {
         return true;
     }
@@ -371,7 +373,7 @@ std::vector<ValueType> narrowFinite(std::vector<ExtendedValueType<ValueType>>&& 
         std::vector<ValueType> result;
         result.reserve(values.size());
         for (auto& value : values) {
-            STORM_LOG_ASSERT(value.isFinite(), "Tried to narrow " << value << " to a type that cannot hold it.");
+            STORM_LOG_THROW(value.isFinite(), storm::exceptions::InvalidOperationException, "Tried to narrow " << value << " to a type that cannot hold it.");
             result.push_back(std::move(value.getFinite()));
         }
         return result;
@@ -508,6 +510,25 @@ ValueType infinity() {
 template<typename ValueType>
 bool isInfinity(ExtendedNumber<ValueType> const& number) {
     return number.isPositiveInfinity();
+}
+
+/*!
+ * @return true if the given value is -infinity, whether or not the type it is held in is an extended one. This is the
+ * counterpart of isInfinity for the places that have to tell the two infinities apart, such as writing a result out.
+ */
+template<typename ValueType>
+bool isNegativeInfinity(ExtendedNumber<ValueType> const& number) {
+    return number.isNegativeInfinity();
+}
+
+template<typename ValueType>
+    requires(!detail::IsExtendedNumber<ValueType>::value)
+bool isNegativeInfinity(ValueType const& value) {
+    if constexpr (storm::NumberTraits<ValueType>::HasInfinity) {
+        return storm::utility::isInfinity(ValueType(-value));
+    } else {
+        return false;
+    }
 }
 
 template<typename ValueType>

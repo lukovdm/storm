@@ -114,6 +114,38 @@ void runExportTest(storm::Environment const& env) {
 }
 }  // namespace
 
+/*!
+ * No model checker hands out a negative infinity today, so this builds the check result directly. The export must not
+ * fall back to the finite payload of an infinite value, which is a zero that means nothing.
+ */
+template<typename ValueType>
+void runNegativeInfinityExportTest() {
+    typedef storm::utility::ExtendedValueType<ValueType> ExtendedValueType;
+    std::vector<ExtendedValueType> values{storm::utility::one<ExtendedValueType>(), storm::utility::negativeInfinity<ValueType>(),
+                                          storm::utility::positiveInfinity<ValueType>()};
+    storm::modelchecker::ExplicitQuantitativeCheckResult<ValueType> result(std::move(values));
+
+    storm::json<ValueType> exported;
+    ASSERT_NO_THROW(exported = result.toJson());
+    ASSERT_TRUE(exported.is_array());
+    ASSERT_EQ(3ull, exported.size());
+
+    EXPECT_TRUE(exported[0].at("v").is_number());
+    // JSON has no infinity of its own, and the two of them must not be exported as the same thing.
+    ASSERT_TRUE(exported[1].at("v").is_string()) << "The negative infinity was exported as " << exported[1].at("v").dump() << ".";
+    EXPECT_EQ("-inf", exported[1].at("v").template get<std::string>());
+    ASSERT_TRUE(exported[2].at("v").is_string()) << "The positive infinity was exported as " << exported[2].at("v").dump() << ".";
+    EXPECT_EQ("inf", exported[2].at("v").template get<std::string>());
+}
+
+TEST(ExportCheckResultTest, NegativeInfinityDouble) {
+    runNegativeInfinityExportTest<double>();
+}
+
+TEST(ExportCheckResultTest, NegativeInfinityExact) {
+    runNegativeInfinityExportTest<storm::RationalNumber>();
+}
+
 TEST(ExportCheckResultTest, InfiniteRewardDouble) {
     storm::Environment env;
     runExportTest<double>(env);

@@ -4,6 +4,7 @@
 #include "storm/adapters/RationalFunctionAdapter.h"
 #include "storm/adapters/RationalNumberAdapter.h"
 #include "storm/exceptions/InvalidOperationException.h"
+#include "storm/exceptions/NotSupportedException.h"
 #include "storm/utility/ExtendedNumber.h"
 #include "storm/utility/constants.h"
 
@@ -159,4 +160,133 @@ TEST(ExtendedNumberTest, infinityOfTheExtendedType) {
     // For a type that has its own infinity nothing is wrapped, so this stays the IEEE infinity.
     EXPECT_EQ(storm::utility::infinity<double>(), storm::utility::positiveInfinity<double>());
     EXPECT_EQ(-storm::utility::infinity<double>(), storm::utility::negativeInfinity<double>());
+}
+
+TEST(ExtendedNumberTest, negativeInfinityArithmetic) {
+    ExtendedRationalNumber const inf = ExtendedRationalNumber::infinity();
+    ExtendedRationalNumber const negInf = ExtendedRationalNumber::negativeInfinity();
+    ExtendedRationalNumber const zero;
+    ExtendedRationalNumber const two(rational(2));
+
+    EXPECT_EQ(negInf, negInf + negInf);
+    EXPECT_EQ(negInf, negInf + two);
+    EXPECT_EQ(negInf, negInf - two);
+    EXPECT_EQ(negInf, negInf - inf);
+    EXPECT_EQ(inf, negInf * negInf);
+    EXPECT_EQ(negInf, negInf * two);
+    EXPECT_EQ(negInf, negInf * inf);
+    EXPECT_EQ(inf, -negInf);
+    EXPECT_EQ(negInf, -inf);
+    EXPECT_EQ(zero, two / negInf);
+
+    // The undefined forms are undefined in this direction too.
+    STORM_SILENT_EXPECT_THROW(negInf - negInf, storm::exceptions::InvalidOperationException);
+    STORM_SILENT_EXPECT_THROW(negInf + inf, storm::exceptions::InvalidOperationException);
+    STORM_SILENT_EXPECT_THROW(negInf * zero, storm::exceptions::InvalidOperationException);
+    STORM_SILENT_EXPECT_THROW(negInf / negInf, storm::exceptions::InvalidOperationException);
+    STORM_SILENT_EXPECT_THROW(negInf / inf, storm::exceptions::InvalidOperationException);
+    STORM_SILENT_EXPECT_THROW(negInf / zero, storm::exceptions::InvalidOperationException);
+}
+
+TEST(ExtendedNumberTest, reportsNegativeInfinity) {
+    EXPECT_TRUE(storm::utility::isNegativeInfinity(ExtendedRationalNumber::negativeInfinity()));
+    EXPECT_FALSE(storm::utility::isNegativeInfinity(ExtendedRationalNumber::infinity()));
+    EXPECT_FALSE(storm::utility::isNegativeInfinity(ExtendedRationalNumber(rational(-2))));
+
+    // The same question is answerable for a type that brings its own infinity.
+    EXPECT_TRUE(storm::utility::isNegativeInfinity(-storm::utility::infinity<double>()));
+    EXPECT_FALSE(storm::utility::isNegativeInfinity(storm::utility::infinity<double>()));
+    EXPECT_FALSE(storm::utility::isNegativeInfinity(-2.0));
+    // A value type without an infinity of its own has no negative infinity to report.
+    EXPECT_FALSE(storm::utility::isNegativeInfinity(rational(-2)));
+}
+
+TEST(ExtendedNumberTest, isFiniteRejectsNotANumber) {
+    EXPECT_TRUE(storm::utility::isFinite(2.0));
+    EXPECT_FALSE(storm::utility::isFinite(storm::utility::infinity<double>()));
+    EXPECT_FALSE(storm::utility::isFinite(-storm::utility::infinity<double>()));
+    // A NaN is not an infinity, but it is not a finite value either. The guards built on this predicate exist to keep
+    // a value that is not a number out of a computation.
+    EXPECT_FALSE(storm::utility::isFinite(std::nan("")));
+
+    EXPECT_TRUE(storm::utility::isFinite(ExtendedRationalNumber(rational(2))));
+    EXPECT_FALSE(storm::utility::isFinite(ExtendedRationalNumber::infinity()));
+    EXPECT_FALSE(storm::utility::isFinite(ExtendedRationalNumber::negativeInfinity()));
+}
+
+TEST(ExtendedNumberTest, widenDoesNotInterpretTheSentinel) {
+    // widen is for values that cannot be infinite. It must take the sentinel at face value: reading it as an infinity
+    // would be guesswork, and the sentinel is a perfectly ordinary number that a computation may legitimately produce.
+    storm::RationalNumber const sentinel = storm::utility::infinity<storm::RationalNumber>();
+    ExtendedRationalNumber const widened(sentinel);
+    EXPECT_TRUE(widened.isFinite());
+    EXPECT_EQ(sentinel, widened.getFinite());
+
+    // fromSentinel is the one that translates it, and it is the only one that may be used on a vector that came out of
+    // a part of Storm that still produces the sentinel.
+    EXPECT_TRUE(storm::utility::fromSentinel(sentinel).isPositiveInfinity());
+
+    // For a type that has its own infinity the sentinel is that infinity, so fromSentinel is the identity there.
+    EXPECT_TRUE(storm::utility::isInfinity(storm::utility::fromSentinel(storm::utility::infinity<double>())));
+    EXPECT_TRUE(storm::utility::isInfinity(storm::utility::widen(std::vector<double>{storm::utility::infinity<double>()}).front()));
+}
+
+TEST(ExtendedNumberTest, widenAndNarrowVectors) {
+    std::vector<storm::RationalNumber> const finite{rational(1), rational(2)};
+    auto const widened = storm::utility::widen(std::vector<storm::RationalNumber>(finite));
+    ASSERT_EQ(2ull, widened.size());
+    EXPECT_EQ(ExtendedRationalNumber(rational(1)), widened[0]);
+    EXPECT_EQ(ExtendedRationalNumber(rational(2)), widened[1]);
+    EXPECT_EQ(finite, storm::utility::narrowFinite<storm::RationalNumber>(std::vector<ExtendedRationalNumber>(widened)));
+
+    std::vector<storm::RationalNumber> const withSentinel{rational(1), storm::utility::infinity<storm::RationalNumber>()};
+    auto const translated = storm::utility::fromSentinel(std::vector<storm::RationalNumber>(withSentinel));
+    ASSERT_EQ(2ull, translated.size());
+    EXPECT_TRUE(translated[0].isFinite());
+    EXPECT_TRUE(translated[1].isPositiveInfinity());
+
+    // narrowFinite has no number to put in place of an infinity, so it refuses rather than inventing one. This has to
+    // hold in a release build too, which is why it throws rather than asserting.
+    STORM_SILENT_EXPECT_THROW(storm::utility::narrowFinite<storm::RationalNumber>(std::vector<ExtendedRationalNumber>(translated)),
+                              storm::exceptions::InvalidOperationException);
+}
+
+TEST(ExtendedNumberTest, narrowingRefusesAnInfiniteValue) {
+    ExtendedRationalNumber const inf = ExtendedRationalNumber::infinity();
+    ExtendedRationalNumber const negInf = ExtendedRationalNumber::negativeInfinity();
+
+    EXPECT_EQ(rational(2), storm::utility::narrow<storm::RationalNumber>(ExtendedRationalNumber(rational(2))));
+    STORM_SILENT_EXPECT_THROW(storm::utility::narrow<storm::RationalNumber>(inf), storm::exceptions::NotSupportedException);
+    STORM_SILENT_EXPECT_THROW(storm::utility::narrow<storm::RationalNumber>(negInf), storm::exceptions::NotSupportedException);
+
+    // getFinite is a precondition of the caller, but a violated one must not quietly hand out the zero that an infinite
+    // value happens to carry as its payload.
+    EXPECT_EQ(rational(2), storm::utility::getFinite(ExtendedRationalNumber(rational(2))));
+    STORM_SILENT_EXPECT_THROW(storm::utility::getFinite(inf), storm::exceptions::InvalidOperationException);
+    STORM_SILENT_EXPECT_THROW(inf.getFinite(), storm::exceptions::InvalidOperationException);
+
+    // A type that has its own infinity narrows to itself, infinity included.
+    EXPECT_TRUE(storm::utility::isInfinity(storm::utility::narrow<double>(storm::utility::infinity<double>())));
+}
+
+TEST(ExtendedNumberTest, toSentinelHasNoNegativeInfinity) {
+    EXPECT_EQ(rational(2), storm::utility::toSentinel<storm::RationalNumber>(ExtendedRationalNumber(rational(2))));
+    EXPECT_EQ(storm::utility::infinity<storm::RationalNumber>(), storm::utility::toSentinel<storm::RationalNumber>(ExtendedRationalNumber::infinity()));
+
+    // The sentinel is a single magic number with no negative counterpart, so this direction is rejected rather than
+    // silently turned into something else.
+    STORM_SILENT_EXPECT_THROW(storm::utility::toSentinel<storm::RationalNumber>(ExtendedRationalNumber::negativeInfinity()),
+                              storm::exceptions::NotSupportedException);
+
+    // Round tripping through the sentinel is lossless for the one infinity it can represent.
+    EXPECT_TRUE(storm::utility::fromSentinel(storm::utility::toSentinel<storm::RationalNumber>(ExtendedRationalNumber::infinity())).isPositiveInfinity());
+}
+
+TEST(ExtendedNumberTest, convertsAnInfinityFromATypeThatHasItsOwn) {
+    // This is the path that carries an infinity out of a double computation into an exact coefficient type.
+    auto const fromDouble = storm::utility::convertNumber<ExtendedRationalNumber>(storm::utility::infinity<double>());
+    EXPECT_TRUE(fromDouble.isPositiveInfinity());
+    auto const negFromDouble = storm::utility::convertNumber<ExtendedRationalNumber>(-storm::utility::infinity<double>());
+    EXPECT_TRUE(negFromDouble.isNegativeInfinity());
+    EXPECT_EQ(rational(0.5), storm::utility::convertNumber<ExtendedRationalNumber>(0.5).getFinite());
 }

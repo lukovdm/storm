@@ -531,6 +531,8 @@ void insertJsonEntry(storm::json<ValueType>& json, uint64_t const& id, storm::ut
         // JSON has no infinity, and a number would put us right back where the sentinel was. Both the extended types
         // and the ones with their own infinity are written as this string.
         entry["v"] = "inf";
+    } else if (storm::utility::isNegativeInfinity(value)) {
+        entry["v"] = "-inf";
     } else if constexpr (std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>) {
         entry["v"] = value;
     } else {
