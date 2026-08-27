@@ -208,10 +208,10 @@ std::unique_ptr<storm::modelchecker::RegionRefinementCheckResult<ParametricType>
 
 template<typename ParametricType>
 std::pair<typename RegionRefinementChecker<ParametricType>::ExtendedCoefficientType, typename storm::storage::ParameterRegion<ParametricType>::Valuation>
-RegionRefinementChecker<ParametricType>::computeExtremalValueHelper(Environment const& env, storm::storage::ParameterRegion<ParametricType> const& region,
-                                                                    storm::solver::OptimizationDirection const& dir,
-                                                                    std::function<bool(ExtendedCoefficientType, ExtendedCoefficientType)> acceptGlobalBound,
-                                                                    std::function<bool(ExtendedCoefficientType)> rejectInstance) {
+RegionRefinementChecker<ParametricType>::computeExtremalValueHelper(
+    Environment const& env, storm::storage::ParameterRegion<ParametricType> const& region, storm::solver::OptimizationDirection const& dir,
+    std::function<bool(ExtendedCoefficientType const&, ExtendedCoefficientType const&)> acceptGlobalBound,
+    std::function<bool(ExtendedCoefficientType const&)> rejectInstance) {
     auto progress = PartitioningProgress<CoefficientType>(region.area());
 
     // Holds the initial region as well as all considered (sub)-regions and their annotations as a tree
@@ -310,12 +310,17 @@ RegionRefinementChecker<ParametricType>::computeExtremalValue(Environment const&
                     "Precision must be a constant value. Got " << precision << " instead.");
     CoefficientType convertedPrecision = storm::utility::convertNumber<CoefficientType>(precision);
 
-    auto acceptGlobalBound = [&](ExtendedCoefficientType value, ExtendedCoefficientType newValue) {
+    auto acceptGlobalBound = [&](ExtendedCoefficientType const& value, ExtendedCoefficientType const& newValue) {
+        if (!storm::utility::isFinite(value)) {
+            // There is no relative precision around an infinite value, and adding a precision to it would not move it
+            // anywhere either. Only a value that is infinite in the same direction can be within precision of it.
+            return newValue == value;
+        }
         ExtendedCoefficientType const usedPrecision = convertedPrecision * (absolutePrecision ? storm::utility::one<ExtendedCoefficientType>() : value);
         return storm::solver::minimize(dir) ? newValue >= value - usedPrecision : newValue <= value + usedPrecision;
     };
 
-    auto rejectInstance = [&](ExtendedCoefficientType currentValue) { return boundInvariant && !boundInvariant->isSatisfied(currentValue); };
+    auto rejectInstance = [&](ExtendedCoefficientType const& currentValue) { return boundInvariant && !boundInvariant->isSatisfied(currentValue); };
 
     return computeExtremalValueHelper(env, region, dir, acceptGlobalBound, rejectInstance);
 }
@@ -329,9 +334,9 @@ bool RegionRefinementChecker<ParametricType>::verifyRegion(const storm::Environm
     storm::solver::OptimizationDirection dir =
         isLowerBound(bound.comparisonType) ? storm::solver::OptimizationDirection::Minimize : storm::solver::OptimizationDirection::Maximize;
     // We pass the bound as an invariant; as soon as it is obtained, we can stop the search.
-    auto acceptGlobalBound = [&](ExtendedCoefficientType, ExtendedCoefficientType newValue) { return bound.isSatisfied(newValue); };
+    auto acceptGlobalBound = [&](ExtendedCoefficientType const&, ExtendedCoefficientType const& newValue) { return bound.isSatisfied(newValue); };
 
-    auto rejectInstance = [&](ExtendedCoefficientType currentValue) { return !bound.isSatisfied(currentValue); };
+    auto rejectInstance = [&](ExtendedCoefficientType const& currentValue) { return !bound.isSatisfied(currentValue); };
 
     auto res = computeExtremalValueHelper(env, region, dir, acceptGlobalBound, rejectInstance).first;
     STORM_LOG_INFO("Extremal value: " << res);

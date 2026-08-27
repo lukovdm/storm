@@ -76,7 +76,8 @@ class RegionRefinementChecker {
      */
     std::pair<ExtendedCoefficientType, Valuation> computeExtremalValueHelper(
         Environment const& env, storm::storage::ParameterRegion<ParametricType> const& region, storm::solver::OptimizationDirection const& dir,
-        std::function<bool(ExtendedCoefficientType, ExtendedCoefficientType)> acceptGlobalBound, std::function<bool(ExtendedCoefficientType)> rejectInstance);
+        std::function<bool(ExtendedCoefficientType const&, ExtendedCoefficientType const&)> acceptGlobalBound,
+        std::function<bool(ExtendedCoefficientType const&)> rejectInstance);
 
     /*!
      * Finds the extremal value within the given region and with the given precision.
