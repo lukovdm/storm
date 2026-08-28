@@ -35,10 +35,6 @@ namespace helper {
 template<typename ValueType, typename SolutionType = ValueType>
 class SparseMdpPrctlHelper {
    public:
-    /*!
-     * A reward that is never collected is infinite, so the queries that can produce one hand back the solution type
-     * extended with the infinities. Any scheduler stays in the plain solution type.
-     */
     using ExtendedSolutionType = storm::utility::ExtendedValueType<SolutionType>;
     using ExtendedReturnType = MDPSparseModelCheckingHelperReturnType<SolutionType, ExtendedSolutionType>;
 

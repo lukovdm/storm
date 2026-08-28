@@ -12,27 +12,27 @@ ParetoCurveCheckResult<ValueType>::ParetoCurveCheckResult() {
 }
 
 template<typename ValueType>
-ParetoCurveCheckResult<ValueType>::ParetoCurveCheckResult(std::vector<point_type> const& points, polytope_type const& underApproximation,
+ParetoCurveCheckResult<ValueType>::ParetoCurveCheckResult(std::vector<ExtendedPointType> const& points, polytope_type const& underApproximation,
                                                           polytope_type const& overApproximation)
     : points(points), underApproximation(underApproximation), overApproximation(overApproximation) {
     // Intentionally left empty.
 }
 
 template<typename ValueType>
-ParetoCurveCheckResult<ValueType>::ParetoCurveCheckResult(std::vector<point_type>&& points, polytope_type&& underApproximation,
+ParetoCurveCheckResult<ValueType>::ParetoCurveCheckResult(std::vector<ExtendedPointType>&& points, polytope_type&& underApproximation,
                                                           polytope_type&& overApproximation)
     : points(points), underApproximation(underApproximation), overApproximation(overApproximation) {
     // Intentionally left empty.
 }
 
 template<typename ValueType>
-ParetoCurveCheckResult<ValueType>::ParetoCurveCheckResult(std::vector<plain_point_type> const& points, polytope_type const& underApproximation,
+ParetoCurveCheckResult<ValueType>::ParetoCurveCheckResult(std::vector<point_type> const& points, polytope_type const& underApproximation,
                                                           polytope_type const& overApproximation)
-    requires(!std::is_same_v<point_type, plain_point_type>)
+    requires(!std::is_same_v<ExtendedPointType, point_type>)
     : underApproximation(underApproximation), overApproximation(overApproximation) {
     this->points.reserve(points.size());
     for (auto const& point : points) {
-        this->points.push_back(storm::utility::widen(plain_point_type(point)));
+        this->points.push_back(storm::utility::widen(point_type(point)));
     }
 }
 
@@ -42,7 +42,7 @@ bool ParetoCurveCheckResult<ValueType>::isParetoCurveCheckResult() const {
 }
 
 template<typename ValueType>
-std::vector<typename ParetoCurveCheckResult<ValueType>::point_type> const& ParetoCurveCheckResult<ValueType>::getPoints() const {
+std::vector<typename ParetoCurveCheckResult<ValueType>::ExtendedPointType> const& ParetoCurveCheckResult<ValueType>::getPoints() const {
     return points;
 }
 

@@ -54,31 +54,32 @@ void SparseDeterministicVisitingTimesHelper<ValueType>::provideSCCDecomposition(
 }
 
 template<typename ValueType>
-std::vector<typename SparseDeterministicVisitingTimesHelper<ValueType>::ExtendedType>
+std::vector<typename SparseDeterministicVisitingTimesHelper<ValueType>::ExtendedValueType>
 SparseDeterministicVisitingTimesHelper<ValueType>::computeExpectedVisitingTimes(Environment const& env, storm::storage::BitVector const& initialStates) {
     STORM_LOG_ASSERT(!initialStates.empty(), "Provided an empty set of initial states.");
     STORM_LOG_ASSERT(initialStates.size() == transitionMatrix.getRowCount(), "Dimension mismatch.");
-    ExtendedType const p = ValueType(storm::utility::one<ValueType>() / storm::utility::convertNumber<ValueType, uint64_t>(initialStates.getNumberOfSetBits()));
-    std::vector<ExtendedType> result(transitionMatrix.getRowCount(), storm::utility::zero<ExtendedType>());
+    ExtendedValueType const p =
+        ValueType(storm::utility::one<ValueType>() / storm::utility::convertNumber<ValueType, uint64_t>(initialStates.getNumberOfSetBits()));
+    std::vector<ExtendedValueType> result(transitionMatrix.getRowCount(), storm::utility::zero<ExtendedValueType>());
     storm::utility::vector::setVectorValues(result, initialStates, p);
     computeExpectedVisitingTimes(env, result);
     return result;
 }
 
 template<typename ValueType>
-std::vector<typename SparseDeterministicVisitingTimesHelper<ValueType>::ExtendedType>
+std::vector<typename SparseDeterministicVisitingTimesHelper<ValueType>::ExtendedValueType>
 SparseDeterministicVisitingTimesHelper<ValueType>::computeExpectedVisitingTimes(Environment const& env, uint64_t initialState) {
     STORM_LOG_ASSERT(initialState < transitionMatrix.getRowCount(), "Invalid initial state index.");
-    std::vector<ExtendedType> result(transitionMatrix.getRowCount(), storm::utility::zero<ExtendedType>());
-    result[initialState] = storm::utility::one<ExtendedType>();
+    std::vector<ExtendedValueType> result(transitionMatrix.getRowCount(), storm::utility::zero<ExtendedValueType>());
+    result[initialState] = storm::utility::one<ExtendedValueType>();
     computeExpectedVisitingTimes(env, result);
     return result;
 }
 
 template<typename ValueType>
-std::vector<typename SparseDeterministicVisitingTimesHelper<ValueType>::ExtendedType>
+std::vector<typename SparseDeterministicVisitingTimesHelper<ValueType>::ExtendedValueType>
 SparseDeterministicVisitingTimesHelper<ValueType>::computeExpectedVisitingTimes(Environment const& env, ValueGetter const& initialStateValueGetter) {
-    std::vector<ExtendedType> result;
+    std::vector<ExtendedValueType> result;
     result.reserve(transitionMatrix.getRowCount());
     for (uint64_t s = 0; s != transitionMatrix.getRowCount(); ++s) {
         result.push_back(initialStateValueGetter(s));
@@ -88,7 +89,7 @@ SparseDeterministicVisitingTimesHelper<ValueType>::computeExpectedVisitingTimes(
 }
 
 template<typename ValueType>
-void SparseDeterministicVisitingTimesHelper<ValueType>::computeExpectedVisitingTimes(Environment const& env, std::vector<ExtendedType>& stateValues) {
+void SparseDeterministicVisitingTimesHelper<ValueType>::computeExpectedVisitingTimes(Environment const& env, std::vector<ExtendedValueType>& stateValues) {
     STORM_LOG_ASSERT(stateValues.size() == transitionMatrix.getRowCount(), "Dimension missmatch.");
     createBackwardTransitions();
     createDecomposition(env);
@@ -134,7 +135,7 @@ void SparseDeterministicVisitingTimesHelper<ValueType>::computeExpectedVisitingT
                     if (std::any_of(sccAsBitVector.begin(), sccAsBitVector.end(), isReachableInState)) {
                         storm::utility::vector::setVectorValues(stateValues, sccAsBitVector, storm::utility::positiveInfinity<ValueType>());
                     } else {
-                        storm::utility::vector::setVectorValues(stateValues, sccAsBitVector, storm::utility::zero<ExtendedType>());
+                        storm::utility::vector::setVectorValues(stateValues, sccAsBitVector, storm::utility::zero<ExtendedValueType>());
                     }
                 }
                 sccAsBitVector.clear();
@@ -167,7 +168,7 @@ void SparseDeterministicVisitingTimesHelper<ValueType>::computeExpectedVisitingT
                     storm::utility::vector::setVectorValues(stateValues, sccAsBitVector, storm::utility::positiveInfinity<ValueType>());
                 } else {
                     // The BSCC is not reachable: The EVT is zero
-                    storm::utility::vector::setVectorValues(stateValues, sccAsBitVector, storm::utility::zero<ExtendedType>());
+                    storm::utility::vector::setVectorValues(stateValues, sccAsBitVector, storm::utility::zero<ExtendedValueType>());
                 }
             }
             sccAsBitVector.clear();
@@ -175,9 +176,9 @@ void SparseDeterministicVisitingTimesHelper<ValueType>::computeExpectedVisitingT
     }
 
     if (isContinuousTime()) {
-        // Divide with the exit rates. An infinite value stays infinite: the exit rates are positive and finite.
+        // Divide with the exit rates.
         storm::utility::vector::applyPointwise(stateValues, *exitRates, stateValues,
-                                               [](ExtendedType const& xi, ValueType const& yi) -> ExtendedType { return xi / yi; });
+                                               [](ExtendedValueType const& xi, ValueType const& yi) -> ExtendedValueType { return xi / yi; });
     }
 }
 
@@ -400,7 +401,7 @@ storm::Environment SparseDeterministicVisitingTimesHelper<ValueType>::getEnviron
 }
 
 template<typename ValueType>
-void SparseDeterministicVisitingTimesHelper<ValueType>::processSingletonScc(uint64_t sccState, std::vector<ExtendedType>& stateValues) const {
+void SparseDeterministicVisitingTimesHelper<ValueType>::processSingletonScc(uint64_t sccState, std::vector<ExtendedValueType>& stateValues) const {
     auto& stateVal = stateValues[sccState];
     auto forwardRow = transitionMatrix.getRow(sccState);
     auto backwardRow = backwardTransitions->getRow(sccState);
@@ -412,7 +413,7 @@ void SparseDeterministicVisitingTimesHelper<ValueType>::processSingletonScc(uint
         }  // else stateVal = 0 (already implied by !(if-condition))
     } else {
         // This is not a BSCC. Compute the state value
-        ExtendedType divisor = storm::utility::one<ExtendedType>();
+        ExtendedValueType divisor = storm::utility::one<ExtendedValueType>();
         for (auto const& entry : backwardRow) {
             if (entry.getColumn() == sccState) {
                 STORM_LOG_ASSERT(!storm::utility::isOne(entry.getValue()), "Found a self-loop state. This is not expected.");
@@ -428,11 +429,10 @@ void SparseDeterministicVisitingTimesHelper<ValueType>::processSingletonScc(uint
 template<typename ValueType>
 std::vector<ValueType> SparseDeterministicVisitingTimesHelper<ValueType>::computeValueForStateSet(storm::Environment const& env,
                                                                                                   storm::storage::BitVector const& stateSetAsBitvector,
-                                                                                                  std::vector<ExtendedType> const& stateValues) const {
-    // Get the vector for the equation system. The states that are solved for never hold an infinite value: only a
-    // bottom SCC can, and this is never called for one.
-    auto extendedSccVector = storm::utility::vector::filterVector(stateValues, stateSetAsBitvector);
-    auto valIt = extendedSccVector.begin();
+                                                                                                  std::vector<ExtendedValueType> const& stateValues) const {
+    // Get the vector for the equation system
+    std::vector<ExtendedValueType> extendedSccVector = storm::utility::vector::filterVector(stateValues, stateSetAsBitvector);
+    typename std::vector<ExtendedValueType>::iterator valIt = extendedSccVector.begin();
     for (uint64_t sccState : stateSetAsBitvector) {
         for (auto const& entry : backwardTransitions->getRow(sccState)) {
             if (!stateSetAsBitvector.get(entry.getColumn())) {
@@ -441,7 +441,7 @@ std::vector<ValueType> SparseDeterministicVisitingTimesHelper<ValueType>::comput
         }
         ++valIt;
     }
-    auto const sccVector = storm::utility::narrowFinite<ValueType>(std::move(extendedSccVector));
+    std::vector<ValueType> const sccVector = storm::utility::narrowFinite<ValueType>(std::move(extendedSccVector));
     return computeExpectedVisitingTimes(env, stateSetAsBitvector, sccVector);
 }
 

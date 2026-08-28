@@ -210,7 +210,6 @@ GradientDescentInstantiationSearcher<FunctionType, ConstantType>::stochasticGrad
     std::map<VariableType<FunctionType>, CoefficientType<FunctionType>>& position) {
     uint_fast64_t initialStateModel = model.getStates("init").getNextSetIndex(0);
 
-    // Start out at the worst value there is, so that the first step taken is never mistaken for a tiny one.
     ExtendedConstantType currentValue;
     switch (this->synthesisTask->getBound().comparisonType) {
         case logic::ComparisonType::Greater:
@@ -334,7 +333,6 @@ GradientDescentInstantiationSearcher<FunctionType, ConstantType>::stochasticGrad
                 deltaVector[parameter] = delta;
             }
         } else {
-            // The barrier methods do not compute a value outside the region: such a position is infinitely bad.
             if (synthesisTask->getBound().comparisonType == logic::ComparisonType::Less ||
                 synthesisTask->getBound().comparisonType == logic::ComparisonType::LessEqual) {
                 currentValue = utility::positiveInfinity<ConstantType>();
@@ -359,7 +357,6 @@ GradientDescentInstantiationSearcher<FunctionType, ConstantType>::stochasticGrad
             doStep(parameter, position, deltaVector, stepNum);
         }
 
-        // An infinite value means that no value was computed here, so there is nothing to call a tiny change.
         if (storm::utility::isFinite(oldValue) && storm::utility::isFinite(currentValue) && storm::utility::abs(oldValue - currentValue) < terminationEpsilon) {
             tinyChangeIterations += miniBatch.size();
             if (tinyChangeIterations > parameterEnumeration.size()) {

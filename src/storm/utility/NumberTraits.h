@@ -11,8 +11,7 @@ template<typename ValueType>
 struct NumberTraits {
     static const bool SupportsExponential = false;
     static const bool IsExact = false;
-    /// Whether the type can represent +/- infinity itself. If not, storm::utility::ExtendedValueType wraps it in an
-    /// ExtendedNumber wherever infinite values have to be represented.
+    /// Whether the type can represent +/- infinity itself.
     static const bool HasInfinity = false;
 };
 

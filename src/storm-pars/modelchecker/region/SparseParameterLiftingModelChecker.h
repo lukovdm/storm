@@ -30,8 +30,6 @@ class SparseParameterLiftingModelChecker : public RegionModelChecker<typename Sp
     using ExtendedCoefficientType = typename RegionModelChecker<ParametricType>::ExtendedCoefficientType;
     using VariableType = typename RegionModelChecker<ParametricType>::VariableType;
     using Valuation = typename RegionModelChecker<ParametricType>::Valuation;
-    /// The type the values of a region check are held in: a reward property may find that a state cannot reach the
-    /// target at all, which the plain constant type has no value for.
     using ExtendedConstantType = storm::utility::ExtendedValueType<ConstantType>;
 
     SparseParameterLiftingModelChecker();

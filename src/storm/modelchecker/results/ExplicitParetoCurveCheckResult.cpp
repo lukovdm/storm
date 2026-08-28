@@ -14,15 +14,31 @@ ExplicitParetoCurveCheckResult<ValueType>::ExplicitParetoCurveCheckResult() {
 
 template<typename ValueType>
 ExplicitParetoCurveCheckResult<ValueType>::ExplicitParetoCurveCheckResult(storm::storage::sparse::state_type const& state,
-                                                                          std::vector<point_type> const& points, polytope_type const& underApproximation,
+                                                                          std::vector<ExtendedPointType> const& points, polytope_type const& underApproximation,
                                                                           polytope_type const& overApproximation)
     : ParetoCurveCheckResult<ValueType>(points, underApproximation, overApproximation), state(state) {
     // Intentionally left empty.
 }
 
 template<typename ValueType>
-ExplicitParetoCurveCheckResult<ValueType>::ExplicitParetoCurveCheckResult(storm::storage::sparse::state_type const& state, std::vector<point_type>&& points,
+ExplicitParetoCurveCheckResult<ValueType>::ExplicitParetoCurveCheckResult(storm::storage::sparse::state_type const& state,
+                                                                          std::vector<ExtendedPointType>&& points, polytope_type&& underApproximation,
+                                                                          polytope_type&& overApproximation)
+    : ParetoCurveCheckResult<ValueType>(points, underApproximation, overApproximation), state(state) {
+    // Intentionally left empty.
+}
+
+template<typename ValueType>
+ExplicitParetoCurveCheckResult<ValueType>::ExplicitParetoCurveCheckResult(storm::storage::sparse::state_type const& state,
+                                                                          std::vector<ExtendedPointType>&& points, std::vector<scheduler_type>&& schedulers,
                                                                           polytope_type&& underApproximation, polytope_type&& overApproximation)
+    : ParetoCurveCheckResult<ValueType>(points, underApproximation, overApproximation), state(state), schedulers(schedulers) {}
+
+template<typename ValueType>
+ExplicitParetoCurveCheckResult<ValueType>::ExplicitParetoCurveCheckResult(storm::storage::sparse::state_type const& state,
+                                                                          std::vector<point_type> const& points, polytope_type const& underApproximation,
+                                                                          polytope_type const& overApproximation)
+    requires(!std::is_same_v<ExtendedPointType, point_type>)
     : ParetoCurveCheckResult<ValueType>(points, underApproximation, overApproximation), state(state) {
     // Intentionally left empty.
 }
@@ -31,22 +47,7 @@ template<typename ValueType>
 ExplicitParetoCurveCheckResult<ValueType>::ExplicitParetoCurveCheckResult(storm::storage::sparse::state_type const& state, std::vector<point_type>&& points,
                                                                           std::vector<scheduler_type>&& schedulers, polytope_type&& underApproximation,
                                                                           polytope_type&& overApproximation)
-    : ParetoCurveCheckResult<ValueType>(points, underApproximation, overApproximation), state(state), schedulers(schedulers) {}
-
-template<typename ValueType>
-ExplicitParetoCurveCheckResult<ValueType>::ExplicitParetoCurveCheckResult(storm::storage::sparse::state_type const& state,
-                                                                          std::vector<plain_point_type> const& points, polytope_type const& underApproximation,
-                                                                          polytope_type const& overApproximation)
-    requires(!std::is_same_v<point_type, plain_point_type>)
-    : ParetoCurveCheckResult<ValueType>(points, underApproximation, overApproximation), state(state) {
-    // Intentionally left empty.
-}
-
-template<typename ValueType>
-ExplicitParetoCurveCheckResult<ValueType>::ExplicitParetoCurveCheckResult(storm::storage::sparse::state_type const& state,
-                                                                          std::vector<plain_point_type>&& points, std::vector<scheduler_type>&& schedulers,
-                                                                          polytope_type&& underApproximation, polytope_type&& overApproximation)
-    requires(!std::is_same_v<point_type, plain_point_type>)
+    requires(!std::is_same_v<ExtendedPointType, point_type>)
     : ParetoCurveCheckResult<ValueType>(points, std::move(underApproximation), std::move(overApproximation)), state(state), schedulers(std::move(schedulers)) {
     // Intentionally left empty.
 }

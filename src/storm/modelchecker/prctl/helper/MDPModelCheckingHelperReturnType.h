@@ -11,11 +11,6 @@ class BitVector;
 
 namespace modelchecker {
 namespace helper {
-/*!
- * @tparam ValueType the value type of the model, and hence of any scheduler that is produced.
- * @tparam ValuesType the type of the computed values. A reward or a time can be infinite while the model's value type
- *         has no representation for that, so the two are not always the same.
- */
 template<typename ValueType, typename ValuesType = ValueType>
 struct MDPSparseModelCheckingHelperReturnType {
     MDPSparseModelCheckingHelperReturnType(MDPSparseModelCheckingHelperReturnType const&) = delete;

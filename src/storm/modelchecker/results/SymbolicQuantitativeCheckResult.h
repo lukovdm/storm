@@ -13,6 +13,8 @@ class SymbolicQualitativeCheckResult;
 template<storm::dd::DdType Type, typename ValueType = double>
 class SymbolicQuantitativeCheckResult : public QuantitativeCheckResult<ValueType> {
    public:
+    using ExtendedValueType = typename QuantitativeCheckResult<ValueType>::ExtendedValueType;
+
     SymbolicQuantitativeCheckResult() = default;
     SymbolicQuantitativeCheckResult(storm::dd::Bdd<Type> const& reachableStates, storm::dd::Add<Type, ValueType> const& values);
     SymbolicQuantitativeCheckResult(storm::dd::Bdd<Type> const& reachableStates, storm::dd::Bdd<Type> const& states,
@@ -41,11 +43,11 @@ class SymbolicQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
 
     virtual void filter(QualitativeCheckResult const& filter) override;
 
-    virtual typename QuantitativeCheckResult<ValueType>::extended_value_type getMin() const override;
-    virtual typename QuantitativeCheckResult<ValueType>::extended_value_type getMax() const override;
+    virtual ExtendedValueType getMin() const override;
+    virtual ExtendedValueType getMax() const override;
 
-    virtual typename QuantitativeCheckResult<ValueType>::extended_value_type average() const override;
-    virtual typename QuantitativeCheckResult<ValueType>::extended_value_type sum() const override;
+    virtual ExtendedValueType average() const override;
+    virtual ExtendedValueType sum() const override;
 
     virtual void oneMinus() override;
 

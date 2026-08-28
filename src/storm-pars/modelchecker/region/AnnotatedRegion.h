@@ -12,7 +12,6 @@ struct AnnotatedRegion {
     using Region = storm::storage::ParameterRegion<ParametricType>;
     using VariableType = typename Region::VariableType;
     using CoefficientType = typename Region::CoefficientType;
-    /// A bound on a reward or an expected time can be infinite, so the known bounds are kept in the extended type.
     using ExtendedCoefficientType = storm::utility::ExtendedValueType<CoefficientType>;
 
     explicit AnnotatedRegion(Region const& region);
@@ -44,9 +43,6 @@ struct AnnotatedRegion {
 
     bool updateValueBound(ExtendedCoefficientType const& newValue, storm::OptimizationDirection dir);
 
-    // These hold the plain coefficient type: the extremum stores it extended with the two infinities itself, so an
-    // infinite bound is kept as one and is not confused with a bound that is not known yet -- there is no difference,
-    // an upper bound that is not known is +infinity. Read them with getExtendedValue.
     storm::utility::Maximum<CoefficientType> knownLowerValueBound;  // Maximal known lower bound on the value of the region
     storm::utility::Minimum<CoefficientType> knownUpperValueBound;  // Minimal known upper bound on the value of the region
 };

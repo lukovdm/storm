@@ -31,7 +31,6 @@ template<typename ParametricType>
 class RegionRefinementChecker {
    public:
     using CoefficientType = typename storm::storage::ParameterRegion<ParametricType>::CoefficientType;
-    /// An extremal value can be infinite when the property is about rewards or expected times.
     using ExtendedCoefficientType = storm::utility::ExtendedValueType<CoefficientType>;
     using VariableType = typename storm::storage::ParameterRegion<ParametricType>::VariableType;
     using Valuation = typename storm::storage::ParameterRegion<ParametricType>::Valuation;

@@ -82,7 +82,7 @@ storm::dd::Bdd<Type> const& SymbolicQuantitativeCheckResult<Type, ValueType>::ge
 }
 
 template<typename ValueType>
-void print(std::ostream& out, storm::utility::ExtendedValueType<ValueType> const& value) {
+void print(std::ostream& out, ValueType const& value) {
     if (storm::utility::isInfinity(value)) {
         out << "inf";
     } else {
@@ -94,20 +94,13 @@ void print(std::ostream& out, storm::utility::ExtendedValueType<ValueType> const
 }
 
 template<typename ValueType>
-void printRange(std::ostream& out, storm::utility::ExtendedValueType<ValueType> const& min, storm::utility::ExtendedValueType<ValueType> const& max) {
-    auto printBound = [&out](storm::utility::ExtendedValueType<ValueType> const& bound) {
-        if (storm::utility::isInfinity(bound)) {
-            out << "inf";
-        } else {
-            out << bound;
-        }
-    };
+void printRange(std::ostream& out, ValueType const& min, ValueType const& max) {
     out << "[";
-    printBound(min);
+    print(out, min);
     out << ", ";
-    printBound(max);
+    print(out, max);
     out << "]";
-    if (std::is_same<ValueType, storm::RationalNumber>::value) {
+    if (std::is_same_v<ValueType, storm::RationalNumber> || std::is_same_v<ValueType, storm::ExtendedRationalNumber>) {
         out << " (approx. [";
         if (storm::utility::isInfinity(min)) {
             out << "inf";
@@ -132,7 +125,7 @@ std::ostream& SymbolicQuantitativeCheckResult<Type, ValueType>::writeToStream(st
     bool printAsRange = false;
 
     if (totalNumberOfStates == 1) {
-        print<ValueType>(out, storm::utility::fromSentinel(this->values.sumAbstract(this->values.getContainedMetaVariables()).getValue()));
+        print(out, storm::utility::fromSentinel(this->values.sumAbstract(this->values.getContainedMetaVariables()).getValue()));
     } else if (states.getNonZeroCount() >= 10 || !minMaxSupported) {
         printAsRange = true;
     } else {
@@ -147,7 +140,7 @@ std::ostream& SymbolicQuantitativeCheckResult<Type, ValueType>::writeToStream(st
                 } else {
                     first = false;
                 }
-                print<ValueType>(out, storm::utility::fromSentinel(valuationValuePair.second));
+                print(out, storm::utility::fromSentinel(valuationValuePair.second));
             }
             if (states.getNonZeroCount() != this->values.getNonZeroCount()) {
                 out << ", 0";
@@ -157,7 +150,7 @@ std::ostream& SymbolicQuantitativeCheckResult<Type, ValueType>::writeToStream(st
     }
 
     if (printAsRange) {
-        printRange<ValueType>(out, this->getMin(), this->getMax());
+        printRange(out, this->getMin(), this->getMax());
     }
     return out;
 }
@@ -171,24 +164,24 @@ void SymbolicQuantitativeCheckResult<Type, ValueType>::filter(QualitativeCheckRe
 }
 
 template<storm::dd::DdType Type, typename ValueType>
-typename QuantitativeCheckResult<ValueType>::extended_value_type SymbolicQuantitativeCheckResult<Type, ValueType>::getMin() const {
+typename SymbolicQuantitativeCheckResult<Type, ValueType>::ExtendedValueType SymbolicQuantitativeCheckResult<Type, ValueType>::getMin() const {
     // In order to not get false zeros, we need to set the values of all states whose values is not stored
     // symbolically to infinity.
     return storm::utility::fromSentinel(states.ite(this->values, states.getDdManager().getConstant(storm::utility::infinity<ValueType>())).getMin());
 }
 
 template<storm::dd::DdType Type, typename ValueType>
-typename QuantitativeCheckResult<ValueType>::extended_value_type SymbolicQuantitativeCheckResult<Type, ValueType>::getMax() const {
+typename SymbolicQuantitativeCheckResult<Type, ValueType>::ExtendedValueType SymbolicQuantitativeCheckResult<Type, ValueType>::getMax() const {
     return storm::utility::fromSentinel(this->values.getMax());
 }
 
 template<storm::dd::DdType Type, typename ValueType>
-typename QuantitativeCheckResult<ValueType>::extended_value_type SymbolicQuantitativeCheckResult<Type, ValueType>::average() const {
-    return this->sum() / storm::utility::convertNumber<typename QuantitativeCheckResult<ValueType>::extended_value_type>(this->states.getNonZeroCount());
+typename SymbolicQuantitativeCheckResult<Type, ValueType>::ExtendedValueType SymbolicQuantitativeCheckResult<Type, ValueType>::average() const {
+    return this->sum() / storm::utility::convertNumber<ExtendedValueType>(this->states.getNonZeroCount());
 }
 
 template<storm::dd::DdType Type, typename ValueType>
-typename QuantitativeCheckResult<ValueType>::extended_value_type SymbolicQuantitativeCheckResult<Type, ValueType>::sum() const {
+typename SymbolicQuantitativeCheckResult<Type, ValueType>::ExtendedValueType SymbolicQuantitativeCheckResult<Type, ValueType>::sum() const {
     return storm::utility::fromSentinel(this->values.sumAbstract(this->values.getContainedMetaVariables()).getValue());
 }
 

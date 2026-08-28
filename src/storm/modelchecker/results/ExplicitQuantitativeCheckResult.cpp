@@ -31,7 +31,7 @@ ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(map_
 }
 
 template<typename ValueType>
-ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(storm::storage::sparse::state_type const& state, extended_value_type const& value)
+ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(storm::storage::sparse::state_type const& state, ExtendedValueType const& value)
     : values(map_type()) {
     boost::get<map_type>(values).emplace(state, value);
 }
@@ -130,19 +130,7 @@ typename ExplicitQuantitativeCheckResult<ValueType>::map_type const& ExplicitQua
 
 template<typename ValueType>
 std::vector<ValueType> ExplicitQuantitativeCheckResult<ValueType>::getFiniteValueVector() const {
-    vector_type const& valuesAsVector = boost::get<vector_type>(values);
-    if constexpr (!std::is_same_v<extended_value_type, ValueType>) {
-        std::vector<ValueType> result;
-        result.reserve(valuesAsVector.size());
-        for (auto const& value : valuesAsVector) {
-            STORM_LOG_THROW(!value.isInfinite(), storm::exceptions::InvalidOperationException,
-                            "Tried to obtain finite values from a result that contains " << value << ".");
-            result.push_back(value.getFinite());
-        }
-        return result;
-    } else {
-        return valuesAsVector;
-    }
+    return storm::utility::narrowFinite<ValueType>(boost::get<vector_type>(values));
 }
 
 template<typename ValueType>
@@ -182,7 +170,7 @@ void ExplicitQuantitativeCheckResult<ValueType>::filter(QualitativeCheckResult c
 template<typename ValueType>
 std::vector<ValueType> ExplicitQuantitativeCheckResult<ValueType>::getSentinelValueVector() const {
     vector_type const& valuesAsVector = boost::get<vector_type>(values);
-    if constexpr (!std::is_same_v<extended_value_type, ValueType>) {
+    if constexpr (!std::is_same_v<ExtendedValueType, ValueType>) {
         std::vector<ValueType> result;
         result.reserve(valuesAsVector.size());
         for (auto const& value : valuesAsVector) {
@@ -195,7 +183,7 @@ std::vector<ValueType> ExplicitQuantitativeCheckResult<ValueType>::getSentinelVa
 }
 
 template<typename ValueType>
-typename ExplicitQuantitativeCheckResult<ValueType>::extended_value_type ExplicitQuantitativeCheckResult<ValueType>::getMin() const {
+typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::getMin() const {
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Minimum of empty set is not defined.");
 
     if (this->isResultForAllStates()) {
@@ -206,7 +194,7 @@ typename ExplicitQuantitativeCheckResult<ValueType>::extended_value_type Explici
 }
 
 template<typename ValueType>
-typename ExplicitQuantitativeCheckResult<ValueType>::extended_value_type ExplicitQuantitativeCheckResult<ValueType>::getMax() const {
+typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::getMax() const {
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Minimum of empty set is not defined.");
 
     if (this->isResultForAllStates()) {
@@ -217,7 +205,7 @@ typename ExplicitQuantitativeCheckResult<ValueType>::extended_value_type Explici
 }
 
 template<typename ValueType>
-std::pair<typename ExplicitQuantitativeCheckResult<ValueType>::extended_value_type, typename ExplicitQuantitativeCheckResult<ValueType>::extended_value_type>
+std::pair<typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType, typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType>
 ExplicitQuantitativeCheckResult<ValueType>::getMinMax() const {
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Minimum/maximum of empty set is not defined.");
 
@@ -229,10 +217,10 @@ ExplicitQuantitativeCheckResult<ValueType>::getMinMax() const {
 }
 
 template<typename ValueType>
-typename ExplicitQuantitativeCheckResult<ValueType>::extended_value_type ExplicitQuantitativeCheckResult<ValueType>::sum() const {
+typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::sum() const {
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Sum of empty set is not defined.");
 
-    extended_value_type sum = storm::utility::zero<extended_value_type>();
+    ExtendedValueType sum = storm::utility::zero<ExtendedValueType>();
     if (this->isResultForAllStates()) {
         for (auto const& element : boost::get<vector_type>(values)) {
             STORM_LOG_THROW(!storm::utility::isInfinity(element), storm::exceptions::InvalidOperationException,
@@ -250,10 +238,10 @@ typename ExplicitQuantitativeCheckResult<ValueType>::extended_value_type Explici
 }
 
 template<typename ValueType>
-typename ExplicitQuantitativeCheckResult<ValueType>::extended_value_type ExplicitQuantitativeCheckResult<ValueType>::average() const {
+typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::average() const {
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Average of empty set is not defined.");
 
-    extended_value_type sum = storm::utility::zero<extended_value_type>();
+    ExtendedValueType sum = storm::utility::zero<ExtendedValueType>();
     uint64_t count = 0;
     if (this->isResultForAllStates()) {
         for (auto const& element : boost::get<vector_type>(values)) {
@@ -270,7 +258,7 @@ typename ExplicitQuantitativeCheckResult<ValueType>::extended_value_type Explici
         }
         count = boost::get<map_type>(values).size();
     }
-    return sum / storm::utility::convertNumber<extended_value_type, uint64_t>(count);
+    return sum / storm::utility::convertNumber<ExtendedValueType, uint64_t>(count);
 }
 
 template<typename ValueType>
@@ -296,7 +284,7 @@ storm::storage::Scheduler<ValueType>& ExplicitQuantitativeCheckResult<ValueType>
 }
 
 template<typename ValueType>
-void print(std::ostream& out, storm::utility::ExtendedValueType<ValueType> const& value) {
+void print(std::ostream& out, ValueType const& value) {
     if (storm::utility::isInfinity(value)) {
         out << "inf";
     } else {
@@ -308,21 +296,13 @@ void print(std::ostream& out, storm::utility::ExtendedValueType<ValueType> const
 }
 
 template<typename ValueType>
-void printRange(std::ostream& out, storm::utility::ExtendedValueType<ValueType> const& min, storm::utility::ExtendedValueType<ValueType> const& max) {
-    // The extended types already print themselves as inf, but the ones with their own infinity do not.
-    auto printBound = [&out](storm::utility::ExtendedValueType<ValueType> const& bound) {
-        if (storm::utility::isInfinity(bound)) {
-            out << "inf";
-        } else {
-            out << bound;
-        }
-    };
+void printRange(std::ostream& out, ValueType const& min, ValueType const& max) {
     out << "[";
-    printBound(min);
+    print(out, min);
     out << ", ";
-    printBound(max);
+    print(out, max);
     out << "]";
-    if (std::is_same<ValueType, storm::RationalNumber>::value) {
+    if (std::is_same_v<ValueType, storm::RationalNumber> || std::is_same_v<ValueType, storm::ExtendedRationalNumber>) {
         out << " (approx. [";
         if (storm::utility::isInfinity(min)) {
             out << "inf";
@@ -358,7 +338,7 @@ std::ostream& ExplicitQuantitativeCheckResult<ValueType>::writeToStream(std::ost
                 } else {
                     first = false;
                 }
-                print<ValueType>(out, element);
+                print(out, element);
             }
             out << "}";
         }
@@ -368,7 +348,7 @@ std::ostream& ExplicitQuantitativeCheckResult<ValueType>::writeToStream(std::ost
             printAsRange = true;
         } else {
             if (valuesAsMap.size() == 1) {
-                print<ValueType>(out, valuesAsMap.begin()->second);
+                print(out, valuesAsMap.begin()->second);
             } else {
                 out << "{";
                 bool first = true;
@@ -378,7 +358,7 @@ std::ostream& ExplicitQuantitativeCheckResult<ValueType>::writeToStream(std::ost
                     } else {
                         first = false;
                     }
-                    print<ValueType>(out, element.second);
+                    print(out, element.second);
                 }
                 out << "}";
             }
@@ -386,8 +366,8 @@ std::ostream& ExplicitQuantitativeCheckResult<ValueType>::writeToStream(std::ost
     }
 
     if (printAsRange) {
-        auto const minmax = this->getMinMax();
-        printRange<ValueType>(out, minmax.first, minmax.second);
+        std::pair<ExtendedValueType, ExtendedValueType> minmax = this->getMinMax();
+        printRange(out, minmax.first, minmax.second);
     }
 
     return out;
@@ -467,7 +447,7 @@ std::unique_ptr<CheckResult> ExplicitQuantitativeCheckResult<storm::RationalFunc
 }
 
 template<typename ValueType>
-typename ExplicitQuantitativeCheckResult<ValueType>::extended_value_type& ExplicitQuantitativeCheckResult<ValueType>::operator[](
+typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType& ExplicitQuantitativeCheckResult<ValueType>::operator[](
     storm::storage::sparse::state_type state) {
     if (this->isResultForAllStates()) {
         return boost::get<vector_type>(values)[state];
@@ -477,7 +457,7 @@ typename ExplicitQuantitativeCheckResult<ValueType>::extended_value_type& Explic
 }
 
 template<typename ValueType>
-typename ExplicitQuantitativeCheckResult<ValueType>::extended_value_type const& ExplicitQuantitativeCheckResult<ValueType>::operator[](
+typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType const& ExplicitQuantitativeCheckResult<ValueType>::operator[](
     storm::storage::sparse::state_type state) const {
     if (this->isResultForAllStates()) {
         return boost::get<vector_type>(values)[state];
@@ -508,11 +488,11 @@ template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::oneMinus() {
     if (this->isResultForAllStates()) {
         for (auto& element : boost::get<vector_type>(values)) {
-            element = storm::utility::one<extended_value_type>() - element;
+            element = storm::utility::one<ExtendedValueType>() - element;
         }
     } else {
         for (auto& element : boost::get<map_type>(values)) {
-            element.second = storm::utility::one<extended_value_type>() - element.second;
+            element.second = storm::utility::one<ExtendedValueType>() - element.second;
         }
     }
 }
@@ -528,8 +508,6 @@ void insertJsonEntry(storm::json<ValueType>& json, uint64_t const& id, storm::ut
         entry["s"] = id;
     }
     if (storm::utility::isInfinity(value)) {
-        // JSON has no infinity, and a number would put us right back where the sentinel was. Both the extended types
-        // and the ones with their own infinity are written as this string.
         entry["v"] = "inf";
     } else if (storm::utility::isNegativeInfinity(value)) {
         entry["v"] = "-inf";
@@ -552,12 +530,12 @@ storm::json<ValueType> ExplicitQuantitativeCheckResult<ValueType>::toJson(std::o
     if (this->isResultForAllStates()) {
         vector_type const& valuesAsVector = boost::get<vector_type>(values);
         for (uint64_t state = 0; state < valuesAsVector.size(); ++state) {
-            insertJsonEntry<ValueType>(result, state, valuesAsVector[state], stateValuations, stateLabels);
+            insertJsonEntry(result, state, valuesAsVector[state], stateValuations, stateLabels);
         }
     } else {
         map_type const& valuesAsMap = boost::get<map_type>(values);
         for (auto const& stateValue : valuesAsMap) {
-            insertJsonEntry<ValueType>(result, stateValue.first, stateValue.second, stateValuations, stateLabels);
+            insertJsonEntry(result, stateValue.first, stateValue.second, stateValuations, stateLabels);
         }
     }
     return result;

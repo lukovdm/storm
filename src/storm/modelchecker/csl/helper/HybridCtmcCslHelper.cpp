@@ -168,8 +168,8 @@ std::unique_ptr<CheckResult> HybridCtmcCslHelper::computeBoundedUntilProbabiliti
                     std::unique_ptr<CheckResult> explicitUnboundedResult =
                         unboundedResult->asHybridQuantitativeCheckResult<DdType, ValueType>().toExplicitQuantitativeCheckResult();
                     conversionWatch.stop();
-                    // Note that getValueVector() yields ExtendedValueType<ValueType> values, which is ValueType only because bounded until is
-                    // instantiated for double alone (RationalNumber has no SupportsExponential). This stops compiling once that changes.
+                    // getValueVector() hands out ExtendedValueType<ValueType>, which is ValueType only because bounded until is instantiated for
+                    // double alone: RationalNumber has no SupportsExponential.
                     result = std::move(explicitUnboundedResult->asExplicitQuantitativeCheckResult<ValueType>().getValueVector());
                 } else {
                     STORM_LOG_THROW(unboundedResult->isSymbolicQuantitativeCheckResult(), storm::exceptions::InvalidStateException,
@@ -245,8 +245,8 @@ std::unique_ptr<CheckResult> HybridCtmcCslHelper::computeBoundedUntilProbabiliti
 
                     std::unique_ptr<CheckResult> explicitResult = hybridResult.toExplicitQuantitativeCheckResult();
                     conversionWatch.stop();
-                    // Note that getValueVector() yields ExtendedValueType<ValueType> values, which is ValueType only because bounded until is
-                    // instantiated for double alone (RationalNumber has no SupportsExponential). This stops compiling once that changes.
+                    // getValueVector() hands out ExtendedValueType<ValueType>, which is ValueType only because bounded until is instantiated for
+                    // double alone: RationalNumber has no SupportsExponential.
                     std::vector<ValueType> newSubresult = std::move(explicitResult->asExplicitQuantitativeCheckResult<ValueType>().getValueVector());
 
                     // Then compute the transient probabilities of being in such a state after t time units. For this,

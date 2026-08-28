@@ -23,24 +23,20 @@ class ExplicitQualitativeCheckResult;
 template<typename ValueType>
 class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType> {
    public:
-    typedef typename QuantitativeCheckResult<ValueType>::extended_value_type extended_value_type;
-    typedef std::vector<extended_value_type> vector_type;
-    typedef std::map<storm::storage::sparse::state_type, extended_value_type> map_type;
+    typedef typename QuantitativeCheckResult<ValueType>::ExtendedValueType ExtendedValueType;
+    typedef std::vector<ExtendedValueType> vector_type;
+    typedef std::map<storm::storage::sparse::state_type, ExtendedValueType> map_type;
 
     ExplicitQuantitativeCheckResult();
     ExplicitQuantitativeCheckResult(map_type const& values);
     ExplicitQuantitativeCheckResult(map_type&& values);
-    ExplicitQuantitativeCheckResult(storm::storage::sparse::state_type const& state, extended_value_type const& value);
+    ExplicitQuantitativeCheckResult(storm::storage::sparse::state_type const& state, ExtendedValueType const& value);
     ExplicitQuantitativeCheckResult(vector_type const& values);
     ExplicitQuantitativeCheckResult(vector_type&& values);
 
     /*!
-     * Takes over the result of a computation that is still expressed in the plain value type.
-     *
-     * The helpers that can produce an infinite value -- the reward and expected time ones -- still write the value that
-     * storm::utility::infinity yields for the plain type, so an entry equal to it is read as an infinity here. That is
-     * the one place where the sentinel is interpreted, and it goes away once those helpers hand out extended vectors
-     * themselves. Probabilities are unaffected: they live in [0,1] and can never reach it.
+     * Takes over a result that is still expressed in the plain value type, reading an entry equal to the value that
+     * storm::utility::infinity yields as an infinity.
      */
     ExplicitQuantitativeCheckResult(std::vector<ValueType> const& values)
         requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>);
@@ -63,8 +59,8 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
 
     virtual std::unique_ptr<CheckResult> clone() const override;
 
-    extended_value_type& operator[](storm::storage::sparse::state_type state);
-    extended_value_type const& operator[](storm::storage::sparse::state_type state) const;
+    ExtendedValueType& operator[](storm::storage::sparse::state_type state);
+    ExtendedValueType const& operator[](storm::storage::sparse::state_type state) const;
 
     virtual std::unique_ptr<CheckResult> compareAgainstBound(storm::logic::ComparisonType comparisonType, ValueType const& bound) const override;
 
@@ -79,16 +75,13 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
 
     /*!
      * @pre no value is infinite
-     * @return the values, narrowed back to the plain value type. This is for the consumers -- schedulers, LP encodings,
-     * exporters -- that have no representation for an infinite value and have already established that there is none.
+     * @return the values, narrowed back to the plain value type.
      */
     std::vector<ValueType> getFiniteValueVector() const;
 
     /*!
      * @return the values, with every infinite one written as the value that storm::utility::infinity yields for the
-     * plain value type. This is the bridge for the interfaces that are deliberately staying on the plain value type --
-     * above all the solver hints -- and that still recognise an infinite value by that sentinel. It disappears with the
-     * sentinel.
+     * plain value type.
      */
     std::vector<ValueType> getSentinelValueVector() const;
 
@@ -98,11 +91,11 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
 
     virtual void oneMinus() override;
 
-    virtual extended_value_type getMin() const override;
-    virtual extended_value_type getMax() const override;
-    virtual std::pair<extended_value_type, extended_value_type> getMinMax() const;
-    virtual extended_value_type average() const override;
-    virtual extended_value_type sum() const override;
+    virtual ExtendedValueType getMin() const override;
+    virtual ExtendedValueType getMax() const override;
+    virtual std::pair<ExtendedValueType, ExtendedValueType> getMinMax() const;
+    virtual ExtendedValueType average() const override;
+    virtual ExtendedValueType sum() const override;
 
     virtual bool hasScheduler() const override;
     void setScheduler(std::unique_ptr<storm::storage::Scheduler<ValueType>>&& scheduler);

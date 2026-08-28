@@ -436,6 +436,50 @@ std::vector<ValueType> narrowFinite(std::vector<ExtendedValueType<ValueType>>&& 
 }
 
 /*!
+ * The counterpart of widen for a vector all of whose values are finite.
+ * @pre none of the values is infinite
+ */
+template<typename ValueType>
+std::vector<ValueType> narrowFinite(std::vector<ExtendedValueType<ValueType>> const& values) {
+    if constexpr (std::is_same_v<ExtendedValueType<ValueType>, ValueType>) {
+        return values;
+    } else {
+        std::vector<ValueType> result;
+        result.reserve(values.size());
+        for (auto const& value : values) {
+            STORM_LOG_THROW(value.isFinite(), storm::exceptions::InvalidOperationException, "Tried to narrow " << value << " to a type that cannot hold it.");
+            result.push_back(value.getFinite());
+        }
+        return result;
+    }
+}
+
+/*!
+ * The counterpart of widen for a single value, falling back to the given value if it is infinite.
+ */
+template<typename ValueType>
+ValueType narrowFinite(ExtendedValueType<ValueType> const& value, ValueType const& defaultValue) {
+    if constexpr (std::is_same_v<ExtendedValueType<ValueType>, ValueType>) {
+        return storm::utility::isFinite(value) ? value : defaultValue;
+    } else {
+        return value.isFinite() ? value.getFinite() : defaultValue;
+    }
+}
+
+/*!
+ * The counterpart of widen for a vector, falling back to the given value wherever a value is infinite.
+ */
+template<typename ValueType>
+std::vector<ValueType> narrowFinite(std::vector<ExtendedValueType<ValueType>> const& values, ValueType const& defaultValue) {
+    std::vector<ValueType> result;
+    result.reserve(values.size());
+    for (auto const& value : values) {
+        result.push_back(narrowFinite<ValueType>(value, defaultValue));
+    }
+    return result;
+}
+
+/*!
  * Narrows an extended value back into the plain value type, for the interfaces that cannot hold an infinite one --
  * a coordinate of a polytope, say. A plain type that has an infinity of its own keeps the value; one that has none
  * has nothing to narrow an infinite value to, so this throws rather than inventing a number for it.

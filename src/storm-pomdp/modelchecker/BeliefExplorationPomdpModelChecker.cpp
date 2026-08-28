@@ -36,8 +36,6 @@ template<typename PomdpModelType, typename BeliefValueType, typename BeliefMDPTy
 typename BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPType>::Result::ExtendedValueType
 BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPType>::Result::diff(bool relative) const {
     if (!storm::utility::isFinite(lowerBound) || !storm::utility::isFinite(upperBound)) {
-        // As long as one of the bounds is infinite there is nothing to subtract, and the gap is unbounded unless the
-        // two coincide.
         return lowerBound == upperBound ? storm::utility::zero<ExtendedValueType>() : storm::utility::positiveInfinity<ValueType>();
     }
     ExtendedValueType diff = upperBound - lowerBound;
@@ -54,9 +52,7 @@ BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPTyp
 
 template<typename PomdpModelType, typename BeliefValueType, typename BeliefMDPType>
 bool BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPType>::Result::updateLowerBound(ValueType const& value) {
-    // The belief exploration still computes its values in the plain value type, so an infinite one arrives as the
-    // sentinel. This is where it becomes a real infinity again; it goes away with the sentinel.
-    auto const extendedValue = storm::utility::fromSentinel(value);
+    ExtendedValueType const extendedValue = storm::utility::fromSentinel(value);
     if (extendedValue > lowerBound) {
         lowerBound = extendedValue;
         return true;
@@ -66,8 +62,7 @@ bool BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefM
 
 template<typename PomdpModelType, typename BeliefValueType, typename BeliefMDPType>
 bool BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPType>::Result::updateUpperBound(ValueType const& value) {
-    // See updateLowerBound on why the sentinel is interpreted here.
-    auto const extendedValue = storm::utility::fromSentinel(value);
+    ExtendedValueType const extendedValue = storm::utility::fromSentinel(value);
     if (extendedValue < upperBound) {
         upperBound = extendedValue;
         return true;
@@ -161,7 +156,6 @@ BeliefExplorationPomdpModelChecker<PomdpModelType, BeliefValueType, BeliefMDPTyp
         pomdpValueBounds.fmSchedulerValueList = additionalUnderApproximationBounds;
     }
     uint64_t initialPomdpState = pomdp().getInitialStates().getNextSetIndex(0);
-    // The trivial bounds are still computed in the plain value type, so an infinite one arrives as the sentinel.
     Result result(storm::utility::fromSentinel(pomdpValueBounds.trivialPomdpValueBounds.getHighestLowerBound(initialPomdpState)),
                   storm::utility::fromSentinel(pomdpValueBounds.trivialPomdpValueBounds.getSmallestUpperBound(initialPomdpState)));
     STORM_LOG_INFO("Initial value bounds are [" << result.lowerBound << ", " << result.upperBound << "]");

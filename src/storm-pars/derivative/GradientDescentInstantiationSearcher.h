@@ -21,8 +21,6 @@ namespace derivative {
 template<typename FunctionType, typename ConstantType>
 class GradientDescentInstantiationSearcher {
    public:
-    /// The type a value found by the search is held in. The barrier constraint methods give a position outside the
-    /// region an infinitely bad value, which the plain constant type has no representation for.
     using ExtendedConstantType = storm::utility::ExtendedValueType<ConstantType>;
 
     /**

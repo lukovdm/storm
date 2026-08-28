@@ -540,8 +540,6 @@ storm::storage::BitVector filterOne(std::vector<T> const& values) {
  */
 template<class T>
 storm::storage::BitVector filterInfinity(std::vector<T> const& values) {
-    // The lambda is what lets the overload for the extended types be found; naming isInfinity<T> would always pick the
-    // primary template.
     return filter<T>(values, [](T const& value) { return storm::utility::isInfinity(value); });
 }
 
@@ -733,7 +731,6 @@ void reduceVectorMinOrMax(storm::solver::OptimizationDirection dir, std::vector<
 template<class T>
 bool equalModuloPrecision(T const& val1, T const& val2, T const& precision, bool relativeError = true) {
     if (!storm::utility::isFinite(val1) || !storm::utility::isFinite(val2)) {
-        // No difference of an infinite value from anything is meaningful, so equality is the only comparison left.
         return val1 == val2;
     }
     if (relativeError) {

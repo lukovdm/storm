@@ -27,8 +27,6 @@ class SparseMdpInstantiationModelChecker : public SparseInstantiationModelChecke
     virtual bool isWellDefined(storm::utility::parametric::Valuation<typename SparseModelType::ValueType> const& valuation) override;
 
    protected:
-    /// The type a checked or hinted value is held in: a reward property may find that a state cannot reach the target
-    /// at all, which the plain constant type has no value for.
     typedef storm::utility::ExtendedValueType<ConstantType> ExtendedConstantType;
 
     // Optimizations for the different formula types

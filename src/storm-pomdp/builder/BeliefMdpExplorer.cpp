@@ -1084,8 +1084,6 @@ BeliefMdpExplorer<PomdpType, BeliefValueType>::createStandardCheckTask(std::shar
     //  Therefore, this method needs the property by reference (and not const reference)
     auto task = storm::api::createTask<ValueType>(property, false);
     auto hint = storm::modelchecker::ExplicitModelCheckerHint<ValueType>();
-    // The values kept here still come out of getSentinelValueVector, so an infinite one is the sentinel rather than an
-    // infinity. The hint can hold a real infinity, so they are translated rather than merely widened on their way in.
     hint.setResultHint(storm::utility::fromSentinel(std::vector<ValueType>(values)));
     auto hintPtr = std::make_shared<storm::modelchecker::ExplicitModelCheckerHint<ValueType>>(hint);
     task.setHint(hintPtr);

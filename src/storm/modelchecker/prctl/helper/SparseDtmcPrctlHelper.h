@@ -27,10 +27,6 @@ namespace helper {
 template<typename ValueType, typename RewardModelType = storm::models::sparse::StandardRewardModel<ValueType>, typename SolutionType = ValueType>
 class SparseDtmcPrctlHelper {
    public:
-    /*!
-     * A reward that is never collected and a conditional value whose condition has probability zero are both infinite,
-     * so the queries that can produce one hand back the solution type extended with the infinities.
-     */
     using ExtendedSolutionType = storm::utility::ExtendedValueType<SolutionType>;
 
     static std::map<storm::storage::sparse::state_type, SolutionType> computeRewardBoundedValues(

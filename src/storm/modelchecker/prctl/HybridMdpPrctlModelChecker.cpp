@@ -181,8 +181,6 @@ std::unique_ptr<CheckResult> HybridMdpPrctlModelChecker<ModelType>::checkMultiOb
                 this->getModel().getReachableStates(), this->getModel().getInitialStates(), this->getModel().getManager().getBddZero()));
         }
     } else if (explicitResult->isExplicitQuantitativeCheckResult()) {
-        // The decision diagram leaves still carry the sentinel for an infinite value, so the result is handed back in
-        // that form here.
         ValueType const res = storm::utility::toSentinel<ValueType>(
             explicitResult->template asExplicitQuantitativeCheckResult<ValueType>()[*sparseModel->getInitialStates().begin()]);
         return std::unique_ptr<CheckResult>(new storm::modelchecker::SymbolicQuantitativeCheckResult<DdType, ValueType>(

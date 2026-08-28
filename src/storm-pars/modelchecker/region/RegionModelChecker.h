@@ -29,7 +29,6 @@ template<typename ParametricType>
 class RegionModelChecker {
    public:
     typedef typename storm::storage::ParameterRegion<ParametricType>::CoefficientType CoefficientType;
-    /// A bound on a reward or an expected time can be infinite, so the bounds handed out here are in the extended type.
     typedef storm::utility::ExtendedValueType<CoefficientType> ExtendedCoefficientType;
     typedef typename storm::storage::ParameterRegion<ParametricType>::VariableType VariableType;
     typedef typename storm::storage::ParameterRegion<ParametricType>::Valuation Valuation;

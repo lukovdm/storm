@@ -73,10 +73,6 @@ class BeliefExplorationPomdpModelChecker {
      * Struct used to store the results of the model checker
      */
     struct Result {
-        /*!
-         * The bounds start out at the two infinities and are narrowed as the belief exploration proceeds, and an
-         * unbounded reward objective leaves the upper one infinite, so they are held in the extended value type.
-         */
         using ExtendedValueType = storm::utility::ExtendedValueType<ValueType>;
 
         Result(ExtendedValueType lower, ExtendedValueType upper);

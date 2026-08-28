@@ -25,10 +25,6 @@ class QuantileHelper {
    public:
     QuantileHelper(ModelType const& model, storm::logic::QuantileFormula const& quantileFormula);
 
-    /*!
-     * @return for each quantile point the bound in every open dimension. A dimension that needs no bound at all has an
-     * infinite value there.
-     */
     std::vector<std::vector<storm::utility::ExtendedValueType<ValueType>>> computeQuantile(Environment const& env);
 
    private:

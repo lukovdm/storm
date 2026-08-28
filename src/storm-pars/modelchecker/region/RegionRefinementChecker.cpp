@@ -218,8 +218,6 @@ RegionRefinementChecker<ParametricType>::computeExtremalValueHelper(
     AnnotatedRegion<ParametricType> rootRegion(region);
 
     // Priority Queue storing the regions that still need to be processed. Regions with a "good" bound are processed first
-    // Read through getExtendedValue: a region whose bound is not known yet, or is known to be infinite, has a value
-    // here like any other, so there is nothing to special-case.
     auto cmp = storm::solver::minimize(dir) ? [](AnnotatedRegion<ParametricType> const& lhs,
                                                  AnnotatedRegion<ParametricType> const&
                                                      rhs) { return lhs.knownLowerValueBound.getExtendedValue() > rhs.knownLowerValueBound.getExtendedValue(); }
@@ -249,9 +247,7 @@ RegionRefinementChecker<ParametricType>::computeExtremalValueHelper(
     uint64_t numOfAnalyzedRegions{0u};
     while (!unprocessedRegions.empty()) {
         auto& currentRegion = unprocessedRegions.top().get();
-        // A bound that has not been computed yet is the infinity that no value improves upon, so it is rejected below
-        // just as a useless computed bound would be. There is no separate "not known" case to handle.
-        auto currentBound =
+        ExtendedCoefficientType currentBound =
             storm::solver::minimize(dir) ? currentRegion.knownLowerValueBound.getExtendedValue() : currentRegion.knownUpperValueBound.getExtendedValue();
         STORM_LOG_TRACE("Analyzing region #" << numOfAnalyzedRegions << " (Refinement depth " << currentRegion.refinementDepth << "; "
                                              << progress.getUndiscoveredPercentage() << "% still unknown; " << unprocessedRegions.size()
@@ -317,8 +313,6 @@ RegionRefinementChecker<ParametricType>::computeExtremalValue(Environment const&
 
     auto acceptGlobalBound = [&](ExtendedCoefficientType const& value, ExtendedCoefficientType const& newValue) {
         if (!storm::utility::isFinite(value)) {
-            // There is no relative precision around an infinite value, and adding a precision to it would not move it
-            // anywhere either. Only a value that is infinite in the same direction can be within precision of it.
             return newValue == value;
         }
         ExtendedCoefficientType const usedPrecision = convertedPrecision * (absolutePrecision ? storm::utility::one<ExtendedCoefficientType>() : value);

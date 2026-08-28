@@ -1363,8 +1363,7 @@ template RationalInterval convertNumber(RationalInterval const&);
 
 template std::string to_string(storm::RationalInterval const& value);
 
-// Instantiations for the value types extended with the infinities. Their order already puts the infinities at the two
-// ends, so the generic definitions above are correct for them and none of the sentinel patches is needed.
+// Instantiations for the value types extended with the infinities.
 template std::pair<storm::ExtendedRationalNumber, storm::ExtendedRationalNumber> minmax(std::vector<storm::ExtendedRationalNumber> const& values);
 template storm::ExtendedRationalNumber minimum(std::vector<storm::ExtendedRationalNumber> const& values);
 template storm::ExtendedRationalNumber maximum(std::vector<storm::ExtendedRationalNumber> const& values);

@@ -615,7 +615,7 @@ std::unique_ptr<CheckResult> SparseDtmcEliminationModelChecker<SparseDtmcModelTy
         storm::utility::vector::setVectorValues(result, maybeStates, subresult);
     }
 
-    // Construct full result. A state that never reaches the target collects an infinite reward.
+    // Construct full result.
     storm::utility::vector::setVectorValues(result, infinityStates, storm::utility::positiveInfinity<ValueType>());
     storm::utility::vector::setVectorValues(result, targetStates, storm::utility::zero<ValueType>());
     if (computeForInitialStatesOnly) {
