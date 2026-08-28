@@ -160,8 +160,8 @@ std::unique_ptr<storm::modelchecker::QualitativeCheckResult> getInitialStateFilt
     return std::make_unique<storm::modelchecker::ExplicitQualitativeCheckResult<storm::RationalNumber>>(model->getInitialStates());
 }
 
-storm::utility::ExtendedValueType<storm::RationalNumber> getQuantitativeResultAtInitialState(
-    std::shared_ptr<storm::models::sparse::Model<storm::RationalNumber>> const& model, std::unique_ptr<storm::modelchecker::CheckResult>& result) {
+storm::ExtendedRationalNumber getQuantitativeResultAtInitialState(std::shared_ptr<storm::models::sparse::Model<storm::RationalNumber>> const& model,
+                                                                  std::unique_ptr<storm::modelchecker::CheckResult>& result) {
     auto filter = getInitialStateFilter(model);
     result->filter(*filter);
     return result->asQuantitativeCheckResult<storm::RationalNumber>().getMin();
@@ -172,8 +172,8 @@ std::unique_ptr<storm::modelchecker::QualitativeCheckResult> getInitialStateFilt
     return std::make_unique<storm::modelchecker::ExplicitQualitativeCheckResult<storm::RationalNumber>>(model->getInitialStates());
 }
 
-storm::utility::ExtendedValueType<storm::RationalNumber> getQuantitativeResultAtInitialState(
-    std::shared_ptr<storm::models::sparse::Model<storm::RationalInterval>> const& model, std::unique_ptr<storm::modelchecker::CheckResult>& result) {
+storm::ExtendedRationalNumber getQuantitativeResultAtInitialState(std::shared_ptr<storm::models::sparse::Model<storm::RationalInterval>> const& model,
+                                                                  std::unique_ptr<storm::modelchecker::CheckResult>& result) {
     auto filter = getInitialStateFilter(model);
     result->filter(*filter);
     return result->asQuantitativeCheckResult<storm::RationalNumber>().getMin();
@@ -199,9 +199,8 @@ void expectThrowRational(std::string const& path, std::string const& formulaStri
     STORM_SILENT_EXPECT_THROW(checker.check(env, task), storm::exceptions::BaseException);
 }
 
-void checkExplicitModelForQuantitativeResultRational(std::string const& path, std::string const& formulaString,
-                                                     storm::utility::ExtendedValueType<storm::RationalNumber> min,
-                                                     storm::utility::ExtendedValueType<storm::RationalNumber> max) {
+void checkExplicitModelForQuantitativeResultRational(std::string const& path, std::string const& formulaString, storm::ExtendedRationalNumber min,
+                                                     storm::ExtendedRationalNumber max) {
     std::shared_ptr<storm::models::sparse::Model<storm::RationalInterval>> modelPtr = storm::parser::parseDirectEncodingModel<storm::RationalInterval>(path);
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas = storm::api::extractFormulasFromProperties(storm::api::parseProperties(formulaString));
     storm::Environment env;

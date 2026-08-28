@@ -8,7 +8,7 @@
 #include "storm/utility/constants.h"
 
 namespace {
-typedef storm::utility::ExtendedNumber<storm::RationalNumber> ExtendedRationalNumber;
+using storm::ExtendedRationalNumber;
 
 storm::RationalNumber rational(double value) {
     return storm::utility::convertNumber<storm::RationalNumber>(value);

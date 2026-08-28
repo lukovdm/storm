@@ -9,7 +9,7 @@
 #include "storm/utility/constants.h"
 
 namespace {
-typedef storm::utility::ExtendedNumber<storm::RationalNumber> ExtendedRationalNumber;
+using storm::ExtendedRationalNumber;
 
 storm::RationalNumber rational(double value) {
     return storm::utility::convertNumber<storm::RationalNumber>(value);
@@ -19,7 +19,8 @@ storm::RationalNumber rational(double value) {
 TEST(ExtendedNumberTest, extendedValueTypeOnlyWrapsWhereNeeded) {
     // double has its own infinity, so it must not be wrapped: the floating point path pays nothing for this.
     EXPECT_TRUE((std::is_same_v<storm::utility::ExtendedValueType<double>, double>));
-    EXPECT_TRUE((std::is_same_v<storm::utility::ExtendedValueType<storm::RationalNumber>, ExtendedRationalNumber>));
+    // A rational number has none, so it is wrapped, and that is what the ExtendedRationalNumber alias names.
+    EXPECT_TRUE((std::is_same_v<storm::ExtendedRationalNumber, storm::utility::ExtendedNumber<storm::RationalNumber>>));
 }
 
 TEST(ExtendedNumberTest, kinds) {

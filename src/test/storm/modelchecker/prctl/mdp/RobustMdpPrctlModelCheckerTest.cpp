@@ -32,8 +32,8 @@ std::unique_ptr<storm::modelchecker::QualitativeCheckResult> getInitialStateFilt
     return std::make_unique<storm::modelchecker::ExplicitQualitativeCheckResult<storm::RationalNumber>>(model->getInitialStates());
 }
 
-storm::utility::ExtendedValueType<storm::RationalNumber> getQuantitativeResultAtInitialState(
-    std::shared_ptr<storm::models::sparse::Model<storm::RationalNumber>> const& model, std::unique_ptr<storm::modelchecker::CheckResult>& result) {
+storm::ExtendedRationalNumber getQuantitativeResultAtInitialState(std::shared_ptr<storm::models::sparse::Model<storm::RationalNumber>> const& model,
+                                                                  std::unique_ptr<storm::modelchecker::CheckResult>& result) {
     auto filter = getInitialStateFilter(model);
     result->filter(*filter);
     return result->asQuantitativeCheckResult<storm::RationalNumber>().getMin();
@@ -58,8 +58,8 @@ double getQuantitativeResultAtInitialState(std::shared_ptr<storm::models::sparse
     return result->asQuantitativeCheckResult<double>().getMin();
 }
 
-storm::utility::ExtendedValueType<storm::RationalNumber> getQuantitativeResultAtInitialState(
-    std::shared_ptr<storm::models::sparse::Model<storm::RationalInterval>> const& model, std::unique_ptr<storm::modelchecker::CheckResult>& result) {
+storm::ExtendedRationalNumber getQuantitativeResultAtInitialState(std::shared_ptr<storm::models::sparse::Model<storm::RationalInterval>> const& model,
+                                                                  std::unique_ptr<storm::modelchecker::CheckResult>& result) {
     auto filter = getInitialStateFilter(model);
     result->filter(*filter);
     return result->asQuantitativeCheckResult<storm::RationalNumber>().getMin();

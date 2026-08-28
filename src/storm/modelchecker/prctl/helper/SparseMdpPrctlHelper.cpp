@@ -1526,20 +1526,20 @@ template std::vector<storm::RationalNumber> SparseMdpPrctlHelper<storm::Rational
 template std::vector<storm::RationalNumber> SparseMdpPrctlHelper<storm::RationalNumber>::computeDiscountedCumulativeRewards(
     Environment const& env, storm::solver::SolveGoal<storm::RationalNumber>&& goal, storm::storage::SparseMatrix<storm::RationalNumber> const& transitionMatrix,
     storm::models::sparse::StandardRewardModel<storm::RationalNumber> const& rewardModel, uint_fast64_t stepBound, storm::RationalNumber discountFactor);
-template MDPSparseModelCheckingHelperReturnType<storm::RationalNumber, storm::utility::ExtendedValueType<storm::RationalNumber>>
+template MDPSparseModelCheckingHelperReturnType<storm::RationalNumber, storm::ExtendedRationalNumber>
 SparseMdpPrctlHelper<storm::RationalNumber>::computeReachabilityRewards(Environment const& env, storm::solver::SolveGoal<storm::RationalNumber>&& goal,
                                                                         storm::storage::SparseMatrix<storm::RationalNumber> const& transitionMatrix,
                                                                         storm::storage::SparseMatrix<storm::RationalNumber> const& backwardTransitions,
                                                                         storm::models::sparse::StandardRewardModel<storm::RationalNumber> const& rewardModel,
                                                                         storm::storage::BitVector const& targetStates, bool qualitative, bool produceScheduler,
                                                                         ModelCheckerHint const& hint);
-template MDPSparseModelCheckingHelperReturnType<storm::RationalNumber, storm::utility::ExtendedValueType<storm::RationalNumber>>
+template MDPSparseModelCheckingHelperReturnType<storm::RationalNumber, storm::ExtendedRationalNumber>
 SparseMdpPrctlHelper<storm::RationalNumber>::computeTotalRewards(Environment const& env, storm::solver::SolveGoal<storm::RationalNumber>&& goal,
                                                                  storm::storage::SparseMatrix<storm::RationalNumber> const& transitionMatrix,
                                                                  storm::storage::SparseMatrix<storm::RationalNumber> const& backwardTransitions,
                                                                  storm::models::sparse::StandardRewardModel<storm::RationalNumber> const& rewardModel,
                                                                  bool qualitative, bool produceScheduler, ModelCheckerHint const& hint);
-template MDPSparseModelCheckingHelperReturnType<storm::RationalNumber, storm::utility::ExtendedValueType<storm::RationalNumber>>
+template MDPSparseModelCheckingHelperReturnType<storm::RationalNumber, storm::ExtendedRationalNumber>
 SparseMdpPrctlHelper<storm::RationalNumber>::computeDiscountedTotalRewards(Environment const& env, storm::solver::SolveGoal<storm::RationalNumber>&& goal,
                                                                            storm::storage::SparseMatrix<storm::RationalNumber> const& transitionMatrix,
                                                                            storm::storage::SparseMatrix<storm::RationalNumber> const& backwardTransitions,
@@ -1574,14 +1574,13 @@ template std::vector<storm::RationalNumber> SparseMdpPrctlHelper<storm::Rational
     Environment const& env, storm::solver::SolveGoal<storm::RationalInterval, storm::RationalNumber>&& goal,
     storm::storage::SparseMatrix<storm::RationalInterval> const& transitionMatrix,
     storm::models::sparse::StandardRewardModel<storm::RationalInterval> const& rewardModel, uint_fast64_t stepBound);
-template std::vector<storm::utility::ExtendedValueType<storm::RationalNumber>>
-SparseMdpPrctlHelper<storm::RationalInterval, storm::RationalNumber>::computeReachabilityRewards<storm::RationalInterval>(
-    Environment const& env, storm::solver::SolveGoal<storm::RationalInterval, storm::RationalNumber>&& goal,
-    storm::storage::SparseMatrix<storm::RationalInterval> const& transitionMatrix,
-    storm::storage::SparseMatrix<storm::RationalInterval> const& backwardTransitions,
-    storm::models::sparse::StandardRewardModel<storm::RationalInterval> const& rewardModel, bool lowerBoundOfIntervals,
-    storm::storage::BitVector const& targetStates, bool qualitative);
-template MDPSparseModelCheckingHelperReturnType<storm::RationalNumber, storm::utility::ExtendedValueType<storm::RationalNumber>>
+template std::vector<storm::ExtendedRationalNumber> SparseMdpPrctlHelper<storm::RationalInterval, storm::RationalNumber>::computeReachabilityRewards<
+    storm::RationalInterval>(Environment const& env, storm::solver::SolveGoal<storm::RationalInterval, storm::RationalNumber>&& goal,
+                             storm::storage::SparseMatrix<storm::RationalInterval> const& transitionMatrix,
+                             storm::storage::SparseMatrix<storm::RationalInterval> const& backwardTransitions,
+                             storm::models::sparse::StandardRewardModel<storm::RationalInterval> const& rewardModel, bool lowerBoundOfIntervals,
+                             storm::storage::BitVector const& targetStates, bool qualitative);
+template MDPSparseModelCheckingHelperReturnType<storm::RationalNumber, storm::ExtendedRationalNumber>
 SparseMdpPrctlHelper<storm::RationalInterval, storm::RationalNumber>::computeTotalRewards(
     Environment const& env, storm::solver::SolveGoal<storm::RationalInterval, storm::RationalNumber>&& goal,
     storm::storage::SparseMatrix<storm::RationalInterval> const& transitionMatrix,

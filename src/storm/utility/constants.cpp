@@ -1356,14 +1356,12 @@ template std::string to_string(storm::RationalInterval const& value);
 
 // Instantiations for the value types extended with the infinities. Their order already puts the infinities at the two
 // ends, so the generic definitions above are correct for them and none of the sentinel patches is needed.
-template std::pair<ExtendedNumber<storm::RationalNumber>, ExtendedNumber<storm::RationalNumber>> minmax(
-    std::vector<ExtendedNumber<storm::RationalNumber>> const& values);
-template ExtendedNumber<storm::RationalNumber> minimum(std::vector<ExtendedNumber<storm::RationalNumber>> const& values);
-template ExtendedNumber<storm::RationalNumber> maximum(std::vector<ExtendedNumber<storm::RationalNumber>> const& values);
-template std::pair<ExtendedNumber<storm::RationalNumber>, ExtendedNumber<storm::RationalNumber>> minmax(
-    std::map<uint64_t, ExtendedNumber<storm::RationalNumber>> const& values);
-template ExtendedNumber<storm::RationalNumber> minimum(std::map<uint64_t, ExtendedNumber<storm::RationalNumber>> const& values);
-template ExtendedNumber<storm::RationalNumber> maximum(std::map<uint64_t, ExtendedNumber<storm::RationalNumber>> const& values);
+template std::pair<storm::ExtendedRationalNumber, storm::ExtendedRationalNumber> minmax(std::vector<storm::ExtendedRationalNumber> const& values);
+template storm::ExtendedRationalNumber minimum(std::vector<storm::ExtendedRationalNumber> const& values);
+template storm::ExtendedRationalNumber maximum(std::vector<storm::ExtendedRationalNumber> const& values);
+template std::pair<storm::ExtendedRationalNumber, storm::ExtendedRationalNumber> minmax(std::map<uint64_t, storm::ExtendedRationalNumber> const& values);
+template storm::ExtendedRationalNumber minimum(std::map<uint64_t, storm::ExtendedRationalNumber> const& values);
+template storm::ExtendedRationalNumber maximum(std::map<uint64_t, storm::ExtendedRationalNumber> const& values);
 
 template std::pair<ExtendedNumber<storm::RationalFunction>, ExtendedNumber<storm::RationalFunction>> minmax(
     std::vector<ExtendedNumber<storm::RationalFunction>> const& values);

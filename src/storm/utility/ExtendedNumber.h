@@ -650,6 +650,12 @@ TargetType convertNumber(SourceType const& number) {
 
 namespace storm {
 /*!
+ * The rational number type extended with the two infinities. A rational number has no infinity of its own, so this is
+ * what a result of that value type is held in. It has a name because it is written often.
+ */
+using ExtendedRationalNumber = storm::utility::ExtendedValueType<RationalNumber>;
+
+/*!
  * An extended number is exactly as exact as what it extends, and it is the type that does have infinity -- that is the
  * whole point of it.
  */
