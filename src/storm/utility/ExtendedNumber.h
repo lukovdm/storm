@@ -455,26 +455,19 @@ std::vector<ValueType> narrowFinite(std::vector<ExtendedValueType<ValueType>> co
 }
 
 /*!
- * The counterpart of widen for a single value, falling back to the given value if it is infinite.
+ * The counterpart of widen for a vector, falling back to the given value wherever a value is infinite. The values are
+ * taken over rather than copied.
  */
 template<typename ValueType>
-ValueType narrowFinite(ExtendedValueType<ValueType> const& value, ValueType const& defaultValue) {
-    if constexpr (std::is_same_v<ExtendedValueType<ValueType>, ValueType>) {
-        return storm::utility::isFinite(value) ? value : defaultValue;
-    } else {
-        return value.isFinite() ? value.getFinite() : defaultValue;
-    }
-}
-
-/*!
- * The counterpart of widen for a vector, falling back to the given value wherever a value is infinite.
- */
-template<typename ValueType>
-std::vector<ValueType> narrowFinite(std::vector<ExtendedValueType<ValueType>> const& values, ValueType const& defaultValue) {
+std::vector<ValueType> narrowFinite(std::vector<ExtendedValueType<ValueType>>&& values, ValueType const& defaultValue) {
     std::vector<ValueType> result;
     result.reserve(values.size());
-    for (auto const& value : values) {
-        result.push_back(narrowFinite<ValueType>(value, defaultValue));
+    for (auto& value : values) {
+        if constexpr (std::is_same_v<ExtendedValueType<ValueType>, ValueType>) {
+            result.push_back(storm::utility::isFinite(value) ? std::move(value) : defaultValue);
+        } else {
+            result.push_back(value.isFinite() ? std::move(value.getFinite()) : defaultValue);
+        }
     }
     return result;
 }

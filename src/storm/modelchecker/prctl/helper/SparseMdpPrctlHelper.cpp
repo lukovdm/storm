@@ -312,14 +312,9 @@ void extractValueAndSchedulerHint(SparseMdpHintType<SolutionType>& hintStorage, 
         (skipECWithinMaybeStatesCheck || hintStorage.hasSchedulerHint() ||
          storm::utility::graph::performProb1A(transitionMatrix, transitionMatrix.getRowGroupIndices(), backwardTransitions, maybeStates, ~maybeStates)
              .full())) {
-        std::vector<storm::utility::ExtendedValueType<SolutionType>> const& resultHint =
-            hint.template asExplicitModelCheckerHint<SolutionType>().getResultHint();
-        std::vector<SolutionType> valueHint;
-        valueHint.reserve(maybeStates.getNumberOfSetBits());
-        for (uint64_t state : maybeStates) {
-            valueHint.push_back(storm::utility::narrowFinite<SolutionType>(resultHint[state], storm::utility::zero<SolutionType>()));
-        }
-        hintStorage.valueHint = std::move(valueHint);
+        hintStorage.valueHint = storm::utility::narrowFinite<SolutionType>(
+            storm::utility::vector::filterVector(hint.template asExplicitModelCheckerHint<SolutionType>().getResultHint(), maybeStates),
+            storm::utility::zero<SolutionType>());
     }
 }
 

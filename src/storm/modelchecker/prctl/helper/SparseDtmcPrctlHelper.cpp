@@ -658,12 +658,9 @@ SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabi
                 // This is the initial guess for the iterative solvers.
                 std::vector<ValueType> x;
                 if (hint.isExplicitModelCheckerHint() && hint.template asExplicitModelCheckerHint<ValueType>().hasResultHint()) {
-                    std::vector<storm::utility::ExtendedValueType<ValueType>> const& resultHint =
-                        hint.template asExplicitModelCheckerHint<ValueType>().getResultHint();
-                    x.reserve(submatrix.getColumnCount());
-                    for (uint64_t state : maybeStates) {
-                        x.push_back(storm::utility::narrowFinite<ValueType>(resultHint[state], storm::utility::one<ValueType>()));
-                    }
+                    x = storm::utility::narrowFinite<ValueType>(
+                        storm::utility::vector::filterVector(hint.template asExplicitModelCheckerHint<ValueType>().getResultHint(), maybeStates),
+                        storm::utility::one<ValueType>());
                 } else {
                     x = std::vector<ValueType>(submatrix.getColumnCount(), storm::utility::one<ValueType>());
                 }

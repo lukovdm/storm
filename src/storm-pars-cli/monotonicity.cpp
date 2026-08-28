@@ -2,7 +2,6 @@
 
 #include "storm-cli-utilities/model-handling.h"
 #include "storm-pars-cli/feasibility.h"
-#include "storm-pars-cli/finiteValues.h"
 #include "storm-pars-cli/monotonicity.h"
 #include "storm-pars-cli/print.h"
 #include "storm-pars-cli/sampling.h"
@@ -70,7 +69,7 @@ void analyzeMonotonicity(std::shared_ptr<storm::models::sparse::Model<ValueType>
 
         for (auto& property : input.properties) {
             auto const checkResult = verificationCallback(property.getRawFormula());
-            auto const result = getFiniteValues<ValueType>(checkResult->asExplicitQuantitativeCheckResult<ValueType>(), *property.getRawFormula());
+            auto const result = checkResult->asExplicitQuantitativeCheckResult<ValueType>().getFiniteValueVector();
             ValueType valuation;
 
             auto states = model->getInitialStates();

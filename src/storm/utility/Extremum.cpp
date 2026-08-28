@@ -7,43 +7,41 @@
 namespace storm::utility {
 
 template<storm::OptimizationDirection Dir, typename ValueType>
-Extremum<Dir, ValueType>::Extremum(ValueType const& value) : data({value}) {
+Extremum<Dir, ValueType>::Extremum(ValueType const& value) : extremalValue(value) {
     // Intentionally left empty
 }
 
 template<storm::OptimizationDirection Dir, typename ValueType>
-Extremum<Dir, ValueType>::Extremum(ValueType&& value) : data({std::move(value)}) {
+Extremum<Dir, ValueType>::Extremum(ValueType&& value) : extremalValue(std::move(value)) {
     // Intentionally left empty
 }
 
 template<storm::OptimizationDirection Dir, typename ValueType>
 Extremum<Dir, ValueType>& Extremum<Dir, ValueType>::operator=(ValueType const& value) {
-    data.value = value;
+    extremalValue = value;
     return *this;
 }
 
 template<storm::OptimizationDirection Dir, typename ValueType>
 Extremum<Dir, ValueType>& Extremum<Dir, ValueType>::operator=(ValueType&& value) {
-    data.value = std::move(value);
+    extremalValue = std::move(value);
     return *this;
 }
 
 template<storm::OptimizationDirection Dir, typename ValueType>
 bool Extremum<Dir, ValueType>::better(ValueType const& value) const {
-    // Comparing the plain value against the stored one directly. Wrapping it first would copy it, and for a value type
-    // whose copy allocates that is a heap allocation per comparison.
     if constexpr (storm::solver::minimize(Dir)) {
-        return value < data.value;
+        return value < extremalValue;
     } else {
         static_assert(storm::solver::maximize(Dir));
-        return value > data.value;
+        return value > extremalValue;
     }
 }
 
 template<storm::OptimizationDirection Dir, typename ValueType>
 bool Extremum<Dir, ValueType>::operator&=(Extremum const& other) {
-    if (betterThanStored(other.data.value)) {
-        data.value = other.data.value;
+    if (better(other.extremalValue)) {
+        extremalValue = other.extremalValue;
         return true;
     }
     return false;
@@ -51,8 +49,8 @@ bool Extremum<Dir, ValueType>::operator&=(Extremum const& other) {
 
 template<storm::OptimizationDirection Dir, typename ValueType>
 bool Extremum<Dir, ValueType>::operator&=(Extremum&& other) {
-    if (betterThanStored(other.data.value)) {
-        data.value = std::move(other.data.value);
+    if (better(other.extremalValue)) {
+        extremalValue = std::move(other.extremalValue);
         return true;
     }
     return false;
@@ -61,7 +59,7 @@ bool Extremum<Dir, ValueType>::operator&=(Extremum&& other) {
 template<storm::OptimizationDirection Dir, typename ValueType>
 bool Extremum<Dir, ValueType>::operator&=(ValueType const& value) {
     if (better(value)) {
-        data.value = value;
+        extremalValue = value;
         return true;
     }
     return false;
@@ -70,7 +68,7 @@ bool Extremum<Dir, ValueType>::operator&=(ValueType const& value) {
 template<storm::OptimizationDirection Dir, typename ValueType>
 bool Extremum<Dir, ValueType>::operator&=(ValueType&& value) {
     if (better(value)) {
-        data.value = std::move(value);
+        extremalValue = std::move(value);
         return true;
     }
     return false;
@@ -79,14 +77,13 @@ bool Extremum<Dir, ValueType>::operator&=(ValueType&& value) {
 template<storm::OptimizationDirection Dir, typename ValueType>
 bool Extremum<Dir, ValueType>::empty() const {
     if constexpr (StoresPlainValues) {
-        return data.value == baseValue();
+        return extremalValue == baseValue();
     } else {
-        // Asking the kind rather than comparing against a freshly built base value, which would allocate.
         if constexpr (storm::solver::minimize(Dir)) {
-            return data.value.isPositiveInfinity();
+            return extremalValue.isPositiveInfinity();
         } else {
             static_assert(storm::solver::maximize(Dir));
-            return data.value.isNegativeInfinity();
+            return extremalValue.isNegativeInfinity();
         }
     }
 }
@@ -94,19 +91,18 @@ bool Extremum<Dir, ValueType>::empty() const {
 template<storm::OptimizationDirection Dir, typename ValueType>
 ValueType const& Extremum<Dir, ValueType>::operator*() const {
     if constexpr (StoresPlainValues) {
-        return data.value;
+        return extremalValue;
     } else {
-        // Throws if the value is infinite: there is no value of this type to hand out for it.
-        return data.value.getFinite();
+        return extremalValue.getFinite();
     }
 }
 
 template<storm::OptimizationDirection Dir, typename ValueType>
 ValueType& Extremum<Dir, ValueType>::operator*() {
     if constexpr (StoresPlainValues) {
-        return data.value;
+        return extremalValue;
     } else {
-        return data.value.getFinite();
+        return extremalValue.getFinite();
     }
 }
 
@@ -120,12 +116,12 @@ std::optional<ValueType> Extremum<Dir, ValueType>::getOptionalValue() const {
 
 template<storm::OptimizationDirection Dir, typename ValueType>
 storm::utility::ExtendedValueType<ValueType> const& Extremum<Dir, ValueType>::getExtendedValue() const {
-    return data.value;
+    return extremalValue;
 }
 
 template<storm::OptimizationDirection Dir, typename ValueType>
 void Extremum<Dir, ValueType>::reset() {
-    data.value = baseValue();
+    extremalValue = baseValue();
 }
 
 template class Extremum<storm::OptimizationDirection::Minimize, double>;

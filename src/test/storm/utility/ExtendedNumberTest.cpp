@@ -299,6 +299,23 @@ TEST(ExtendedNumberTest, widenAndNarrowVectors) {
                               storm::exceptions::InvalidOperationException);
 }
 
+TEST(ExtendedNumberTest, narrowsToADefaultValue) {
+    std::vector<ExtendedRationalNumber> const values{ExtendedRationalNumber(rational(1)), ExtendedRationalNumber::infinity(),
+                                                     ExtendedRationalNumber::negativeInfinity()};
+    std::vector<storm::RationalNumber> const narrowed =
+        storm::utility::narrowFinite<storm::RationalNumber>(std::vector<ExtendedRationalNumber>(values), rational(7));
+    ASSERT_EQ(3ull, narrowed.size());
+    EXPECT_EQ(rational(1), narrowed[0]);
+    EXPECT_EQ(rational(7), narrowed[1]);
+    EXPECT_EQ(rational(7), narrowed[2]);
+
+    // A value type that brings its own infinity keeps the default in the same places.
+    std::vector<double> const doubles = storm::utility::narrowFinite<double>(std::vector<double>{1.0, storm::utility::infinity<double>()}, 7.0);
+    ASSERT_EQ(2ull, doubles.size());
+    EXPECT_EQ(1.0, doubles[0]);
+    EXPECT_EQ(7.0, doubles[1]);
+}
+
 TEST(ExtendedNumberTest, narrowingRefusesAnInfiniteValue) {
     ExtendedRationalNumber const inf = ExtendedRationalNumber::infinity();
     ExtendedRationalNumber const negInf = ExtendedRationalNumber::negativeInfinity();
