@@ -18,18 +18,14 @@ namespace modelchecker {
 template<typename ValueType>
 class DFTModelChecker {
    public:
-    /*!
-     * The type a single result is reported in. A DFT result is API-facing, and the expected time until failure of a DFT
-     * that cannot fail is genuinely infinite, so it is held in the extended value type rather than in the plain one.
-     */
-    typedef storm::utility::ExtendedValueType<ValueType> result_value_type;
-    typedef std::pair<result_value_type, result_value_type> approximation_result;
-    typedef std::vector<boost::variant<result_value_type, approximation_result>> dft_results;
+    typedef storm::utility::ExtendedValueType<ValueType> ExtendedValueType;
+    typedef std::pair<ExtendedValueType, ExtendedValueType> approximation_result;
+    typedef std::vector<boost::variant<ExtendedValueType, approximation_result>> dft_results;
     typedef std::vector<std::shared_ptr<storm::logic::Formula const>> property_vector;
 
     class ResultOutputVisitor : public boost::static_visitor<> {
        public:
-        void operator()(result_value_type const& result, std::ostream& os) const {
+        void operator()(ExtendedValueType const& result, std::ostream& os) const {
             os << result;
         }
 
@@ -156,7 +152,7 @@ class DFTModelChecker {
      *
      * @return Model checking result
      */
-    std::vector<result_value_type> checkModel(std::shared_ptr<storm::models::sparse::Model<ValueType>>& model, property_vector const& properties);
+    std::vector<ExtendedValueType> checkModel(std::shared_ptr<storm::models::sparse::Model<ValueType>>& model, property_vector const& properties);
 
     /*!
      * Checks if the computed approximation is sufficient, i.e.

@@ -11,12 +11,8 @@
 namespace storm::pars {
 
 /*!
- * Narrows the values of a quantitative check result back to the plain value type.
- *
- * The properties analysed here are whatever the user asked for, rewards included, so a state that does not reach the
- * target almost surely legitimately has an infinite value. The analyses that consume these values -- the derivative
- * checker and the monotonicity checker -- have no representation for one, so we tell the user which state and which
- * property is at fault instead of failing deep inside the check result.
+ * Narrows the values of a quantitative check result back to the plain value type, naming the state and the property
+ * if one of them is infinite.
  *
  * @param result a check result holding one value per state
  * @param formula the property the result belongs to, for the error message

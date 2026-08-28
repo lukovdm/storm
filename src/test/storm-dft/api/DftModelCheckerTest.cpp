@@ -111,7 +111,7 @@ class DftModelCheckerTest : public ::testing::Test {
         // Perform model checking
         typename storm::dft::modelchecker::DFTModelChecker<double>::dft_results results =
             storm::dft::api::analyzeDFT<double>(*dft, properties, config.useSR, config.useMod, relevantEvents, false);
-        return boost::get<typename storm::dft::modelchecker::DFTModelChecker<double>::result_value_type>(results[0]);
+        return boost::get<typename storm::dft::modelchecker::DFTModelChecker<double>::ExtendedValueType>(results[0]);
     }
 
     double analyzeMTTF(std::string const& file) const {
