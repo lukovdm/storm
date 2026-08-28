@@ -362,6 +362,9 @@ std::string to_string(ValueType const& value) {
 #if defined(STORM_HAVE_CLN)
 template<>
 storm::ClnRationalNumber infinity() {
+    STORM_LOG_DEPRECATED(
+        "storm::utility::infinity<storm::ClnRationalNumber>, which returns the literal 100000000000 rather than an infinity. Hold the value in a "
+        "storm::utility::ExtendedValueType<storm::ClnRationalNumber> instead.");
     // FIXME: this should be treated more properly.
     return storm::ClnRationalNumber(100000000000);
 }
@@ -572,6 +575,9 @@ NumberTraits<ClnRationalNumber>::IntegerType denominator(ClnRationalNumber const
 #if defined(STORM_HAVE_GMP)
 template<>
 storm::GmpRationalNumber infinity() {
+    STORM_LOG_DEPRECATED(
+        "storm::utility::infinity<storm::GmpRationalNumber>, which returns the literal 100000000000 rather than an infinity. Hold the value in a "
+        "storm::utility::ExtendedValueType<storm::GmpRationalNumber> instead.");
     // FIXME: this should be treated more properly.
     return storm::GmpRationalNumber(100000000000);
 }
@@ -810,6 +816,9 @@ storm::ClnRationalNumber convertNumber(storm::GmpRationalNumber const& number) {
 
 template<>
 storm::RationalFunction infinity() {
+    STORM_LOG_DEPRECATED(
+        "storm::utility::infinity<storm::RationalFunction>, which returns the literal 100000000000 rather than an infinity. Hold the value in a "
+        "storm::utility::ExtendedValueType<storm::RationalFunction> instead.");
     // FIXME: this should be treated more properly.
     return storm::RationalFunction(convertNumber<RationalFunctionCoefficient>(100000000000));
 }

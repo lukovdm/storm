@@ -479,6 +479,8 @@ std::vector<ExtendedValueType<ValueType>> widen(std::vector<ValueType>&& values)
 template<typename ValueType>
     requires(!std::is_reference_v<ValueType>)
 ExtendedValueType<ValueType> fromSentinel(ValueType&& value) {
+    STORM_LOG_DEPRECATED(
+        "storm::utility::fromSentinel, which exists only for as long as parts of Storm still produce the sentinel that storm::utility::infinity yields.");
     if (storm::utility::isInfinity(value)) {
         return storm::utility::positiveInfinity<ValueType>();
     }
@@ -492,6 +494,8 @@ ExtendedValueType<ValueType> fromSentinel(ValueType&& value) {
  */
 template<typename ValueType>
 std::vector<ExtendedValueType<ValueType>> fromSentinel(std::vector<ValueType>&& values) {
+    STORM_LOG_DEPRECATED(
+        "storm::utility::fromSentinel, which exists only for as long as parts of Storm still produce the sentinel that storm::utility::infinity yields.");
     if constexpr (std::is_same_v<ExtendedValueType<ValueType>, ValueType>) {
         return std::move(values);
     } else {
@@ -511,6 +515,8 @@ std::vector<ExtendedValueType<ValueType>> fromSentinel(std::vector<ValueType>&& 
 
 template<typename ValueType>
 ExtendedValueType<ValueType> fromSentinel(ValueType const& value) {
+    STORM_LOG_DEPRECATED(
+        "storm::utility::fromSentinel, which exists only for as long as parts of Storm still produce the sentinel that storm::utility::infinity yields.");
     if (storm::utility::isInfinity(value)) {
         return storm::utility::positiveInfinity<ValueType>();
     }
@@ -524,6 +530,8 @@ ExtendedValueType<ValueType> fromSentinel(ValueType const& value) {
  */
 template<typename ValueType>
 ValueType toSentinel(ExtendedValueType<ValueType> const& value) {
+    STORM_LOG_DEPRECATED(
+        "storm::utility::toSentinel, which exists only for as long as parts of Storm still expect the sentinel that storm::utility::infinity yields.");
     if constexpr (detail::IsExtendedNumber<ExtendedValueType<ValueType>>::value) {
         if (value.isInfinite()) {
             STORM_LOG_THROW(value.isPositiveInfinity(), storm::exceptions::NotSupportedException, "There is no representation of " << value << " here.");
