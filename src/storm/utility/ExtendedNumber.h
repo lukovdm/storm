@@ -153,6 +153,61 @@ class ExtendedNumber {
         return !(first < second);
     }
 
+    /*!
+     * The comparisons against a plain value. Without these the plain operand is converted to an ExtendedNumber first,
+     * which copies it -- and for a value type whose copy allocates, such as a GMP rational, that is a heap allocation
+     * per comparison. These read the payload directly instead. They are an exact match where the converting ones need
+     * a user defined conversion, so they are preferred wherever they apply and change the meaning of nothing.
+     */
+    friend bool operator==(ExtendedNumber const& first, ValueType const& second) {
+        return first.isFinite() && first.value == second;
+    }
+
+    friend bool operator==(ValueType const& first, ExtendedNumber const& second) {
+        return second.isFinite() && first == second.value;
+    }
+
+    friend bool operator!=(ExtendedNumber const& first, ValueType const& second) {
+        return !(first == second);
+    }
+
+    friend bool operator!=(ValueType const& first, ExtendedNumber const& second) {
+        return !(first == second);
+    }
+
+    friend bool operator<(ExtendedNumber const& first, ValueType const& second) {
+        // Every finite value is above -infinity and below +infinity.
+        return first.isFinite() ? first.value < second : first.isNegativeInfinity();
+    }
+
+    friend bool operator<(ValueType const& first, ExtendedNumber const& second) {
+        return second.isFinite() ? first < second.value : second.isPositiveInfinity();
+    }
+
+    friend bool operator<=(ExtendedNumber const& first, ValueType const& second) {
+        return !(second < first);
+    }
+
+    friend bool operator<=(ValueType const& first, ExtendedNumber const& second) {
+        return !(second < first);
+    }
+
+    friend bool operator>(ExtendedNumber const& first, ValueType const& second) {
+        return second < first;
+    }
+
+    friend bool operator>(ValueType const& first, ExtendedNumber const& second) {
+        return second < first;
+    }
+
+    friend bool operator>=(ExtendedNumber const& first, ValueType const& second) {
+        return !(first < second);
+    }
+
+    friend bool operator>=(ValueType const& first, ExtendedNumber const& second) {
+        return !(first < second);
+    }
+
     ExtendedNumber operator-() const {
         switch (kind) {
             case Kind::PositiveInfinity:

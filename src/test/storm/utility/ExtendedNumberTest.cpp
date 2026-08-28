@@ -162,6 +162,53 @@ TEST(ExtendedNumberTest, infinityOfTheExtendedType) {
     EXPECT_EQ(-storm::utility::infinity<double>(), storm::utility::negativeInfinity<double>());
 }
 
+TEST(ExtendedNumberTest, comparesAgainstAPlainValue) {
+    ExtendedRationalNumber const inf = ExtendedRationalNumber::infinity();
+    ExtendedRationalNumber const negInf = ExtendedRationalNumber::negativeInfinity();
+    ExtendedRationalNumber const two(rational(2));
+    storm::RationalNumber const plainTwo = rational(2);
+    storm::RationalNumber const plainThree = rational(3);
+
+    // A finite extended value compares as the value it holds, in both argument orders.
+    EXPECT_TRUE(two == plainTwo);
+    EXPECT_TRUE(plainTwo == two);
+    EXPECT_FALSE(two != plainTwo);
+    EXPECT_TRUE(two < plainThree);
+    EXPECT_TRUE(plainTwo < ExtendedRationalNumber(plainThree));
+    EXPECT_TRUE(two <= plainTwo);
+    EXPECT_TRUE(two >= plainTwo);
+    EXPECT_TRUE(ExtendedRationalNumber(plainThree) > plainTwo);
+    EXPECT_TRUE(plainThree > two);
+
+    // Every plain value lies strictly between the two infinities.
+    EXPECT_TRUE(negInf < plainTwo);
+    EXPECT_TRUE(plainTwo < inf);
+    EXPECT_FALSE(inf < plainTwo);
+    EXPECT_FALSE(plainTwo < negInf);
+    EXPECT_TRUE(inf > plainTwo);
+    EXPECT_TRUE(plainTwo > negInf);
+    EXPECT_TRUE(negInf <= plainTwo);
+    EXPECT_TRUE(inf >= plainTwo);
+
+    // An infinity is equal to no plain value at all.
+    EXPECT_FALSE(inf == plainTwo);
+    EXPECT_FALSE(negInf == plainTwo);
+    EXPECT_TRUE(inf != plainTwo);
+    EXPECT_TRUE(plainTwo != negInf);
+
+    // The mixed comparisons must agree with the ones that go through the conversion, which is what they replace.
+    for (auto const& plain : {rational(-1), rational(0), rational(2), rational(1000)}) {
+        for (auto const& extended : {inf, negInf, two}) {
+            EXPECT_EQ(extended < ExtendedRationalNumber(plain), extended < plain);
+            EXPECT_EQ(ExtendedRationalNumber(plain) < extended, plain < extended);
+            EXPECT_EQ(extended == ExtendedRationalNumber(plain), extended == plain);
+            EXPECT_EQ(extended <= ExtendedRationalNumber(plain), extended <= plain);
+            EXPECT_EQ(extended > ExtendedRationalNumber(plain), extended > plain);
+            EXPECT_EQ(extended >= ExtendedRationalNumber(plain), extended >= plain);
+        }
+    }
+}
+
 TEST(ExtendedNumberTest, negativeInfinityArithmetic) {
     ExtendedRationalNumber const inf = ExtendedRationalNumber::infinity();
     ExtendedRationalNumber const negInf = ExtendedRationalNumber::negativeInfinity();
