@@ -218,10 +218,13 @@ RegionRefinementChecker<ParametricType>::computeExtremalValueHelper(
     AnnotatedRegion<ParametricType> rootRegion(region);
 
     // Priority Queue storing the regions that still need to be processed. Regions with a "good" bound are processed first
+    // Read through getExtendedValue: a region whose bound is not known yet, or is known to be infinite, has a value
+    // here like any other, so there is nothing to special-case.
     auto cmp = storm::solver::minimize(dir) ? [](AnnotatedRegion<ParametricType> const& lhs,
-                                                 AnnotatedRegion<ParametricType> const& rhs) { return *lhs.knownLowerValueBound > *rhs.knownLowerValueBound; }
+                                                 AnnotatedRegion<ParametricType> const&
+                                                     rhs) { return lhs.knownLowerValueBound.getExtendedValue() > rhs.knownLowerValueBound.getExtendedValue(); }
                                             : [](AnnotatedRegion<ParametricType> const& lhs, AnnotatedRegion<ParametricType> const& rhs) {
-                                                  return *lhs.knownUpperValueBound < *rhs.knownUpperValueBound;
+                                                  return lhs.knownUpperValueBound.getExtendedValue() < rhs.knownUpperValueBound.getExtendedValue();
                                               };
     std::priority_queue<std::reference_wrapper<AnnotatedRegion<ParametricType>>, std::vector<std::reference_wrapper<AnnotatedRegion<ParametricType>>>,
                         decltype(cmp)>
@@ -246,8 +249,10 @@ RegionRefinementChecker<ParametricType>::computeExtremalValueHelper(
     uint64_t numOfAnalyzedRegions{0u};
     while (!unprocessedRegions.empty()) {
         auto& currentRegion = unprocessedRegions.top().get();
+        // A bound that has not been computed yet is the infinity that no value improves upon, so it is rejected below
+        // just as a useless computed bound would be. There is no separate "not known" case to handle.
         auto currentBound =
-            storm::solver::minimize(dir) ? currentRegion.knownLowerValueBound.getOptionalValue() : currentRegion.knownUpperValueBound.getOptionalValue();
+            storm::solver::minimize(dir) ? currentRegion.knownLowerValueBound.getExtendedValue() : currentRegion.knownUpperValueBound.getExtendedValue();
         STORM_LOG_TRACE("Analyzing region #" << numOfAnalyzedRegions << " (Refinement depth " << currentRegion.refinementDepth << "; "
                                              << progress.getUndiscoveredPercentage() << "% still unknown; " << unprocessedRegions.size()
                                              << " regions unprocessed). Best known value: " << value << ".");
@@ -257,18 +262,18 @@ RegionRefinementChecker<ParametricType>::computeExtremalValueHelper(
         monotonicityBackend->updateMonotonicity(env, currentRegion);
 
         // Compute the bound for this region (unless the known bound is already too weak)
-        if (!currentBound || !acceptGlobalBound(value, currentBound.value())) {
+        if (!acceptGlobalBound(value, currentBound)) {
             // Improve over-approximation of extremal value (within this region)
             currentBound = regionChecker->getBoundAtInitState(env, currentRegion, dir);
             if (storm::solver::minimize(dir)) {
-                currentRegion.knownLowerValueBound &= *currentBound;
+                currentRegion.knownLowerValueBound &= currentBound;
             } else {
-                currentRegion.knownUpperValueBound &= *currentBound;
+                currentRegion.knownUpperValueBound &= currentBound;
             }
         }
 
         // Process the region if the bound is promising
-        if (!acceptGlobalBound(value, currentBound.value())) {
+        if (!acceptGlobalBound(value, currentBound)) {
             // Improve (global) under-approximation of extremal value
             // Check whether this region contains a new 'good' value and set this value if that is the case
             auto [currValue, currValuation] = regionChecker->getAndEvaluateGoodPoint(env, currentRegion, dir);
@@ -282,7 +287,7 @@ RegionRefinementChecker<ParametricType>::computeExtremalValueHelper(
         }
 
         // Trigger region-splitting if over- and under-approximation are still too far apart
-        if (!acceptGlobalBound(value, currentBound.value())) {
+        if (!acceptGlobalBound(value, currentBound)) {
             monotonicityBackend->updateMonotonicityBeforeSplitting(env, currentRegion);
             auto splittingVariables = getSplittingVariables(currentRegion, Context::ExtremalValue);
             STORM_LOG_INFO("Splitting on variables " << splittingVariables);

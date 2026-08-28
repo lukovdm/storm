@@ -44,7 +44,10 @@ struct AnnotatedRegion {
 
     bool updateValueBound(ExtendedCoefficientType const& newValue, storm::OptimizationDirection dir);
 
-    storm::utility::Maximum<ExtendedCoefficientType> knownLowerValueBound;  // Maximal known lower bound on the value of the region
-    storm::utility::Minimum<ExtendedCoefficientType> knownUpperValueBound;  // Minimal known upper bound on the value of the region
+    // These hold the plain coefficient type: the extremum stores it extended with the two infinities itself, so an
+    // infinite bound is kept as one and is not confused with a bound that is not known yet -- there is no difference,
+    // an upper bound that is not known is +infinity. Read them with getExtendedValue.
+    storm::utility::Maximum<CoefficientType> knownLowerValueBound;  // Maximal known lower bound on the value of the region
+    storm::utility::Minimum<CoefficientType> knownUpperValueBound;  // Minimal known upper bound on the value of the region
 };
 }  // namespace storm::modelchecker
