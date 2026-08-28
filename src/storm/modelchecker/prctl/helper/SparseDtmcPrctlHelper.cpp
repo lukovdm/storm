@@ -31,15 +31,15 @@ namespace modelchecker {
 namespace helper {
 
 template<>
-std::map<storm::storage::sparse::state_type, storm::RationalFunction> SparseDtmcPrctlHelper<storm::RationalFunction>::computeRewardBoundedValues(
+std::vector<storm::RationalFunction> SparseDtmcPrctlHelper<storm::RationalFunction>::computeRewardBoundedValues(
     Environment const& /*env*/, storm::models::sparse::Dtmc<storm::RationalFunction> const& /*model*/,
     std::shared_ptr<storm::logic::OperatorFormula const> /*rewardBoundedFormula*/) {
     STORM_LOG_THROW(false, storm::exceptions::NotSupportedException, "The specified property is not supported by this value type.");
-    return std::map<storm::storage::sparse::state_type, storm::RationalFunction>();
+    return std::vector<storm::RationalFunction>();
 }
 
 template<typename ValueType, typename RewardModelType, typename SolutionType>
-std::map<storm::storage::sparse::state_type, SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeRewardBoundedValues(
+std::vector<SolutionType> SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeRewardBoundedValues(
     Environment const& env, storm::models::sparse::Dtmc<ValueType> const& model, std::shared_ptr<storm::logic::OperatorFormula const> rewardBoundedFormula) {
     if constexpr (storm::IsIntervalType<ValueType>) {
         STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We do not support computing reward bounded values with interval models.");
@@ -100,9 +100,10 @@ std::map<storm::storage::sparse::state_type, SolutionType> SparseDtmcPrctlHelper
             }
         }
 
-        std::map<storm::storage::sparse::state_type, ValueType> result;
+        std::vector<ValueType> result;
+        result.reserve(model.getInitialStates().getNumberOfSetBits());
         for (auto initState : model.getInitialStates()) {
-            result[initState] = rewardUnfolding.getInitialStateResult(initEpoch, initState);
+            result.push_back(rewardUnfolding.getInitialStateResult(initEpoch, initState));
         }
 
         swAll.stop();

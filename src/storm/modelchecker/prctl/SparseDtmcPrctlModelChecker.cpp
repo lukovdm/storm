@@ -98,7 +98,7 @@ std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::c
         auto formula = std::make_shared<storm::logic::ProbabilityOperatorFormula>(checkTask.getFormula().asSharedPointer(), opInfo);
         auto numericResult = storm::modelchecker::helper::SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeRewardBoundedValues(
             env, this->getModel(), formula);
-        return std::unique_ptr<CheckResult>(new ExplicitQuantitativeCheckResult<SolutionType>(std::move(numericResult)));
+        return std::unique_ptr<CheckResult>(new ExplicitQuantitativeCheckResult<SolutionType>(this->getModel().getInitialStates(), std::move(numericResult)));
     } else {
         STORM_LOG_THROW(pathFormula.hasUpperBound(), storm::exceptions::InvalidPropertyException, "Formula needs to have (a single) upper step bound.");
         STORM_LOG_THROW(pathFormula.hasIntegerLowerBound(), storm::exceptions::InvalidPropertyException, "Formula lower step bound must be discrete/integral.");
@@ -156,7 +156,7 @@ std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::c
         this->getModel().getBackwardTransitions(), leftResult.getTruthValuesVector(), rightResult.getTruthValuesVector(), checkTask.isQualitativeSet(),
         checkTask.getHint());
     auto result = std::make_unique<ExplicitQuantitativeCheckResult<SolutionType>>(std::move(ret.values));
-    setBounds(*result, ret.solutionBounds);
+    result->setBounds(std::move(ret.solutionBounds));
     return result;
 }
 
@@ -173,7 +173,7 @@ std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::c
             env, storm::solver::SolveGoal<ValueType, SolutionType>(this->getModel(), checkTask), this->getModel().getTransitionMatrix(),
             this->getModel().getBackwardTransitions(), subResult.getTruthValuesVector(), checkTask.isQualitativeSet());
         auto result = std::make_unique<ExplicitQuantitativeCheckResult<SolutionType>>(std::move(ret.values));
-        setBounds(*result, ret.solutionBounds);
+        result->setBounds(std::move(ret.solutionBounds));
         return result;
     }
 }
@@ -238,7 +238,7 @@ std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::c
             auto formula = std::make_shared<storm::logic::RewardOperatorFormula>(checkTask.getFormula().asSharedPointer(), checkTask.getRewardModel(), opInfo);
             auto numericResult = storm::modelchecker::helper::SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeRewardBoundedValues(
                 env, this->getModel(), formula);
-            return std::unique_ptr<CheckResult>(new ExplicitQuantitativeCheckResult<ValueType>(std::move(numericResult)));
+            return std::unique_ptr<CheckResult>(new ExplicitQuantitativeCheckResult<ValueType>(this->getModel().getInitialStates(), std::move(numericResult)));
         } else {
             STORM_LOG_THROW(rewardPathFormula.hasIntegerBound(), storm::exceptions::InvalidPropertyException, "Formula needs to have a discrete time bound.");
             auto rewardModel = storm::utility::createFilteredRewardModel(this->getModel(), checkTask);

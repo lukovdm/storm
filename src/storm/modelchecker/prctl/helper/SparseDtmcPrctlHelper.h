@@ -30,8 +30,11 @@ class SparseDtmcPrctlHelper {
    public:
     using ExtendedSolutionType = storm::utility::ExtendedValueType<SolutionType>;
 
-    static std::map<storm::storage::sparse::state_type, SolutionType> computeRewardBoundedValues(
-        Environment const& env, storm::models::sparse::Dtmc<ValueType> const& model, std::shared_ptr<storm::logic::OperatorFormula const> rewardBoundedFormula);
+    /*!
+     * @return One value per initial state of the given model, in the order of those states.
+     */
+    static std::vector<SolutionType> computeRewardBoundedValues(Environment const& env, storm::models::sparse::Dtmc<ValueType> const& model,
+                                                                std::shared_ptr<storm::logic::OperatorFormula const> rewardBoundedFormula);
 
     static std::vector<SolutionType> computeNextProbabilities(Environment const& env, storm::storage::SparseMatrix<ValueType> const& transitionMatrix,
                                                               storm::storage::BitVector const& nextStates);

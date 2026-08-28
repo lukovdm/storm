@@ -37,7 +37,7 @@ namespace modelchecker {
 namespace helper {
 
 template<typename ValueType, typename SolutionType>
-std::map<storm::storage::sparse::state_type, SolutionType> SparseMdpPrctlHelper<ValueType, SolutionType>::computeRewardBoundedValues(
+std::vector<SolutionType> SparseMdpPrctlHelper<ValueType, SolutionType>::computeRewardBoundedValues(
     Environment const& env, OptimizationDirection dir, rewardbounded::MultiDimensionalRewardUnfolding<ValueType, true>& rewardUnfolding,
     storm::storage::BitVector const& initialStates) {
     if constexpr (storm::IsIntervalType<ValueType>) {
@@ -93,9 +93,10 @@ std::map<storm::storage::sparse::state_type, SolutionType> SparseMdpPrctlHelper<
             }
         }
 
-        std::map<storm::storage::sparse::state_type, ValueType> result;
+        std::vector<ValueType> result;
+        result.reserve(initialStates.getNumberOfSetBits());
         for (uint64_t initState : initialStates) {
-            result[initState] = rewardUnfolding.getInitialStateResult(initEpoch, initState);
+            result.push_back(rewardUnfolding.getInitialStateResult(initEpoch, initState));
         }
 
         swAll.stop();

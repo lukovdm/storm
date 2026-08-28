@@ -2,13 +2,13 @@
 
 #include "storm/modelchecker/results/ExplicitQuantitativeCheckResult.h"
 
+#include <algorithm>
+
 #include "storm/adapters/JsonAdapter.h"
 #include "storm/adapters/RationalFunctionAdapter.h"
-#include "storm/exceptions/InvalidAccessException.h"
 #include "storm/exceptions/InvalidOperationException.h"
 #include "storm/exceptions/NotSupportedException.h"
 #include "storm/modelchecker/results/ExplicitQualitativeCheckResult.h"
-#include "storm/storage/BitVector.h"
 #include "storm/utility/constants.h"
 #include "storm/utility/macros.h"
 #include "storm/utility/vector.h"
@@ -16,93 +16,38 @@
 namespace storm {
 namespace modelchecker {
 
-namespace detail {
-/*!
- * Restricts the given values to the states selected by the filter. Note that the result is always a map, even
- * if the given values are a vector.
- */
-template<typename ValueType>
-boost::variant<std::vector<ValueType>, std::map<storm::storage::sparse::state_type, ValueType>> filterValues(
-    boost::variant<std::vector<ValueType>, std::map<storm::storage::sparse::state_type, ValueType>> const& values,
-    storm::storage::BitVector const& filterTruthValues) {
-    typedef std::vector<ValueType> vector_type;
-    typedef std::map<storm::storage::sparse::state_type, ValueType> map_type;
-
-    map_type newMap;
-    if (values.which() == 0) {
-        vector_type const& valuesAsVector = boost::get<vector_type>(values);
-        for (auto element : filterTruthValues) {
-            STORM_LOG_THROW(element < valuesAsVector.size(), storm::exceptions::InvalidAccessException, "Invalid index in results.");
-            newMap.emplace(element, valuesAsVector[element]);
-        }
-    } else {
-        for (auto const& element : boost::get<map_type>(values)) {
-            if (filterTruthValues.get(element.first)) {
-                newMap.insert(element);
-            }
-        }
-        STORM_LOG_THROW(newMap.size() == filterTruthValues.getNumberOfSetBits(), storm::exceptions::InvalidOperationException,
-                        "The check result fails to contain some results referred to by the filter.");
-    }
-    return newMap;
-}
-
-/*!
- * Replaces every value by one minus that value.
- */
-template<typename ValueType>
-void complementValues(boost::variant<std::vector<ValueType>, std::map<storm::storage::sparse::state_type, ValueType>>& values) {
-    typedef std::vector<ValueType> vector_type;
-    typedef std::map<storm::storage::sparse::state_type, ValueType> map_type;
-
-    if (values.which() == 0) {
-        for (auto& element : boost::get<vector_type>(values)) {
-            element = storm::utility::one<ValueType>() - element;
-        }
-    } else {
-        for (auto& element : boost::get<map_type>(values)) {
-            element.second = storm::utility::one<ValueType>() - element.second;
-        }
-    }
-}
-}  // namespace detail
-
-template<typename ValueType>
-ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult() : values(map_type()) {
-    // Intentionally left empty.
-}
-
-template<typename ValueType>
-ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(map_type const& values) : values(values) {
-    // Intentionally left empty.
-}
-
-template<typename ValueType>
-ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(map_type&& values) : values(std::move(values)) {
-    // Intentionally left empty.
-}
-
 template<typename ValueType>
 ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(storm::storage::sparse::state_type const& state, ExtendedValueType const& value)
-    : values(map_type()) {
-    boost::get<map_type>(values).emplace(state, value);
+    : states(storm::storage::BitVector(state + 1)), values({value}) {
+    states->set(state);
 }
 
 template<typename ValueType>
-ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(vector_type const& values) : values(values) {
+ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(vector_type const& values,
+                                                                            std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler)
+    : values(values), scheduler(scheduler) {
     // Intentionally left empty.
 }
 
 template<typename ValueType>
-ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(vector_type&& values) : values(std::move(values)) {
+ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(vector_type&& values,
+                                                                            std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler)
+    : values(std::move(values)), scheduler(scheduler) {
     // Intentionally left empty.
+}
+
+template<typename ValueType>
+ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(storm::storage::BitVector states, vector_type&& values,
+                                                                            std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler)
+    : states(std::move(states)), values(std::move(values)), scheduler(scheduler) {
+    STORM_LOG_ASSERT(this->states->getNumberOfSetBits() == this->values.size(), "Expected one value per selected state.");
 }
 
 template<typename ValueType>
 ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(std::vector<ValueType> const& values)
     requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>)
-    : values(map_type()) {
-    this->values = storm::utility::fromSentinel(std::vector<ValueType>(values));
+    : values(storm::utility::fromSentinel(std::vector<ValueType>(values))) {
+    // Intentionally left empty.
 }
 
 template<typename ValueType>
@@ -113,148 +58,153 @@ ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(std:
 }
 
 template<typename ValueType>
-ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(std::map<storm::storage::sparse::state_type, ValueType> const& values)
+ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(storm::storage::BitVector states, std::vector<ValueType>&& values)
     requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>)
-    : values(map_type()) {
-    map_type& widened = boost::get<map_type>(this->values);
-    for (auto const& stateValue : values) {
-        widened.emplace(stateValue.first, storm::utility::fromSentinel(stateValue.second));
-    }
-}
-
-template<typename ValueType>
-ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(boost::variant<vector_type, map_type> const& values,
-                                                                            std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler)
-    : values(values), scheduler(scheduler) {
-    // Intentionally left empty.
-}
-
-template<typename ValueType>
-ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(boost::variant<vector_type, map_type>&& values,
-                                                                            std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler)
-    : values(std::move(values)), scheduler(scheduler) {
-    // Intentionally left empty.
+    : states(std::move(states)), values(storm::utility::fromSentinel(std::move(values))) {
+    STORM_LOG_ASSERT(this->states->getNumberOfSetBits() == this->values.size(), "Expected one value per selected state.");
 }
 
 template<typename ValueType>
 ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(ExplicitQualitativeCheckResult<ValueType> const& other) {
-    if (other.isResultForAllStates()) {
-        storm::storage::BitVector const& bvValues = other.getTruthValuesVector();
+    auto const toValue = [](bool truthValue) { return truthValue ? storm::utility::one<ExtendedValueType>() : storm::utility::zero<ExtendedValueType>(); };
 
-        vector_type newVector;
-        newVector.reserve(bvValues.size());
-        for (std::size_t i = 0, n = bvValues.size(); i < n; i++) {
-            newVector.push_back(bvValues.get(i) ? storm::utility::one<ValueType>() : storm::utility::zero<ValueType>());
-        }
-
-        values = newVector;
-    } else {
-        typename ExplicitQualitativeCheckResult<ValueType>::map_type const& bitMap = other.getTruthValuesMap();
-
-        map_type newMap;
-        for (auto const& e : bitMap) {
-            newMap[e.first] = e.second ? storm::utility::one<ValueType>() : storm::utility::zero<ValueType>();
-        }
-
-        values = newMap;
+    storm::storage::BitVector const& truthValues = other.getTruthValuesVector();
+    values.reserve(truthValues.size());
+    for (std::size_t i = 0, n = truthValues.size(); i < n; i++) {
+        values.push_back(toValue(truthValues.get(i)));
+    }
+    if (!other.isResultForAllStates()) {
+        states = other.getStates();
     }
 }
 
 template<typename ValueType>
 std::unique_ptr<CheckResult> ExplicitQuantitativeCheckResult<ValueType>::clone() const {
-    auto result = std::make_unique<ExplicitQuantitativeCheckResult<ValueType>>(this->values, this->scheduler);
-    result->lowerBounds = this->lowerBounds;
-    result->upperBounds = this->upperBounds;
-    return result;
+    return std::make_unique<ExplicitQuantitativeCheckResult<ValueType>>(*this);
+}
+
+template<typename ValueType>
+bool ExplicitQuantitativeCheckResult<ValueType>::hasValueForState(storm::storage::sparse::state_type state) const {
+    if (states) {
+        return state < states->size() && states->get(state);
+    }
+    return state < values.size();
+}
+
+template<typename ValueType>
+uint64_t ExplicitQuantitativeCheckResult<ValueType>::getOffset(storm::storage::sparse::state_type state) const {
+    STORM_LOG_THROW(this->hasValueForState(state), storm::exceptions::InvalidOperationException, "Unknown key '" << state << "'.");
+    return states ? states->getNumberOfSetBitsBeforeIndex(state) : state;
+}
+
+template<typename ValueType>
+storm::storage::BitVector const& ExplicitQuantitativeCheckResult<ValueType>::getStates() const {
+    STORM_LOG_THROW(!this->isResultForAllStates(), storm::exceptions::InvalidOperationException,
+                    "Unable to retrieve the states of a result that is for all states.");
+    return *states;
 }
 
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::vector_type const& ExplicitQuantitativeCheckResult<ValueType>::getValueVector() const {
-    return boost::get<vector_type>(values);
+    return values;
 }
 
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::vector_type& ExplicitQuantitativeCheckResult<ValueType>::getValueVector() {
-    return boost::get<vector_type>(values);
-}
-
-template<typename ValueType>
-typename ExplicitQuantitativeCheckResult<ValueType>::map_type const& ExplicitQuantitativeCheckResult<ValueType>::getValueMap() const {
-    return boost::get<map_type>(values);
+    return values;
 }
 
 template<typename ValueType>
 std::vector<ValueType> ExplicitQuantitativeCheckResult<ValueType>::getFiniteValueVector() const {
-    return storm::utility::narrowFinite<ValueType>(boost::get<vector_type>(values));
+    return storm::utility::narrowFinite<ValueType>(values);
+}
+
+template<typename ValueType>
+std::vector<ValueType> ExplicitQuantitativeCheckResult<ValueType>::getSentinelValueVector() const {
+    if constexpr (!std::is_same_v<ExtendedValueType, ValueType>) {
+        std::vector<ValueType> result;
+        result.reserve(values.size());
+        for (auto const& value : values) {
+            result.push_back(storm::utility::toSentinel<ValueType>(value));
+        }
+        return result;
+    } else {
+        return values;
+    }
 }
 
 template<typename ValueType>
 bool ExplicitQuantitativeCheckResult<ValueType>::hasLowerBounds() const {
-    return lowerBounds.has_value();
+    return bounds.hasLower();
 }
 
 template<typename ValueType>
 bool ExplicitQuantitativeCheckResult<ValueType>::hasUpperBounds() const {
-    return upperBounds.has_value();
+    return bounds.hasUpper();
 }
 
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::vector_type const& ExplicitQuantitativeCheckResult<ValueType>::getLowerBoundVector() const {
     STORM_LOG_THROW(this->hasLowerBounds(), storm::exceptions::InvalidOperationException, "Unable to retrieve unknown lower bounds.");
-    return boost::get<vector_type>(*lowerBounds);
+    return *bounds.lower;
 }
 
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::vector_type const& ExplicitQuantitativeCheckResult<ValueType>::getUpperBoundVector() const {
     STORM_LOG_THROW(this->hasUpperBounds(), storm::exceptions::InvalidOperationException, "Unable to retrieve unknown upper bounds.");
-    return boost::get<vector_type>(*upperBounds);
+    return *bounds.upper;
 }
 
 template<typename ValueType>
-typename ExplicitQuantitativeCheckResult<ValueType>::map_type const& ExplicitQuantitativeCheckResult<ValueType>::getLowerBoundMap() const {
-    STORM_LOG_THROW(this->hasLowerBounds(), storm::exceptions::InvalidOperationException, "Unable to retrieve unknown lower bounds.");
-    return boost::get<map_type>(*lowerBounds);
+storm::solver::SolutionBounds<typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType> const&
+ExplicitQuantitativeCheckResult<ValueType>::getSolutionBounds() const {
+    return bounds;
 }
 
 template<typename ValueType>
-typename ExplicitQuantitativeCheckResult<ValueType>::map_type const& ExplicitQuantitativeCheckResult<ValueType>::getUpperBoundMap() const {
-    STORM_LOG_THROW(this->hasUpperBounds(), storm::exceptions::InvalidOperationException, "Unable to retrieve unknown upper bounds.");
-    return boost::get<map_type>(*upperBounds);
+void ExplicitQuantitativeCheckResult<ValueType>::assertBoundsShape([[maybe_unused]] vector_type const& bounds) const {
+    STORM_LOG_ASSERT(bounds.size() == values.size(), "Bounds must have the same size as the values.");
 }
 
 template<typename ValueType>
-void ExplicitQuantitativeCheckResult<ValueType>::assertBoundsShape([[maybe_unused]] boost::variant<vector_type, map_type> const& bounds) const {
-    STORM_LOG_ASSERT(bounds.which() == values.which(), "Bounds must have the same shape as the values.");
-    if (this->isResultForAllStates()) {
-        STORM_LOG_ASSERT(boost::get<vector_type>(bounds).size() == boost::get<vector_type>(values).size(), "Bounds must have the same size as the values.");
-    } else {
-        STORM_LOG_ASSERT(boost::get<map_type>(bounds).size() == boost::get<map_type>(values).size(), "Bounds must have the same size as the values.");
+void ExplicitQuantitativeCheckResult<ValueType>::setLowerBounds(vector_type lowerBounds) {
+    this->assertBoundsShape(lowerBounds);
+    this->bounds.lower = std::move(lowerBounds);
+}
+
+template<typename ValueType>
+void ExplicitQuantitativeCheckResult<ValueType>::setUpperBounds(vector_type upperBounds) {
+    this->assertBoundsShape(upperBounds);
+    this->bounds.upper = std::move(upperBounds);
+}
+
+template<typename ValueType>
+void ExplicitQuantitativeCheckResult<ValueType>::setBounds(storm::solver::SolutionBounds<ExtendedValueType> bounds) {
+    // Each of the two sides is transferred only if the algorithm in question established it; the other side is
+    // left as it is.
+    if (bounds.hasLower()) {
+        this->setLowerBounds(std::move(*bounds.lower));
+    }
+    if (bounds.hasUpper()) {
+        this->setUpperBounds(std::move(*bounds.upper));
     }
 }
 
 template<typename ValueType>
-void ExplicitQuantitativeCheckResult<ValueType>::setLowerBounds(boost::variant<vector_type, map_type> lowerBounds) {
-    this->assertBoundsShape(lowerBounds);
-    this->lowerBounds = std::move(lowerBounds);
-}
-
-template<typename ValueType>
-void ExplicitQuantitativeCheckResult<ValueType>::setUpperBounds(boost::variant<vector_type, map_type> upperBounds) {
-    this->assertBoundsShape(upperBounds);
-    this->upperBounds = std::move(upperBounds);
-}
-
-template<typename ValueType>
-void ExplicitQuantitativeCheckResult<ValueType>::setBounds(boost::variant<vector_type, map_type> lowerBounds,
-                                                           boost::variant<vector_type, map_type> upperBounds) {
-    this->setLowerBounds(std::move(lowerBounds));
-    this->setUpperBounds(std::move(upperBounds));
+void ExplicitQuantitativeCheckResult<ValueType>::setBounds(storm::solver::SolutionBounds<ValueType> bounds)
+    requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>)
+{
+    if (bounds.hasLower()) {
+        this->setLowerBounds(storm::utility::fromSentinel(std::move(*bounds.lower)));
+    }
+    if (bounds.hasUpper()) {
+        this->setUpperBounds(storm::utility::fromSentinel(std::move(*bounds.upper)));
+    }
 }
 
 template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::clearBounds() {
-    lowerBounds = std::nullopt;
-    upperBounds = std::nullopt;
+    bounds.clear();
 }
 
 template<typename ValueType>
@@ -266,62 +216,47 @@ void ExplicitQuantitativeCheckResult<ValueType>::filter(QualitativeCheckResult c
     ExplicitQualitativeCheckResult<ValueType> const& explicitFilter = filter.template asExplicitQualitativeCheckResult<ValueType>();
     typename ExplicitQualitativeCheckResult<ValueType>::vector_type const& filterTruthValues = explicitFilter.getTruthValuesVector();
 
+    // Line the filter up with the states this result has values for. The two need not span the same range of
+    // states, e.g. if this result holds a value for a single state only.
+    uint64_t const numStates = std::max(filterTruthValues.size(), states ? states->size() : values.size());
+    storm::storage::BitVector available = states ? *states : storm::storage::BitVector(values.size(), true);
+    available.resize(numStates);
+    storm::storage::BitVector selected(filterTruthValues);
+    selected.resize(numStates);
+    STORM_LOG_THROW(selected.isSubsetOf(available), storm::exceptions::InvalidOperationException,
+                    "The check result fails to contain some results referred to by the filter.");
+
+    // The entries that survive, in the index space the values are stored in. Note that the result is a result
+    // for the selected states even if those happen to be all of them.
+    storm::storage::BitVector const keep = selected % available;
+
     if (this->hasLowerBounds()) {
-        this->lowerBounds = detail::filterValues<ExtendedValueType>(*this->lowerBounds, filterTruthValues);
+        bounds.lower = storm::utility::vector::filterVector(*bounds.lower, keep);
     }
     if (this->hasUpperBounds()) {
-        this->upperBounds = detail::filterValues<ExtendedValueType>(*this->upperBounds, filterTruthValues);
+        bounds.upper = storm::utility::vector::filterVector(*bounds.upper, keep);
     }
-    this->values = detail::filterValues<ExtendedValueType>(this->values, filterTruthValues);
-}
-
-template<typename ValueType>
-std::vector<ValueType> ExplicitQuantitativeCheckResult<ValueType>::getSentinelValueVector() const {
-    vector_type const& valuesAsVector = boost::get<vector_type>(values);
-    if constexpr (!std::is_same_v<ExtendedValueType, ValueType>) {
-        std::vector<ValueType> result;
-        result.reserve(valuesAsVector.size());
-        for (auto const& value : valuesAsVector) {
-            result.push_back(storm::utility::toSentinel<ValueType>(value));
-        }
-        return result;
-    } else {
-        return valuesAsVector;
-    }
+    values = storm::utility::vector::filterVector(values, keep);
+    states = filterTruthValues;
 }
 
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::getMin() const {
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Minimum of empty set is not defined.");
-
-    if (this->isResultForAllStates()) {
-        return storm::utility::minimum(boost::get<vector_type>(values));
-    } else {
-        return storm::utility::minimum(boost::get<map_type>(values));
-    }
+    return storm::utility::minimum(values);
 }
 
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::getMax() const {
-    STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Minimum of empty set is not defined.");
-
-    if (this->isResultForAllStates()) {
-        return storm::utility::maximum(boost::get<vector_type>(values));
-    } else {
-        return storm::utility::maximum(boost::get<map_type>(values));
-    }
+    STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Maximum of empty set is not defined.");
+    return storm::utility::maximum(values);
 }
 
 template<typename ValueType>
 std::pair<typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType, typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType>
 ExplicitQuantitativeCheckResult<ValueType>::getMinMax() const {
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Minimum/maximum of empty set is not defined.");
-
-    if (this->isResultForAllStates()) {
-        return storm::utility::minmax(boost::get<vector_type>(values));
-    } else {
-        return storm::utility::minmax(boost::get<map_type>(values));
-    }
+    return storm::utility::minmax(values);
 }
 
 template<typename ValueType>
@@ -329,18 +264,10 @@ typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQ
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Sum of empty set is not defined.");
 
     ExtendedValueType sum = storm::utility::zero<ExtendedValueType>();
-    if (this->isResultForAllStates()) {
-        for (auto const& element : boost::get<vector_type>(values)) {
-            STORM_LOG_THROW(!storm::utility::isInfinity(element), storm::exceptions::InvalidOperationException,
-                            "Cannot compute the sum of values containing infinity.");
-            sum += element;
-        }
-    } else {
-        for (auto const& element : boost::get<map_type>(values)) {
-            STORM_LOG_THROW(!storm::utility::isInfinity(element.second), storm::exceptions::InvalidOperationException,
-                            "Cannot compute the sum of values containing infinity.");
-            sum += element.second;
-        }
+    for (auto const& element : values) {
+        STORM_LOG_THROW(!storm::utility::isInfinity(element), storm::exceptions::InvalidOperationException,
+                        "Cannot compute the sum of values containing infinity.");
+        sum += element;
     }
     return sum;
 }
@@ -350,23 +277,12 @@ typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQ
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Average of empty set is not defined.");
 
     ExtendedValueType sum = storm::utility::zero<ExtendedValueType>();
-    uint64_t count = 0;
-    if (this->isResultForAllStates()) {
-        for (auto const& element : boost::get<vector_type>(values)) {
-            STORM_LOG_THROW(!storm::utility::isInfinity(element), storm::exceptions::InvalidOperationException,
-                            "Cannot compute the average of values containing infinity.");
-            sum += element;
-        }
-        count = boost::get<vector_type>(values).size();
-    } else {
-        for (auto const& element : boost::get<map_type>(values)) {
-            STORM_LOG_THROW(!storm::utility::isInfinity(element.second), storm::exceptions::InvalidOperationException,
-                            "Cannot compute the average of values containing infinity.");
-            sum += element.second;
-        }
-        count = boost::get<map_type>(values).size();
+    for (auto const& element : values) {
+        STORM_LOG_THROW(!storm::utility::isInfinity(element), storm::exceptions::InvalidOperationException,
+                        "Cannot compute the average of values containing infinity.");
+        sum += element;
     }
-    return sum / storm::utility::convertNumber<ExtendedValueType, uint64_t>(count);
+    return sum / storm::utility::convertNumber<ExtendedValueType, uint64_t>(values.size());
 }
 
 template<typename ValueType>
@@ -429,8 +345,8 @@ void printRange(std::ostream& out, ValueType const& min, ValueType const& max) {
 }
 
 template<typename ValueType>
-void ExplicitQuantitativeCheckResult<ValueType>::printValue(std::ostream& out, storm::storage::sparse::state_type state) const {
-    print(out, (*this)[state]);
+void ExplicitQuantitativeCheckResult<ValueType>::printValue(std::ostream& out, uint64_t offset) const {
+    print(out, values[offset]);
     if (!this->hasLowerBounds() && !this->hasUpperBounds()) {
         return;
     }
@@ -438,13 +354,13 @@ void ExplicitQuantitativeCheckResult<ValueType>::printValue(std::ostream& out, s
     // that is printed for large results below.
     out << " [";
     if (this->hasLowerBounds()) {
-        print(out, this->isResultForAllStates() ? this->getLowerBoundVector()[state] : this->getLowerBoundMap().at(state));
+        print(out, this->getLowerBoundVector()[offset]);
     } else {
         out << "-inf";
     }
     out << ", ";
     if (this->hasUpperBounds()) {
-        print(out, this->isResultForAllStates() ? this->getUpperBoundVector()[state] : this->getUpperBoundMap().at(state));
+        print(out, this->getUpperBoundVector()[offset]);
     } else {
         out << "inf";
     }
@@ -454,51 +370,21 @@ void ExplicitQuantitativeCheckResult<ValueType>::printValue(std::ostream& out, s
 template<typename ValueType>
 std::ostream& ExplicitQuantitativeCheckResult<ValueType>::writeToStream(std::ostream& out) const {
     bool minMaxSupported = std::is_same<ValueType, double>::value || std::is_same<ValueType, storm::RationalNumber>::value;
-    bool printAsRange = false;
 
-    if (this->isResultForAllStates()) {
-        vector_type const& valuesAsVector = boost::get<vector_type>(values);
-        if (valuesAsVector.size() >= 10 && minMaxSupported) {
-            printAsRange = true;
-        } else {
-            out << "{";
-            bool first = true;
-            for (uint64_t state = 0; state < valuesAsVector.size(); ++state) {
-                if (!first) {
-                    out << ", ";
-                } else {
-                    first = false;
-                }
-                this->printValue(out, state);
-            }
-            out << "}";
-        }
-    } else {
-        map_type const& valuesAsMap = boost::get<map_type>(values);
-        if (valuesAsMap.size() >= 10 && minMaxSupported) {
-            printAsRange = true;
-        } else {
-            if (valuesAsMap.size() == 1) {
-                this->printValue(out, valuesAsMap.begin()->first);
-            } else {
-                out << "{";
-                bool first = true;
-                for (auto const& element : valuesAsMap) {
-                    if (!first) {
-                        out << ", ";
-                    } else {
-                        first = false;
-                    }
-                    this->printValue(out, element.first);
-                }
-                out << "}";
-            }
-        }
-    }
-
-    if (printAsRange) {
+    if (values.size() >= 10 && minMaxSupported) {
         std::pair<ExtendedValueType, ExtendedValueType> minmax = this->getMinMax();
         printRange(out, minmax.first, minmax.second);
+    } else if (!this->isResultForAllStates() && values.size() == 1) {
+        this->printValue(out, 0);
+    } else {
+        out << "{";
+        for (uint64_t offset = 0; offset < values.size(); ++offset) {
+            if (offset > 0) {
+                out << ", ";
+            }
+            this->printValue(out, offset);
+        }
+        out << "}";
     }
 
     return out;
@@ -507,66 +393,39 @@ std::ostream& ExplicitQuantitativeCheckResult<ValueType>::writeToStream(std::ost
 template<typename ValueType>
 std::unique_ptr<CheckResult> ExplicitQuantitativeCheckResult<ValueType>::compareAgainstBound(storm::logic::ComparisonType comparisonType,
                                                                                              ValueType const& bound) const {
+    auto const compare = [&comparisonType, &bound](ExtendedValueType const& value) {
+        switch (comparisonType) {
+            case logic::ComparisonType::Less:
+                return value < bound;
+            case logic::ComparisonType::LessEqual:
+                return value <= bound;
+            case logic::ComparisonType::Greater:
+                return value > bound;
+            case logic::ComparisonType::GreaterEqual:
+                return value >= bound;
+        }
+        return false;
+    };
+
+    // A comparison is only sound if the bound fall outside the lower and upperbound of te result.
+    if (this->hasLowerBounds() && this->hasUpperBounds()) {
+        for (uint64_t offset = 0; offset < values.size(); ++offset) {
+            STORM_LOG_ASSERT(!((*bounds.lower)[offset] < bound && bound < (*bounds.upper)[offset]),
+                             "The bound " << bound << " lies between the lower bound " << (*bounds.lower)[offset] << " and the upper bound "
+                                          << (*bounds.upper)[offset] << ", so the comparison against it is not decided at state " << offset << ".");
+        }
+    }
+
+    storm::storage::BitVector result(values.size());
+    for (uint64_t offset = 0; offset < values.size(); ++offset) {
+        if (compare(values[offset])) {
+            result.set(offset);
+        }
+    }
     if (this->isResultForAllStates()) {
-        vector_type const& valuesAsVector = boost::get<vector_type>(values);
-        storm::storage::BitVector result(valuesAsVector.size());
-        switch (comparisonType) {
-            case logic::ComparisonType::Less:
-                for (uint_fast64_t index = 0; index < valuesAsVector.size(); ++index) {
-                    if (valuesAsVector[index] < bound) {
-                        result.set(index);
-                    }
-                }
-                break;
-            case logic::ComparisonType::LessEqual:
-                for (uint_fast64_t index = 0; index < valuesAsVector.size(); ++index) {
-                    if (valuesAsVector[index] <= bound) {
-                        result.set(index);
-                    }
-                }
-                break;
-            case logic::ComparisonType::Greater:
-                for (uint_fast64_t index = 0; index < valuesAsVector.size(); ++index) {
-                    if (valuesAsVector[index] > bound) {
-                        result.set(index);
-                    }
-                }
-                break;
-            case logic::ComparisonType::GreaterEqual:
-                for (uint_fast64_t index = 0; index < valuesAsVector.size(); ++index) {
-                    if (valuesAsVector[index] >= bound) {
-                        result.set(index);
-                    }
-                }
-                break;
-        }
-        return std::unique_ptr<CheckResult>(new ExplicitQualitativeCheckResult<ValueType>(std::move(result), std::move(scheduler)));
+        return std::unique_ptr<CheckResult>(new ExplicitQualitativeCheckResult<ValueType>(std::move(result), scheduler));
     } else {
-        map_type const& valuesAsMap = boost::get<map_type>(values);
-        std::map<storm::storage::sparse::state_type, bool> result;
-        switch (comparisonType) {
-            case logic::ComparisonType::Less:
-                for (auto const& element : valuesAsMap) {
-                    result[element.first] = element.second < bound;
-                }
-                break;
-            case logic::ComparisonType::LessEqual:
-                for (auto const& element : valuesAsMap) {
-                    result[element.first] = element.second <= bound;
-                }
-                break;
-            case logic::ComparisonType::Greater:
-                for (auto const& element : valuesAsMap) {
-                    result[element.first] = element.second > bound;
-                }
-                break;
-            case logic::ComparisonType::GreaterEqual:
-                for (auto const& element : valuesAsMap) {
-                    result[element.first] = element.second >= bound;
-                }
-                break;
-        }
-        return std::unique_ptr<CheckResult>(new ExplicitQualitativeCheckResult<ValueType>(std::move(result), std::move(scheduler)));
+        return std::unique_ptr<CheckResult>(new ExplicitQualitativeCheckResult<ValueType>(*states, std::move(result), scheduler));
     }
 }
 
@@ -580,24 +439,13 @@ std::unique_ptr<CheckResult> ExplicitQuantitativeCheckResult<storm::RationalFunc
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType& ExplicitQuantitativeCheckResult<ValueType>::operator[](
     storm::storage::sparse::state_type state) {
-    if (this->isResultForAllStates()) {
-        return boost::get<vector_type>(values)[state];
-    } else {
-        return boost::get<map_type>(values)[state];
-    }
+    return values[this->getOffset(state)];
 }
 
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType const& ExplicitQuantitativeCheckResult<ValueType>::operator[](
     storm::storage::sparse::state_type state) const {
-    if (this->isResultForAllStates()) {
-        return boost::get<vector_type>(values)[state];
-    } else {
-        map_type const& valuesAsMap = boost::get<map_type>(values);
-        auto const& keyValuePair = valuesAsMap.find(state);
-        STORM_LOG_THROW(keyValuePair != valuesAsMap.end(), storm::exceptions::InvalidOperationException, "Unknown key '" << state << "'.");
-        return keyValuePair->second;
-    }
+    return values[this->getOffset(state)];
 }
 
 template<typename ValueType>
@@ -607,7 +455,7 @@ bool ExplicitQuantitativeCheckResult<ValueType>::isExplicit() const {
 
 template<typename ValueType>
 bool ExplicitQuantitativeCheckResult<ValueType>::isResultForAllStates() const {
-    return values.which() == 0;
+    return !states.has_value();
 }
 
 template<typename ValueType>
@@ -617,15 +465,15 @@ bool ExplicitQuantitativeCheckResult<ValueType>::isExplicitQuantitativeCheckResu
 
 template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::oneMinus() {
-    detail::complementValues<ExtendedValueType>(values);
+    storm::utility::vector::subtractFromConstantOneVector(values);
     if (this->hasLowerBounds()) {
-        detail::complementValues<ExtendedValueType>(*lowerBounds);
+        storm::utility::vector::subtractFromConstantOneVector(*bounds.lower);
     }
     if (this->hasUpperBounds()) {
-        detail::complementValues<ExtendedValueType>(*upperBounds);
+        storm::utility::vector::subtractFromConstantOneVector(*bounds.upper);
     }
     // One minus is antitone, so what used to bound the values from below now bounds them from above.
-    std::swap(lowerBounds, upperBounds);
+    std::swap(bounds.lower, bounds.upper);
 }
 
 /*!
@@ -674,21 +522,11 @@ template<typename ValueType>
 storm::json<ValueType> ExplicitQuantitativeCheckResult<ValueType>::toJson(std::optional<storm::storage::sparse::Valuations> const& stateValuations,
                                                                           std::optional<storm::models::sparse::StateLabeling> const& stateLabels) const {
     storm::json<ValueType> result;
-    if (this->isResultForAllStates()) {
-        vector_type const& valuesAsVector = boost::get<vector_type>(values);
-        for (uint64_t state = 0; state < valuesAsVector.size(); ++state) {
-            insertJsonEntry(result, state, valuesAsVector[state], stateValuations, stateLabels,
-                            this->hasLowerBounds() ? std::make_optional(this->getLowerBoundVector()[state]) : std::nullopt,
-                            this->hasUpperBounds() ? std::make_optional(this->getUpperBoundVector()[state]) : std::nullopt);
-        }
-    } else {
-        map_type const& valuesAsMap = boost::get<map_type>(values);
-        for (auto const& stateValue : valuesAsMap) {
-            insertJsonEntry(result, stateValue.first, stateValue.second, stateValuations, stateLabels,
-                            this->hasLowerBounds() ? std::make_optional(this->getLowerBoundMap().at(stateValue.first)) : std::nullopt,
-                            this->hasUpperBounds() ? std::make_optional(this->getUpperBoundMap().at(stateValue.first)) : std::nullopt);
-        }
-    }
+    this->forEachState([&](storm::storage::sparse::state_type state, uint64_t offset) {
+        insertJsonEntry(result, state, values[offset], stateValuations, stateLabels,
+                        this->hasLowerBounds() ? std::make_optional(this->getLowerBoundVector()[offset]) : std::nullopt,
+                        this->hasUpperBounds() ? std::make_optional(this->getUpperBoundVector()[offset]) : std::nullopt);
+    });
     return result;
 }
 

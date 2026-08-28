@@ -1,7 +1,4 @@
 #pragma once
-#include <boost/optional.hpp>
-#include <boost/variant.hpp>
-#include <map>
 #include <optional>
 #include <vector>
 
@@ -9,6 +6,7 @@
 #include "storm/modelchecker/results/QuantitativeCheckResult.h"
 #include "storm/models/sparse/StateLabeling.h"
 #include "storm/solver/SolutionBounds.h"
+#include "storm/storage/BitVector.h"
 #include "storm/storage/Scheduler.h"
 #include "storm/storage/sparse/StateType.h"
 #include "storm/storage/valuations/Valuations.h"
@@ -21,34 +19,48 @@ namespace modelchecker {
 template<typename ValueType>
 class ExplicitQualitativeCheckResult;
 
+/*!
+ * A quantitative check result over the states of a sparse model.
+ *
+ * The result either covers every state of the model or just a subset of them, e.g. after filtering it to the
+ * initial states. In the latter case the states in question are recorded in a bit vector and the values are
+ * stored compressed, i.e. the i-th value belongs to the i-th state selected by that bit vector.
+ */
 template<typename ValueType>
 class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType> {
    public:
     typedef typename QuantitativeCheckResult<ValueType>::ExtendedValueType ExtendedValueType;
     typedef std::vector<ExtendedValueType> vector_type;
-    typedef std::map<storm::storage::sparse::state_type, ExtendedValueType> map_type;
-
-    ExplicitQuantitativeCheckResult();
-    ExplicitQuantitativeCheckResult(map_type const& values);
-    ExplicitQuantitativeCheckResult(map_type&& values);
-    ExplicitQuantitativeCheckResult(storm::storage::sparse::state_type const& state, ExtendedValueType const& value);
-    ExplicitQuantitativeCheckResult(vector_type const& values);
-    ExplicitQuantitativeCheckResult(vector_type&& values);
 
     /*!
-     * Takes over a result that is still expressed in the plain value type, reading an entry equal to the value that
+     * Creates a result that holds the given value for the given state only.
+     */
+    ExplicitQuantitativeCheckResult(storm::storage::sparse::state_type const& state, ExtendedValueType const& value);
+
+    /*!
+     * Creates a result for all states of a model with the given number of states.
+     */
+    ExplicitQuantitativeCheckResult(vector_type const& values, std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler = {});
+    ExplicitQuantitativeCheckResult(vector_type&& values, std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler = {});
+
+    /*!
+     * Creates a result for the given states only.
+     * @param states The states the result is for.
+     * @param values One value per state selected by @p states, in the order of the selected states.
+     */
+    ExplicitQuantitativeCheckResult(storm::storage::BitVector states, vector_type&& values,
+                                    std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler = {});
+
+    /*!
+     * Takes over values that are still expressed in the plain value type, reading an entry equal to the value that
      * storm::utility::infinity yields as an infinity.
      */
     ExplicitQuantitativeCheckResult(std::vector<ValueType> const& values)
         requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>);
     ExplicitQuantitativeCheckResult(std::vector<ValueType>&& values)
         requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>);
-    ExplicitQuantitativeCheckResult(std::map<storm::storage::sparse::state_type, ValueType> const& values)
+    ExplicitQuantitativeCheckResult(storm::storage::BitVector states, std::vector<ValueType>&& values)
         requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>);
-    ExplicitQuantitativeCheckResult(boost::variant<vector_type, map_type> const& values,
-                                    std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler = {});
-    ExplicitQuantitativeCheckResult(boost::variant<vector_type, map_type>&& values,
-                                    std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler = {});
 
     ExplicitQuantitativeCheckResult(ExplicitQuantitativeCheckResult const& other) = default;
     ExplicitQuantitativeCheckResult& operator=(ExplicitQuantitativeCheckResult const& other) = default;
@@ -60,6 +72,10 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
 
     virtual std::unique_ptr<CheckResult> clone() const override;
 
+    /*!
+     * Retrieves the value of the given state.
+     * @pre The result holds a value for that state.
+     */
     ExtendedValueType& operator[](storm::storage::sparse::state_type state);
     ExtendedValueType const& operator[](storm::storage::sparse::state_type state) const;
 
@@ -70,9 +86,23 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
 
     virtual bool isExplicitQuantitativeCheckResult() const override;
 
+    /*!
+     * Retrieves whether the result holds a value for the given state.
+     */
+    bool hasValueForState(storm::storage::sparse::state_type state) const;
+
+    /*!
+     * Retrieves the states this result holds values for.
+     * @pre This is not a result for all states.
+     */
+    storm::storage::BitVector const& getStates() const;
+
+    /*!
+     * Retrieves the values, one per state this result is for. If this is not a result for all states, the i-th
+     * value belongs to the i-th state selected by getStates().
+     */
     vector_type const& getValueVector() const;
     vector_type& getValueVector();
-    map_type const& getValueMap() const;
 
     /*!
      * @pre no value is infinite
@@ -95,21 +125,32 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
     bool hasUpperBounds() const;
 
     /*!
-     * Retrieves the sound lower resp. upper bounds on the actual values.
+     * Retrieves the sound lower resp. upper bounds on the actual values. These have the same shape as the
+     * values, i.e. they are indexed in the same way.
      * @pre The respective bounds are known.
      */
     vector_type const& getLowerBoundVector() const;
     vector_type const& getUpperBoundVector() const;
-    map_type const& getLowerBoundMap() const;
-    map_type const& getUpperBoundMap() const;
 
     /*!
-     * Sets sound bounds on the actual values. The bounds must have the same shape as the values, i.e. a vector
-     * of the same size resp. a map with the same keys.
+     * Retrieves both bounds at once, either of which may be unset.
      */
-    void setLowerBounds(boost::variant<vector_type, map_type> lowerBounds);
-    void setUpperBounds(boost::variant<vector_type, map_type> upperBounds);
-    void setBounds(boost::variant<vector_type, map_type> lowerBounds, boost::variant<vector_type, map_type> upperBounds);
+    storm::solver::SolutionBounds<ExtendedValueType> const& getSolutionBounds() const;
+
+    /*!
+     * Sets sound bounds on the actual values. Each bound must have the same shape as the values, i.e. hold one
+     * entry per state this result is for.
+     */
+    void setLowerBounds(vector_type lowerBounds);
+    void setUpperBounds(vector_type upperBounds);
+    void setBounds(storm::solver::SolutionBounds<ExtendedValueType> bounds);
+
+    /*!
+     * Sets bounds that are still expressed in the plain value type, reading an entry equal to the value that
+     * storm::utility::infinity yields as an infinity.
+     */
+    void setBounds(storm::solver::SolutionBounds<ValueType> bounds)
+        requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>);
 
     /*!
      * Drops all bounds, e.g. after an operation that cannot maintain them.
@@ -142,41 +183,51 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
     }
 
     /*!
-     * Asserts that the given bounds have the same shape as the values.
+     * Retrieves the index at which the value of the given state is stored.
+     * @pre The result holds a value for that state.
      */
-    void assertBoundsShape(boost::variant<vector_type, map_type> const& bounds) const;
+    uint64_t getOffset(storm::storage::sparse::state_type state) const;
 
     /*!
-     * Writes the value of the given state, followed by its bounds if any are known.
+     * Invokes the given function with the state and the offset of its value, for every state this result is for.
      */
-    void printValue(std::ostream& out, storm::storage::sparse::state_type state) const;
+    template<typename Function>
+    void forEachState(Function const& f) const {
+        if (states) {
+            uint64_t offset = 0;
+            for (auto const& state : *states) {
+                f(state, offset);
+                ++offset;
+            }
+        } else {
+            for (uint64_t state = 0; state < values.size(); ++state) {
+                f(state, state);
+            }
+        }
+    }
 
-    // The values of the quantitative check result. These are estimates of the actual values, which lie within
-    // the bounds below but carry no further guarantee.
-    boost::variant<vector_type, map_type> values;
+    /*!
+     * Asserts that the given bounds have the same shape as the values.
+     */
+    void assertBoundsShape(vector_type const& bounds) const;
 
-    // Sound lower bounds on the actual values, if an algorithm provided them.
-    std::optional<boost::variant<vector_type, map_type>> lowerBounds;
+    /*!
+     * Writes the value stored at the given offset, followed by its bounds if any are known.
+     */
+    void printValue(std::ostream& out, uint64_t offset) const;
 
-    // Sound upper bounds on the actual values, if an algorithm provided them.
-    std::optional<boost::variant<vector_type, map_type>> upperBounds;
+    // The states this result holds values for, or nothing at all if it is a result for all states.
+    std::optional<storm::storage::BitVector> states;
+
+    // The values of the quantitative check result, one per state this result is for. These are estimates of the
+    // actual values, which lie within the bounds below but carry no further guarantee.
+    vector_type values;
+
+    // Sound bounds on the actual values, if an algorithm provided them.
+    storm::solver::SolutionBounds<ExtendedValueType> bounds;
 
     // An optional scheduler that accompanies the values.
     std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler;
 };
-
-/*!
- * Transfers the sound bounds that an algorithm computed to the given check result. Each of the two sides is
- * transferred only if the algorithm established it; the other side is left alone.
- */
-template<typename ValueType>
-void setBounds(ExplicitQuantitativeCheckResult<ValueType>& result, storm::solver::SolutionBounds<ValueType>& bounds) {
-    if (bounds.hasLower()) {
-        result.setLowerBounds(std::move(*bounds.lower));
-    }
-    if (bounds.hasUpper()) {
-        result.setUpperBounds(std::move(*bounds.upper));
-    }
-}
 }  // namespace modelchecker
 }  // namespace storm
