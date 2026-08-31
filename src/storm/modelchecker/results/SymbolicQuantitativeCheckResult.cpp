@@ -87,7 +87,7 @@ void print(std::ostream& out, ValueType const& value) {
         out << "inf";
     } else {
         out << value;
-        if (std::is_same<ValueType, storm::RationalNumber>::value) {
+        if (std::is_same_v<ValueType, storm::RationalNumber> || std::is_same_v<ValueType, storm::ExtendedRationalNumber>) {
             out << " (approx. " << storm::utility::convertNumber<double>(value) << ")";
         }
     }

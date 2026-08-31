@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <random>
+#include <sstream>
 
 #include "storm-parsers/api/properties.h"
 #include "storm-parsers/parser/PrismParser.h"
@@ -152,6 +153,33 @@ TEST(ExportCheckResultTest, NegativeInfinityDouble) {
 
 TEST(ExportCheckResultTest, NegativeInfinityExact) {
     runNegativeInfinityExportTest<storm::RationalNumber>();
+}
+
+/*!
+ * A check result holds its values in the extended value type, so the test that decides whether to print the decimal
+ * approximation of an exact value has to recognise that type too. It recognised only the plain one for a while, which
+ * silently dropped the approximation from every exact result.
+ */
+TEST(ExportCheckResultTest, PrintsTheApproximationOfAnExactValue) {
+    typedef storm::utility::ExtendedValueType<storm::RationalNumber> ExtendedValueType;
+    storm::RationalNumber const third = storm::RationalNumber(1) / storm::RationalNumber(3);
+    storm::modelchecker::ExplicitQuantitativeCheckResult<storm::RationalNumber> result(std::vector<ExtendedValueType>{ExtendedValueType(third)});
+
+    std::stringstream out;
+    result.writeToStream(out);
+    EXPECT_NE(std::string::npos, out.str().find("1/3")) << "The exact value is missing from " << out.str() << ".";
+    EXPECT_NE(std::string::npos, out.str().find("(approx.")) << "The approximation is missing from " << out.str() << ".";
+}
+
+/*!
+ * The counterpart: a value type that is already decimal has nothing to approximate.
+ */
+TEST(ExportCheckResultTest, PrintsNoApproximationOfAnInexactValue) {
+    storm::modelchecker::ExplicitQuantitativeCheckResult<double> result(std::vector<double>{0.25});
+
+    std::stringstream out;
+    result.writeToStream(out);
+    EXPECT_EQ(std::string::npos, out.str().find("(approx.")) << "An approximation was printed for " << out.str() << ".";
 }
 
 TEST(ExportCheckResultTest, InfiniteRewardDouble) {
