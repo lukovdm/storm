@@ -521,7 +521,8 @@ ExtendedValueType<ValueType> fromSentinel(ValueType&& value) {
     if (storm::utility::isInfinity(value)) {
         return storm::utility::positiveInfinity<ValueType>();
     }
-    return std::move(value);
+    // The constraint above rules out a reference type, so this forward is a move.
+    return std::forward<ValueType>(value);
 }
 
 /*!

@@ -25,18 +25,26 @@
 
 namespace {
 
-// From state 1 the target is never reached, so the expected reward is infinite there and in the initial state, which
-// reaches state 1 with probability 1/2. States 2 and 3 have a finite expected reward of 1 and 0, respectively.
+// From state 1 the target is never reached, so the expected reward is infinite there and in state 0, which reaches
+// state 1 with probability 1/2. States 2 and 3 have a finite expected reward of 1 and 0, respectively.
+//
+// Every state is initial: a program that pins the initial state down instead has its initial states enumerated by an
+// SMT solver, which this test would then need a Storm built with one to run at all. Which states are initial makes no
+// difference to what is checked below, since the check result and its export cover all of them either way.
 std::string const modelDescription = R"(
 dtmc
 
 module main
-    s : [0..3] init 0;
+    s : [0..3];
     [] s=0 -> 1/2 : (s'=1) + 1/2 : (s'=2);
     [] s=1 -> 1 : (s'=1);
     [] s=2 -> 1 : (s'=3);
     [] s=3 -> 1 : (s'=3);
 endmodule
+
+init
+    true
+endinit
 
 label "target" = s=3;
 
