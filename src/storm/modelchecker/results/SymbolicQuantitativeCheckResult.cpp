@@ -182,6 +182,11 @@ typename SymbolicQuantitativeCheckResult<Type, ValueType>::ExtendedValueType Sym
 
 template<storm::dd::DdType Type, typename ValueType>
 typename SymbolicQuantitativeCheckResult<Type, ValueType>::ExtendedValueType SymbolicQuantitativeCheckResult<Type, ValueType>::sum() const {
+    // The sentinel has to be recognised before the leaves are added up: two of them would sum to twice the sentinel,
+    // which is a value like any other. This goes away together with the sentinel on the decision diagram leaves.
+    if (!this->values.equals(this->values.getDdManager().getConstant(storm::utility::infinity<ValueType>())).isZero()) {
+        return storm::utility::positiveInfinity<ValueType>();
+    }
     return storm::utility::fromSentinel(this->values.sumAbstract(this->values.getContainedMetaVariables()).getValue());
 }
 

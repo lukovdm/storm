@@ -1371,13 +1371,11 @@ template std::pair<storm::ExtendedRationalNumber, storm::ExtendedRationalNumber>
 template storm::ExtendedRationalNumber minimum(std::map<uint64_t, storm::ExtendedRationalNumber> const& values);
 template storm::ExtendedRationalNumber maximum(std::map<uint64_t, storm::ExtendedRationalNumber> const& values);
 
-template std::pair<ExtendedNumber<storm::RationalFunction>, ExtendedNumber<storm::RationalFunction>> minmax(
-    std::vector<ExtendedNumber<storm::RationalFunction>> const& values);
-template ExtendedNumber<storm::RationalFunction> minimum(std::vector<ExtendedNumber<storm::RationalFunction>> const& values);
-template ExtendedNumber<storm::RationalFunction> maximum(std::vector<ExtendedNumber<storm::RationalFunction>> const& values);
-template std::pair<ExtendedNumber<storm::RationalFunction>, ExtendedNumber<storm::RationalFunction>> minmax(
-    std::map<uint64_t, ExtendedNumber<storm::RationalFunction>> const& values);
-template ExtendedNumber<storm::RationalFunction> minimum(std::map<uint64_t, ExtendedNumber<storm::RationalFunction>> const& values);
-template ExtendedNumber<storm::RationalFunction> maximum(std::map<uint64_t, ExtendedNumber<storm::RationalFunction>> const& values);
+template std::pair<storm::ExtendedRationalFunction, storm::ExtendedRationalFunction> minmax(std::vector<storm::ExtendedRationalFunction> const& values);
+template storm::ExtendedRationalFunction minimum(std::vector<storm::ExtendedRationalFunction> const& values);
+template storm::ExtendedRationalFunction maximum(std::vector<storm::ExtendedRationalFunction> const& values);
+template std::pair<storm::ExtendedRationalFunction, storm::ExtendedRationalFunction> minmax(std::map<uint64_t, storm::ExtendedRationalFunction> const& values);
+template storm::ExtendedRationalFunction minimum(std::map<uint64_t, storm::ExtendedRationalFunction> const& values);
+template storm::ExtendedRationalFunction maximum(std::map<uint64_t, storm::ExtendedRationalFunction> const& values);
 }  // namespace utility
 }  // namespace storm

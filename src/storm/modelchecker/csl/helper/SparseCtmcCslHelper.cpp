@@ -840,7 +840,7 @@ template std::vector<storm::ExtendedRationalNumber> SparseCtmcCslHelper::compute
     Environment const& env, storm::solver::SolveGoal<storm::RationalNumber>&& goal, storm::storage::SparseMatrix<storm::RationalNumber> const& rateMatrix,
     storm::storage::SparseMatrix<storm::RationalNumber> const& backwardTransitions, std::vector<storm::RationalNumber> const& exitRateVector,
     storm::storage::BitVector const& targetStates, bool qualitative);
-template std::vector<storm::utility::ExtendedValueType<storm::RationalFunction>> SparseCtmcCslHelper::computeReachabilityTimes(
+template std::vector<storm::ExtendedRationalFunction> SparseCtmcCslHelper::computeReachabilityTimes(
     Environment const& env, storm::solver::SolveGoal<storm::RationalFunction>&& goal, storm::storage::SparseMatrix<storm::RationalFunction> const& rateMatrix,
     storm::storage::SparseMatrix<storm::RationalFunction> const& backwardTransitions, std::vector<storm::RationalFunction> const& exitRateVector,
     storm::storage::BitVector const& targetStates, bool qualitative);
@@ -849,7 +849,7 @@ template std::vector<storm::ExtendedRationalNumber> SparseCtmcCslHelper::compute
     Environment const& env, storm::solver::SolveGoal<storm::RationalNumber>&& goal, storm::storage::SparseMatrix<storm::RationalNumber> const& rateMatrix,
     storm::storage::SparseMatrix<storm::RationalNumber> const& backwardTransitions, std::vector<storm::RationalNumber> const& exitRateVector,
     storm::models::sparse::StandardRewardModel<storm::RationalNumber> const& rewardModel, storm::storage::BitVector const& targetStates, bool qualitative);
-template std::vector<storm::utility::ExtendedValueType<storm::RationalFunction>> SparseCtmcCslHelper::computeReachabilityRewards(
+template std::vector<storm::ExtendedRationalFunction> SparseCtmcCslHelper::computeReachabilityRewards(
     Environment const& env, storm::solver::SolveGoal<storm::RationalFunction>&& goal, storm::storage::SparseMatrix<storm::RationalFunction> const& rateMatrix,
     storm::storage::SparseMatrix<storm::RationalFunction> const& backwardTransitions, std::vector<storm::RationalFunction> const& exitRateVector,
     storm::models::sparse::StandardRewardModel<storm::RationalFunction> const& rewardModel, storm::storage::BitVector const& targetStates, bool qualitative);
@@ -858,7 +858,7 @@ template std::vector<storm::ExtendedRationalNumber> SparseCtmcCslHelper::compute
     Environment const& env, storm::solver::SolveGoal<storm::RationalNumber>&& goal, storm::storage::SparseMatrix<storm::RationalNumber> const& rateMatrix,
     storm::storage::SparseMatrix<storm::RationalNumber> const& backwardTransitions, std::vector<storm::RationalNumber> const& exitRateVector,
     storm::models::sparse::StandardRewardModel<storm::RationalNumber> const& rewardModel, bool qualitative);
-template std::vector<storm::utility::ExtendedValueType<storm::RationalFunction>> SparseCtmcCslHelper::computeTotalRewards(
+template std::vector<storm::ExtendedRationalFunction> SparseCtmcCslHelper::computeTotalRewards(
     Environment const& env, storm::solver::SolveGoal<storm::RationalFunction>&& goal, storm::storage::SparseMatrix<storm::RationalFunction> const& rateMatrix,
     storm::storage::SparseMatrix<storm::RationalFunction> const& backwardTransitions, std::vector<storm::RationalFunction> const& exitRateVector,
     storm::models::sparse::StandardRewardModel<storm::RationalFunction> const& rewardModel, bool qualitative);

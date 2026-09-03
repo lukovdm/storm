@@ -246,7 +246,13 @@ typename HybridQuantitativeCheckResult<Type, ValueType>::ExtendedValueType Hybri
 
 template<storm::dd::DdType Type, typename ValueType>
 typename HybridQuantitativeCheckResult<Type, ValueType>::ExtendedValueType HybridQuantitativeCheckResult<Type, ValueType>::sum() const {
-    ExtendedValueType sum = storm::utility::fromSentinel(symbolicValues.sumAbstract(symbolicValues.getContainedMetaVariables()).getValue());
+    // The sentinel has to be recognised before the symbolic leaves are added up: two of them would sum to twice the
+    // sentinel, which is a value like any other. This goes away together with the sentinel on the decision diagram
+    // leaves. The explicit values below are converted one by one and need no such guard.
+    bool const hasInfiniteSymbolicValue = !symbolicValues.equals(symbolicValues.getDdManager().getConstant(storm::utility::infinity<ValueType>())).isZero();
+    ExtendedValueType sum = hasInfiniteSymbolicValue
+                                ? storm::utility::positiveInfinity<ValueType>()
+                                : storm::utility::fromSentinel(symbolicValues.sumAbstract(symbolicValues.getContainedMetaVariables()).getValue());
     for (auto const& value : explicitValues) {
         sum += storm::utility::fromSentinel(value);
     }

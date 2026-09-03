@@ -21,6 +21,8 @@ TEST(ExtendedNumberTest, extendedValueTypeOnlyWrapsWhereNeeded) {
     EXPECT_TRUE((std::is_same_v<storm::utility::ExtendedValueType<double>, double>));
     // A rational number has none, so it is wrapped, and that is what the ExtendedRationalNumber alias names.
     EXPECT_TRUE((std::is_same_v<storm::ExtendedRationalNumber, storm::utility::ExtendedNumber<storm::RationalNumber>>));
+    // The same holds for a rational function, which the ExtendedRationalFunction alias names.
+    EXPECT_TRUE((std::is_same_v<storm::ExtendedRationalFunction, storm::utility::ExtendedNumber<storm::RationalFunction>>));
 }
 
 TEST(ExtendedNumberTest, kinds) {
@@ -109,9 +111,9 @@ TEST(ExtendedNumberTest, conversionAcrossValueTypes) {
 
     // Into another extended type. This is what the parameter lifting model checker needs, where infinity has to travel
     // from the constant type to the coefficient type.
-    auto const asFunction = storm::utility::convertNumber<storm::utility::ExtendedNumber<storm::RationalFunction>>(inf);
+    auto const asFunction = storm::utility::convertNumber<storm::ExtendedRationalFunction>(inf);
     EXPECT_TRUE(asFunction.isPositiveInfinity());
-    auto const finiteAsFunction = storm::utility::convertNumber<storm::utility::ExtendedNumber<storm::RationalFunction>>(ExtendedRationalNumber(rational(2)));
+    auto const finiteAsFunction = storm::utility::convertNumber<storm::ExtendedRationalFunction>(ExtendedRationalNumber(rational(2)));
     EXPECT_TRUE(finiteAsFunction.isFinite());
 }
 

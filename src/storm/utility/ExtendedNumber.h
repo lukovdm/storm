@@ -702,6 +702,12 @@ namespace storm {
 using ExtendedRationalNumber = storm::utility::ExtendedValueType<RationalNumber>;
 
 /*!
+ * The rational function type extended with the two infinities. Like a rational number, a rational function has no
+ * infinity of its own, so this is what a result of that value type is held in.
+ */
+using ExtendedRationalFunction = storm::utility::ExtendedValueType<RationalFunction>;
+
+/*!
  * An extended number is exactly as exact as what it extends, and it is the type that does have infinity -- that is the
  * whole point of it.
  */

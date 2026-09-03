@@ -19,13 +19,15 @@
             STORM_LOG_WARN(message);             \
         }                                        \
     } while (false)
-#define STORM_LOG_DEPRECATED(message)                   \
-    do {                                                \
-        static bool storm_deprecation_reported = false; \
-        if (!storm_deprecation_reported) {              \
-            storm_deprecation_reported = true;          \
-            STORM_LOG_WARN("Deprecated: " << message);  \
-        }                                               \
+// The warning is emitted from the initializer of a function-local static, whose initialization is thread-safe and
+// happens exactly once. A plain flag would be read and written without synchronization by concurrent first calls.
+#define STORM_LOG_DEPRECATED(message)                        \
+    do {                                                     \
+        static bool const storm_deprecation_reported = [&] { \
+            STORM_LOG_WARN("Deprecated: " << message);       \
+            return true;                                     \
+        }();                                                 \
+        (void)storm_deprecation_reported;                    \
     } while (false)
 #else
 #define STORM_LOG_ASSERT(cond, message)
