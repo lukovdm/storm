@@ -1,8 +1,9 @@
 #include "storm-config.h"
 #include "test/storm_gtest.h"
 
+#include <iostream>
+
 #include "storm/adapters/RationalNumberAdapter.h"
-#include "storm/exceptions/InvalidOperationException.h"
 #include "storm/utility/ExtendedNumber.h"
 #include "storm/utility/Extremum.h"
 #include "storm/utility/constants.h"
@@ -81,9 +82,21 @@ TEST(ExtremumTest, ordinaryUseIsUnchanged) {
 }
 
 TEST(ExtremumTest, derefHasNoPlainValueForAnInfiniteOne) {
-    // The plain value type has no infinity, so there is nothing for operator* to hand out. It says so rather than
-    // returning the zero that an infinite value carries as its payload.
+    // The plain value type has no infinity, so there is nothing for operator* to hand out. The extended value is the
+    // way to read an empty extremum.
     storm::utility::Minimum<storm::RationalNumber> minimum;
-    STORM_SILENT_EXPECT_THROW(*minimum, storm::exceptions::InvalidOperationException);
     EXPECT_TRUE(storm::utility::isInfinity(minimum.getExtendedValue()));
+}
+
+TEST(ExtremumDeathTest, derefRefusesAnEmptyExtremum) {
+    // Being non-empty is a precondition of operator*, so a violation is caught by an assertion rather than an
+    // exception. It must not return the zero that an infinite value carries as its payload.
+    storm::utility::Minimum<storm::RationalNumber> minimum;
+
+#ifndef NDEBUG
+    EXPECT_DEATH_IF_SUPPORTED(*minimum, "");
+#else
+    std::cerr << "WARNING: Not testing the operator* assertion, as it is disabled in release mode.\n";
+    SUCCEED();
+#endif
 }

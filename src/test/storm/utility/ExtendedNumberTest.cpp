@@ -1,6 +1,8 @@
 #include "storm-config.h"
 #include "test/storm_gtest.h"
 
+#include <iostream>
+
 #include "storm/adapters/RationalFunctionAdapter.h"
 #include "storm/adapters/RationalNumberAdapter.h"
 #include "storm/exceptions/InvalidOperationException.h"
@@ -326,14 +328,24 @@ TEST(ExtendedNumberTest, narrowingRefusesAnInfiniteValue) {
     STORM_SILENT_EXPECT_THROW(storm::utility::narrow<storm::RationalNumber>(inf), storm::exceptions::NotSupportedException);
     STORM_SILENT_EXPECT_THROW(storm::utility::narrow<storm::RationalNumber>(negInf), storm::exceptions::NotSupportedException);
 
-    // getFinite is a precondition of the caller, but a violated one must not quietly hand out the zero that an infinite
-    // value happens to carry as its payload.
     EXPECT_EQ(rational(2), storm::utility::getFinite(ExtendedRationalNumber(rational(2))));
-    STORM_SILENT_EXPECT_THROW(storm::utility::getFinite(inf), storm::exceptions::InvalidOperationException);
-    STORM_SILENT_EXPECT_THROW(inf.getFinite(), storm::exceptions::InvalidOperationException);
 
     // A type that has its own infinity narrows to itself, infinity included.
     EXPECT_TRUE(storm::utility::isInfinity(storm::utility::narrow<double>(storm::utility::infinity<double>())));
+}
+
+TEST(ExtendedNumberDeathTest, getFiniteRefusesAnInfiniteValue) {
+    // Being finite is a precondition of getFinite, so a violation is caught by an assertion rather than an exception.
+    // It must not quietly hand out the zero that an infinite value happens to carry as its payload.
+    ExtendedRationalNumber const inf = ExtendedRationalNumber::infinity();
+
+#ifndef NDEBUG
+    EXPECT_DEATH_IF_SUPPORTED(storm::utility::getFinite(inf), "");
+    EXPECT_DEATH_IF_SUPPORTED(inf.getFinite(), "");
+#else
+    std::cerr << "WARNING: Not testing the getFinite assertion, as it is disabled in release mode.\n";
+    SUCCEED();
+#endif
 }
 
 TEST(ExtendedNumberTest, toSentinelHasNoNegativeInfinity) {
