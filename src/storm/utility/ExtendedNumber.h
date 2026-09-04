@@ -110,7 +110,7 @@ class ExtendedNumber {
      * @return the finite value
      */
     ValueType const& getFinite() const {
-        STORM_LOG_THROW(isFinite(), storm::exceptions::InvalidOperationException, "Tried to get the finite value of " << *this << ".");
+        STORM_LOG_ASSERT(isFinite(), "Tried to get the finite value of " << *this << ".");
         return value;
     }
 
@@ -119,7 +119,7 @@ class ExtendedNumber {
      * @return the finite value
      */
     ValueType& getFinite() {
-        STORM_LOG_THROW(isFinite(), storm::exceptions::InvalidOperationException, "Tried to get the finite value of " << *this << ".");
+        STORM_LOG_ASSERT(isFinite(), "Tried to get the finite value of " << *this << ".");
         return value;
     }
 
