@@ -83,7 +83,7 @@ This is `ValueType` itself for types that bring their own infinity (`double`, re
 `storm::ExtendedRationalNumber` and `storm::ExtendedRationalFunction` are the aliases for `RationalNumber` and `RationalFunction`.
 
 Use it at the boundaries of a computation: check results, value vectors handed to a caller, bounds passed around as scalars.
-Do not use it in hot loops as the extra wrapper can cause unnecesary slowdowns. Often it is possible to filter out any value which would become or are infinte. To detect or set infitities use the following functions:
+Do not use it in hot loops as the extra wrapper can cause unnecessary slowdowns. Often it is possible to filter out any value which would become or are infinte. To detect or set infinities use the following functions:
 ```cpp
 using Extended = storm::utility::ExtendedValueType<ValueType>;
 Extended value = storm::utility::positiveInfinity<ValueType>();  // and negativeInfinity<ValueType>()

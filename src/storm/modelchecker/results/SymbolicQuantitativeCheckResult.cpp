@@ -85,6 +85,8 @@ template<typename ValueType>
 void print(std::ostream& out, ValueType const& value) {
     if (storm::utility::isInfinity(value)) {
         out << "inf";
+    } else if (storm::utility::isNegativeInfinity(value)) {
+        out << "-inf";
     } else {
         out << value;
         if (std::is_same_v<ValueType, storm::RationalNumber> || std::is_same_v<ValueType, storm::ExtendedRationalNumber>) {

@@ -90,6 +90,7 @@ bool Extremum<Dir, ValueType>::empty() const {
 
 template<storm::OptimizationDirection Dir, typename ValueType>
 ValueType const& Extremum<Dir, ValueType>::operator*() const {
+    STORM_LOG_THROW(!empty(), storm::exceptions::InvalidOperationException, "Tried to get empty extremum.");
     if constexpr (StoresPlainValues) {
         return extremalValue;
     } else {
@@ -99,6 +100,7 @@ ValueType const& Extremum<Dir, ValueType>::operator*() const {
 
 template<storm::OptimizationDirection Dir, typename ValueType>
 ValueType& Extremum<Dir, ValueType>::operator*() {
+    STORM_LOG_THROW(!empty(), storm::exceptions::InvalidOperationException, "Tried to get empty extremum.");
     if constexpr (StoresPlainValues) {
         return extremalValue;
     } else {

@@ -93,13 +93,13 @@ class Extremum {
     bool empty() const;
 
     /*!
-     * @pre the extremal value is finite
+     * @pre the extremal value is finite, i.e., not empty.
      * @return the stored extremal value
      */
     ValueType const& operator*() const;
 
     /*!
-     * @pre the extremal value is finite
+     * @pre the extremal value is finite, i.e., not empty.
      * @return the stored extremal value
      */
     ValueType& operator*();

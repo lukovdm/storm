@@ -758,7 +758,7 @@ struct numeric_limits<storm::utility::ExtendedNumber<ValueType>> {
     }
 
     static type lowest() {
-        return type::negativeInfinity();
+        return type(std::numeric_limits<ValueType>::lowest());
     }
 
     static type min() {
@@ -766,7 +766,7 @@ struct numeric_limits<storm::utility::ExtendedNumber<ValueType>> {
     }
 
     static type max() {
-        return type::infinity();
+        return type(std::numeric_limits<ValueType>::max());
     }
 
     static type epsilon() {
