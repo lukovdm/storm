@@ -146,8 +146,9 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
     void setBounds(storm::solver::SolutionBounds<ExtendedValueType> bounds);
 
     /*!
-     * Sets bounds that are still expressed in the plain value type, reading an entry equal to the value that
-     * storm::utility::infinity yields as an infinity.
+     * Sets bounds that are still expressed in the plain value type. Bounds that arrive in that type are taken to
+     * be finite throughout: no sentinel is read out of them, since nothing hands bounds around by sentinel.
+     * An algorithm that can bound a value by infinity states so by handing over the extended type instead.
      */
     void setBounds(storm::solver::SolutionBounds<ValueType> bounds)
         requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>);

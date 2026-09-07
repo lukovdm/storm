@@ -195,10 +195,10 @@ void ExplicitQuantitativeCheckResult<ValueType>::setBounds(storm::solver::Soluti
     requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>)
 {
     if (bounds.hasLower()) {
-        this->setLowerBounds(storm::utility::fromSentinel(std::move(*bounds.lower)));
+        this->setLowerBounds(storm::utility::widen(std::move(*bounds.lower)));
     }
     if (bounds.hasUpper()) {
-        this->setUpperBounds(storm::utility::fromSentinel(std::move(*bounds.upper)));
+        this->setUpperBounds(storm::utility::widen(std::move(*bounds.upper)));
     }
 }
 
