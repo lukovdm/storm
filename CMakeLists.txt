@@ -183,9 +183,9 @@ if(STORM_COMPILE_WITH_CCACHE)
 		# pch_defines tries to ignore precompiled headers (but often does not succeed in our case)
 		# the time options ignore time macros when calculating the cache key, improving cache hit rates
 		# Additional but not recommended: include_file_mtime,include_file_ctime
-		set(ENV{CCACHE_SLOPPINESS} "pch_defines,time_macros")
-		set_property(GLOBAL PROPERTY CMAKE_C_COMPILER_LAUNCHER ccache)
-		set_property(GLOBAL PROPERTY CMAKE_CXX_COMPILER_LAUNCHER ccache)
+		# Wrapping in `cmake -E env` sets it for the build step, not just the configure run.
+		set(CMAKE_C_COMPILER_LAUNCHER   "${CMAKE_COMMAND};-E;env;CCACHE_SLOPPINESS=pch_defines,time_macros;${CCACHE_EXECUTABLE}")
+		set(CMAKE_CXX_COMPILER_LAUNCHER "${CMAKE_COMMAND};-E;env;CCACHE_SLOPPINESS=pch_defines,time_macros;${CCACHE_EXECUTABLE}")
 		set(STORM_RESOURCES_C_COMPILER   "${CCACHE_EXECUTABLE} ${CMAKE_C_COMPILER}")
 		set(STORM_RESOURCES_CXX_COMPILER "${CCACHE_EXECUTABLE} ${CMAKE_CXX_COMPILER}")
 

@@ -58,7 +58,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/Library/Caches/Homebrew
-          key: buildtest-brew-${{ inputs.distro }}-${{ hashFiles('.github/workflows/buildtest.yml') }}
+          key: buildtest-brew-${{ inputs.distro }}-${{ hashFiles('.github/workflows/test-mac.yml') }}
           restore-keys: |
             buildtest-brew-${{ inputs.distro }}-
       - name: Ensure ccache directory exists (macOS)
