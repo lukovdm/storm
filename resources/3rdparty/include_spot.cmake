@@ -58,7 +58,14 @@ if(NOT STORM_DISABLE_SPOT)
         # download and install shipped Spot as shared libraries.
         # set Spot version
         set(SPOT_SHIPPED_VERSION 2.15.1)
-        set(STORM_SPOT_FLAGS "CC=${STORM_RESOURCES_C_COMPILER};CXX=${STORM_RESOURCES_CXX_COMPILER}")
+        set(STORM_SPOT_CC  "${STORM_RESOURCES_C_COMPILER}")
+        set(STORM_SPOT_CXX "${STORM_RESOURCES_CXX_COMPILER}")
+        # Clang report an unused argument -pthread. Using -Qunused-arguments silences this warning.
+        if (CLANG)
+            string(APPEND STORM_SPOT_CC  " -Qunused-arguments")
+            string(APPEND STORM_SPOT_CXX " -Qunused-arguments")
+        endif()
+        set(STORM_SPOT_FLAGS "CC=${STORM_SPOT_CC};CXX=${STORM_SPOT_CXX}")
         set(STORM_SPOT_FLAGS "${STORM_SPOT_FLAGS};--disable-python;--enable-shared;--disable-static")
         if (NOT STORM_DEBUG_SPOT)
             set(STORM_SPOT_FLAGS "${STORM_SPOT_FLAGS};--disable-devel;--disable-debug;--enable-optimizations")
