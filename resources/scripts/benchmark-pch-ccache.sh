@@ -6,7 +6,7 @@ set -euo pipefail
 # - ccache cold/warm
 #
 # The script uses ccache through CMake compiler launchers and controls PCH via
-# CMAKE_DISABLE_PRECOMPILE_HEADERS, so all four combinations are measurable.
+# Storm's STORM_COMPILE_WITH_PCH option, so all four combinations are measurable.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"

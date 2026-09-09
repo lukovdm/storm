@@ -60,7 +60,7 @@ if(NOT STORM_DISABLE_SPOT)
         set(SPOT_SHIPPED_VERSION 2.15.1)
         set(STORM_SPOT_CC  "${STORM_RESOURCES_C_COMPILER}")
         set(STORM_SPOT_CXX "${STORM_RESOURCES_CXX_COMPILER}")
-        # Clang report an unused argument -pthread. Using -Qunused-arguments silences this warning.
+        # Clang reports an unused argument -pthread. Using -Qunused-arguments silences this warning.
         if (CLANG)
             string(APPEND STORM_SPOT_CC  " -Qunused-arguments")
             string(APPEND STORM_SPOT_CXX " -Qunused-arguments")
