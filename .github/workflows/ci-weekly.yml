@@ -9,6 +9,7 @@ on:
 
 jobs:
   buildTests:
+    name: ${{ matrix.config.name }} (${{ matrix.buildType }})
     strategy:
       fail-fast: false
       matrix:
@@ -84,6 +85,7 @@ jobs:
       install: true
 
   compilerTests:
+    name: ${{ matrix.config.name }} (${{ matrix.buildType }})
     strategy:
       fail-fast: false
       matrix:
@@ -123,6 +125,7 @@ jobs:
       install: true
 
   linuxTests:
+    name: ${{ matrix.distro }} (${{ matrix.buildType }})
     strategy:
       fail-fast: false
       matrix:
@@ -140,6 +143,7 @@ jobs:
       install: true
 
   macTests:
+    name: ${{ matrix.config.name }} (${{ matrix.buildType }})
     strategy:
       fail-fast: false
       matrix:
@@ -174,6 +178,7 @@ jobs:
       install: true
 
   deploy:
+    name: ${{ matrix.config.buildType }}
     strategy:
       fail-fast: false
       matrix:

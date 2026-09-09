@@ -7,6 +7,7 @@ on:
 
 jobs:
   buildTests:
+    name: ${{ matrix.config.name }}
     if: "! contains(github.event.pull_request.labels.*.name, 'ready for review')"
     strategy:
       fail-fast: true
@@ -64,6 +65,7 @@ jobs:
       install: false
 
   compilerTests:
+    name: ${{ matrix.config.name }}
     if: "! contains(github.event.pull_request.labels.*.name, 'ready for review')"
     strategy:
       fail-fast: true
@@ -97,6 +99,7 @@ jobs:
       install: false
 
   linuxTests:
+    name: ${{ matrix.distro }}
     if: "! contains(github.event.pull_request.labels.*.name, 'ready for review')"
     strategy:
       fail-fast: true
@@ -114,6 +117,7 @@ jobs:
       install: false
 
   macTests:
+    name: ${{ matrix.config.name }}
     if: "! contains(github.event.pull_request.labels.*.name, 'ready for review')"
     strategy:
       fail-fast: true
