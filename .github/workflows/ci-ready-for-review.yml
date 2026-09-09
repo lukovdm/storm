@@ -9,6 +9,12 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
 
+# On PRs a newer run cancels the running one
+# On master pushes each run is its own group (via run_id) so CI is never canceled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   buildTests:
     name: ${{ matrix.config.name }}
