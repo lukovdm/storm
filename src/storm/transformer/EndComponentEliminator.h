@@ -1,5 +1,4 @@
-#ifndef STORM_TRANSFORMER_ENDCOMPONENTELIMINATOR_H
-#define STORM_TRANSFORMER_ENDCOMPONENTELIMINATOR_H
+#pragma once
 
 #include "storm/storage/MaximalEndComponentDecomposition.h"
 #include "storm/utility/constants.h"
@@ -60,7 +59,7 @@ class EndComponentEliminator {
         result.sinkRows =
             storm::storage::BitVector(originalMatrix.getRowCount(), false);  // will be resized as soon as the rowCount of the resulting matrix is known
 
-        for (auto keptState : keptStates) {
+        for (uint64_t keptState : keptStates) {
             result.oldToNewStateMapping[keptState] = newRowGroupIndices.size();  // i.e., the current number of processed states
             newRowGroupIndices.push_back(result.newToOldRowMapping.size());      // i.e., the current number of processed rows
             for (uint_fast64_t oldRow = originalMatrix.getRowGroupIndices()[keptState]; oldRow < originalMatrix.getRowGroupIndices()[keptState + 1]; ++oldRow) {
@@ -207,4 +206,3 @@ class EndComponentEliminator {
 };
 }  // namespace transformer
 }  // namespace storm
-#endif  // STORM_TRANSFORMER_ENDCOMPONENTREMOVER_H

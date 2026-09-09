@@ -121,7 +121,7 @@ template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeNextProbabilities(
     Environment const& env, CheckTask<storm::logic::NextFormula, SolutionType> const& checkTask) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented next probabilities with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented next probabilities with intervals.");
     } else {
         storm::logic::NextFormula const& pathFormula = checkTask.getFormula();
         std::unique_ptr<CheckResult> subResultPointer = this->check(env, pathFormula.getSubformula());
@@ -163,7 +163,7 @@ template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeGloballyProbabilities(
     Environment const& env, CheckTask<storm::logic::GloballyFormula, SolutionType> const& checkTask) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented globally probabilities with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented globally probabilities with intervals.");
     } else {
         storm::logic::GloballyFormula const& pathFormula = checkTask.getFormula();
         std::unique_ptr<CheckResult> subResultPointer = this->check(env, pathFormula.getSubformula());
@@ -180,7 +180,7 @@ template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeHOAPathProbabilities(
     Environment const& env, CheckTask<storm::logic::HOAPathFormula, SolutionType> const& checkTask) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented automata-props with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented automata-props with intervals.");
     } else {
         storm::logic::HOAPathFormula const& pathFormula = checkTask.getFormula();
 
@@ -201,7 +201,7 @@ template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeLTLProbabilities(
     Environment const& env, CheckTask<storm::logic::PathFormula, SolutionType> const& checkTask) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented LTL with interval models");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented LTL with interval models.");
     } else {
         storm::logic::PathFormula const& pathFormula = checkTask.getFormula();
 
@@ -222,7 +222,7 @@ std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::c
     Environment const& env, CheckTask<storm::logic::CumulativeRewardFormula, SolutionType> const& checkTask) {
     storm::logic::CumulativeRewardFormula const& rewardPathFormula = checkTask.getFormula();
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented cumulative rewards with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented cumulative rewards with intervals.");
     } else {
         if (rewardPathFormula.isMultiDimensional() || rewardPathFormula.getTimeBoundReference().isRewardBound()) {
             STORM_LOG_THROW(checkTask.isOnlyInitialStatesRelevantSet(), storm::exceptions::InvalidOperationException,
@@ -259,7 +259,7 @@ template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeDiscountedCumulativeRewards(
     Environment const& env, CheckTask<storm::logic::DiscountedCumulativeRewardFormula, SolutionType> const& checkTask) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented discounted cumulative rewards with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented discounted cumulative rewards with intervals.");
     } else {
         storm::logic::DiscountedCumulativeRewardFormula const& rewardPathFormula = checkTask.getFormula();
         STORM_LOG_THROW(rewardPathFormula.hasIntegerBound(), storm::exceptions::InvalidPropertyException, "Formula needs to have a discrete time bound.");
@@ -276,7 +276,7 @@ template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeInstantaneousRewards(
     Environment const& env, CheckTask<storm::logic::InstantaneousRewardFormula, SolutionType> const& checkTask) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented instantaneous rewards with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented instantaneous rewards with intervals.");
     } else {
         storm::logic::InstantaneousRewardFormula const& rewardPathFormula = checkTask.getFormula();
         STORM_LOG_THROW(rewardPathFormula.hasIntegerBound(), storm::exceptions::InvalidPropertyException, "Formula needs to have a discrete time bound.");
@@ -306,7 +306,7 @@ std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::c
     std::unique_ptr<CheckResult> subResultPointer = this->check(env, eventuallyFormula.getSubformula());
     ExplicitQualitativeCheckResult<SolutionType> const& subResult = subResultPointer->template asExplicitQualitativeCheckResult<SolutionType>();
     auto rewardModel = storm::utility::createFilteredRewardModel(this->getModel(), checkTask);
-    std::vector<SolutionType> numericResult =
+    std::vector<ExtendedSolutionType> numericResult =
         storm::modelchecker::helper::SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabilityRewards(
             env, storm::solver::SolveGoal<ValueType, SolutionType>(this->getModel(), checkTask), this->getModel().getTransitionMatrix(),
             this->getModel().getBackwardTransitions(), rewardModel.get(), subResult.getTruthValuesVector(), checkTask.isQualitativeSet(), checkTask.getHint());
@@ -317,12 +317,12 @@ template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeReachabilityTimes(
     Environment const& env, CheckTask<storm::logic::EventuallyFormula, SolutionType> const& checkTask) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented reachability times with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented reachability times with intervals.");
     } else {
         storm::logic::EventuallyFormula const& eventuallyFormula = checkTask.getFormula();
         std::unique_ptr<CheckResult> subResultPointer = this->check(env, eventuallyFormula.getSubformula());
         ExplicitQualitativeCheckResult<SolutionType> const& subResult = subResultPointer->template asExplicitQualitativeCheckResult<SolutionType>();
-        std::vector<SolutionType> numericResult =
+        std::vector<ExtendedSolutionType> numericResult =
             storm::modelchecker::helper::SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabilityTimes(
                 env, storm::solver::SolveGoal<ValueType, SolutionType>(this->getModel(), checkTask), this->getModel().getTransitionMatrix(),
                 this->getModel().getBackwardTransitions(), subResult.getTruthValuesVector(), checkTask.isQualitativeSet(), checkTask.getHint());
@@ -334,10 +334,10 @@ template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeTotalRewards(
     Environment const& env, CheckTask<storm::logic::TotalRewardFormula, SolutionType> const& checkTask) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented total rewards with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented total rewards with intervals.");
     } else {
         auto rewardModel = storm::utility::createFilteredRewardModel(this->getModel(), checkTask);
-        std::vector<SolutionType> numericResult =
+        std::vector<ExtendedSolutionType> numericResult =
             storm::modelchecker::helper::SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeTotalRewards(
                 env, storm::solver::SolveGoal<ValueType, SolutionType>(this->getModel(), checkTask), this->getModel().getTransitionMatrix(),
                 this->getModel().getBackwardTransitions(), rewardModel.get(), checkTask.isQualitativeSet(), checkTask.getHint());
@@ -355,7 +355,7 @@ template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeDiscountedTotalRewards(
     Environment const& env, CheckTask<storm::logic::DiscountedTotalRewardFormula, SolutionType> const& checkTask) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented discounted total rewards with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented discounted total rewards with intervals.");
     } else {
         auto rewardModel = storm::utility::createFilteredRewardModel(this->getModel(), checkTask);
         storm::logic::DiscountedTotalRewardFormula const& rewardPathFormula = checkTask.getFormula();
@@ -372,7 +372,7 @@ template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeLongRunAverageProbabilities(
     Environment const& env, CheckTask<storm::logic::StateFormula, SolutionType> const& checkTask) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented LRA probabilities with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented LRA probabilities with intervals.");
     } else {
         storm::logic::StateFormula const& stateFormula = checkTask.getFormula();
         std::unique_ptr<CheckResult> subResultPointer = this->check(env, stateFormula);
@@ -390,7 +390,7 @@ template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeLongRunAverageRewards(
     Environment const& env, CheckTask<storm::logic::LongRunAverageRewardFormula, SolutionType> const& checkTask) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented lra with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented lra with intervals.");
     } else {
         auto rewardModel = storm::utility::createFilteredRewardModel(this->getModel(), checkTask);
         storm::modelchecker::helper::SparseDeterministicInfiniteHorizonHelper<ValueType> helper(this->getModel().getTransitionMatrix());
@@ -404,7 +404,7 @@ template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeConditionalProbabilities(
     Environment const& env, CheckTask<storm::logic::ConditionalFormula, SolutionType> const& checkTask) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented conditional probabilities with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented conditional probabilities with intervals.");
     } else {
         storm::logic::ConditionalFormula const& conditionalFormula = checkTask.getFormula();
         STORM_LOG_THROW(conditionalFormula.getSubformula().isEventuallyFormula(), storm::exceptions::InvalidPropertyException,
@@ -417,7 +417,7 @@ std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::c
         ExplicitQualitativeCheckResult<SolutionType> const& leftResult = leftResultPointer->template asExplicitQualitativeCheckResult<SolutionType>();
         ExplicitQualitativeCheckResult<SolutionType> const& rightResult = rightResultPointer->template asExplicitQualitativeCheckResult<SolutionType>();
 
-        std::vector<SolutionType> numericResult =
+        std::vector<ExtendedSolutionType> numericResult =
             storm::modelchecker::helper::SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeConditionalProbabilities(
                 env, storm::solver::SolveGoal<ValueType, SolutionType>(this->getModel(), checkTask), this->getModel().getTransitionMatrix(),
                 this->getModel().getBackwardTransitions(), leftResult.getTruthValuesVector(), rightResult.getTruthValuesVector(), checkTask.isQualitativeSet());
@@ -429,7 +429,7 @@ template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeConditionalRewards(
     Environment const& env, CheckTask<storm::logic::ConditionalFormula, SolutionType> const& checkTask) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented conditional rewards with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented conditional rewards with intervals.");
     } else {
         storm::logic::ConditionalFormula const& conditionalFormula = checkTask.getFormula();
         STORM_LOG_THROW(conditionalFormula.getSubformula().isReachabilityRewardFormula(), storm::exceptions::InvalidPropertyException,
@@ -442,7 +442,7 @@ std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::c
         ExplicitQualitativeCheckResult<SolutionType> const& leftResult = leftResultPointer->template asExplicitQualitativeCheckResult<SolutionType>();
         ExplicitQualitativeCheckResult<SolutionType> const& rightResult = rightResultPointer->template asExplicitQualitativeCheckResult<SolutionType>();
 
-        std::vector<SolutionType> numericResult =
+        std::vector<ExtendedSolutionType> numericResult =
             storm::modelchecker::helper::SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeConditionalRewards(
                 env, storm::solver::SolveGoal<ValueType, SolutionType>(this->getModel(), checkTask), this->getModel().getTransitionMatrix(),
                 this->getModel().getBackwardTransitions(),
@@ -462,7 +462,7 @@ template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::checkQuantileFormula(
     Environment const& env, CheckTask<storm::logic::QuantileFormula, SolutionType> const& checkTask) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented quantile formulas with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented quantile formulas with intervals.");
     } else {
         STORM_LOG_THROW(checkTask.isOnlyInitialStatesRelevantSet(), storm::exceptions::InvalidOperationException,
                         "Computing quantiles is only supported for the initial states of a model.");
@@ -484,7 +484,7 @@ std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::c
 template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeSteadyStateDistribution(Environment const& env) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented steady state distributions with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented steady state distributions with intervals.");
     } else {
         // Initialize helper
         storm::modelchecker::helper::SparseDeterministicInfiniteHorizonHelper<ValueType> helper(this->getModel().getTransitionMatrix());
@@ -511,13 +511,13 @@ std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::c
 template<typename SparseDtmcModelType>
 std::unique_ptr<CheckResult> SparseDtmcPrctlModelChecker<SparseDtmcModelType>::computeExpectedVisitingTimes(Environment const& env) {
     if constexpr (storm::IsIntervalType<ValueType>) {
-        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented expected visiting times with intervals");
+        STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We have not yet implemented expected visiting times with intervals.");
     } else {
         // Initialize helper
         storm::modelchecker::helper::SparseDeterministicVisitingTimesHelper<ValueType> helper(this->getModel().getTransitionMatrix());
 
         // Compute result
-        std::vector<SolutionType> result;
+        std::vector<ExtendedSolutionType> result;
         auto const& initialStates = this->getModel().getInitialStates();
         uint64_t numInitStates = initialStates.getNumberOfSetBits();
         STORM_LOG_THROW(numInitStates > 0, storm::exceptions::InvalidOperationException, "No initial states given. Cannot compute expected visiting times.");

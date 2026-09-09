@@ -1,14 +1,17 @@
-#include "storm-dft/api/storm-dft.h"
 #include "storm-cli-utilities/cli.h"
+#include "storm-dft/api/analysis.h"
+#include "storm-dft/api/gspn_transformation.h"
+#include "storm-dft/api/io.h"
+#include "storm-dft/api/transformation.h"
 #include "storm-dft/parser/BEOrderParser.h"
 #include "storm-dft/settings/DftSettings.h"
 #include "storm-dft/settings/modules/DftGspnSettings.h"
 #include "storm-dft/settings/modules/DftIOSettings.h"
 #include "storm-dft/settings/modules/FaultTreeSettings.h"
-#include "storm-parsers/api/storm-parsers.h"
-#include "storm/adapters/IntervalAdapter.h"
+#include "storm-gspn/api/storm-gspn.h"
+#include "storm-parsers/api/properties.h"
 #include "storm/adapters/RationalFunctionAdapter.h"
-#include "storm/adapters/RationalNumberAdapter.h"
+#include "storm/api/properties.h"
 #include "storm/exceptions/UnmetRequirementException.h"
 #include "storm/settings/modules/GeneralSettings.h"
 #include "storm/settings/modules/IOSettings.h"
@@ -51,7 +54,7 @@ void processOptions() {
 
     // Check well-formedness of DFT
     auto wellFormedResult = storm::dft::api::isWellFormed(*dft, false);
-    STORM_LOG_THROW(wellFormedResult.first, storm::exceptions::UnmetRequirementException, "DFT is not well-formed: " << wellFormedResult.second);
+    STORM_LOG_THROW(wellFormedResult.first, storm::exceptions::UnmetRequirementException, "DFT is not well-formed: " << wellFormedResult.second << ".");
     // Warn about potential modeling issues
     auto modelingIssues = storm::dft::api::hasPotentialModelingIssues(*dft);
     STORM_LOG_WARN_COND(!modelingIssues.first, modelingIssues.second);

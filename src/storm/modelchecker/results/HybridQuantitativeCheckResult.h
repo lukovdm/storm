@@ -1,5 +1,4 @@
-#ifndef STORM_MODELCHECKER_HYBRIDQUANTITATIVECHECKRESULT_H_
-#define STORM_MODELCHECKER_HYBRIDQUANTITATIVECHECKRESULT_H_
+#pragma once
 
 #include "storm/modelchecker/results/QuantitativeCheckResult.h"
 #include "storm/storage/dd/Add.h"
@@ -12,6 +11,8 @@ namespace modelchecker {
 template<storm::dd::DdType Type, typename ValueType = double>
 class HybridQuantitativeCheckResult : public QuantitativeCheckResult<ValueType> {
    public:
+    using ExtendedValueType = typename QuantitativeCheckResult<ValueType>::ExtendedValueType;
+
     HybridQuantitativeCheckResult() = default;
     HybridQuantitativeCheckResult(storm::dd::Bdd<Type> const& reachableStates, storm::dd::Bdd<Type> const& symbolicStates,
                                   storm::dd::Add<Type, ValueType> const& symbolicValues, storm::dd::Bdd<Type> const& explicitStates, storm::dd::Odd const& odd,
@@ -47,13 +48,13 @@ class HybridQuantitativeCheckResult : public QuantitativeCheckResult<ValueType> 
 
     virtual void filter(QualitativeCheckResult const& filter) override;
 
-    virtual ValueType getMin() const override;
+    virtual ExtendedValueType getMin() const override;
 
-    virtual ValueType getMax() const override;
+    virtual ExtendedValueType getMax() const override;
 
-    virtual ValueType sum() const override;
+    virtual ExtendedValueType sum() const override;
 
-    virtual ValueType average() const override;
+    virtual ExtendedValueType average() const override;
 
     virtual void oneMinus() override;
 
@@ -82,5 +83,3 @@ class HybridQuantitativeCheckResult : public QuantitativeCheckResult<ValueType> 
 };
 }  // namespace modelchecker
 }  // namespace storm
-
-#endif /* STORM_MODELCHECKER_HYBRIDQUANTITATIVECHECKRESULT_H_ */

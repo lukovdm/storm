@@ -1,5 +1,4 @@
-#ifndef SOLVERSELECTIONOPTIONS_H
-#define SOLVERSELECTIONOPTIONS_H
+#pragma once
 
 #include "storm/utility/ExtendSettingEnumWithSelectionField.h"
 
@@ -11,7 +10,7 @@ ExtendEnumsWithSelectionField(MinMaxMethod, ValueIteration, PolicyIteration, Lin
         ExtendEnumsWithSelectionField(LraMethod, LinearProgramming, ValueIteration, GainBiasEquations, LraDistributionEquations)
             ExtendEnumsWithSelectionField(MaBoundedReachabilityMethod, Imca, UnifPlus)
 
-                ExtendEnumsWithSelectionField(LpSolverType, Gurobi, Glpk, Z3, Soplex)
+                ExtendEnumsWithSelectionField(LpSolverType, Glpk, Gurobi, Highs, Soplex, Z3)
                     ExtendEnumsWithSelectionField(EquationSolverType, Native, Gmmxx, Eigen, Elimination, Topological, Acyclic)
                         ExtendEnumsWithSelectionField(SmtSolverType, Z3, Mathsat)
 
@@ -23,5 +22,3 @@ ExtendEnumsWithSelectionField(MinMaxMethod, ValueIteration, PolicyIteration, Lin
                                             ExtendEnumsWithSelectionField(EigenLinearEquationSolverPreconditioner, Ilu, Diagonal, None)
 }
 }  // namespace storm
-
-#endif

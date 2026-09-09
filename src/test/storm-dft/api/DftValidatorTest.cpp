@@ -1,8 +1,9 @@
-#include "gmock/gmock.h"
+#include <gmock/gmock.h>
 #include "storm-config.h"
 #include "test/storm_gtest.h"
 
-#include "storm-dft/api/storm-dft.h"
+#include "storm-dft/api/io.h"
+#include "storm-dft/api/transformation.h"
 #include "storm/exceptions/WrongFormatException.h"
 
 namespace {

@@ -27,10 +27,8 @@
 #include "storm/models/sparse/Smg.h"
 
 #include "storm/settings/SettingsManager.h"
-#include "storm/settings/modules/AbstractionSettings.h"
 #include "storm/settings/modules/CoreSettings.h"
 #include "storm/settings/modules/EliminationSettings.h"
-#include "storm/settings/modules/IOSettings.h"
 
 #include "storm/storage/SymbolicModelDescription.h"
 
@@ -73,12 +71,12 @@ std::unique_ptr<storm::modelchecker::CheckResult> verifyWithExplorationEngine(st
 
         std::unique_ptr<storm::modelchecker::CheckResult> result;
         if (program.getModelType() == storm::prism::Program::ModelType::DTMC) {
-            storm::modelchecker::SparseExplorationModelChecker<storm::models::sparse::Dtmc<ValueType>> checker(program);
+            storm::modelchecker::SparseExplorationModelChecker<storm::models::sparse::Dtmc<ValueType>> checker(env, program);
             if (checker.canHandle(task)) {
                 result = checker.check(env, task);
             }
         } else if (program.getModelType() == storm::prism::Program::ModelType::MDP) {
-            storm::modelchecker::SparseExplorationModelChecker<storm::models::sparse::Mdp<ValueType>> checker(program);
+            storm::modelchecker::SparseExplorationModelChecker<storm::models::sparse::Mdp<ValueType>> checker(env, program);
             if (checker.canHandle(task)) {
                 result = checker.check(env, task);
             }

@@ -1,8 +1,11 @@
 #include "storm/automata/DeterministicAutomaton.h"
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-exception-parameter"  // emitted from the flex-generated hoa_lexer.hh
 #include "cpphoafparser/consumer/hoa_intermediate_check_validity.hh"
 #include "cpphoafparser/parser/hoa_parser.hh"
 #include "cpphoafparser/parser/hoa_parser_helper.hh"
+#pragma clang diagnostic pop
 
 #include "storm/automata/AcceptanceCondition.h"
 #include "storm/automata/HOAConsumerDA.h"
@@ -73,8 +76,9 @@ void DeterministicAutomaton::printHOA(std::ostream& out) const {
         bool first = true;
         for (unsigned int i = 0; i < acceptance->getNumberOfAcceptanceSets(); i++) {
             if (acceptance->getAcceptanceSet(i).get(s)) {
-                if (!first)
+                if (!first) {
                     out << " ";
+                }
                 first = false;
                 out << i;
             }

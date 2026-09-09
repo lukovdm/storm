@@ -15,6 +15,9 @@
 #include "storm/storage/BitVector.h"
 #include "storm/storage/SparseMatrix.h"
 #include "storm/storage/expressions/ExpressionManager.h"
+#include "storm/storage/valuations/ValuationDescriptionBuilder.h"
+#include "storm/storage/valuations/Valuations.h"
+#include "storm/storage/valuations/ValuationsStorage.h"
 #include "storm/utility/constants.h"
 #include "storm/utility/macros.h"
 
@@ -55,7 +58,7 @@ std::shared_ptr<MonitorVerifier<ValueType>> GenerateMonitorVerifier<ValueType>::
     typedef storm::storage::sparse::state_type state_type;
     typedef std::pair<state_type, state_type> product_state_type;
 
-    STORM_LOG_THROW(monitor.hasChoiceLabeling(), storm::exceptions::InvalidArgumentException, "The monitor should contain choice labeling");
+    STORM_LOG_THROW(monitor.hasChoiceLabeling(), storm::exceptions::InvalidArgumentException, "The monitor should contain choice labeling.");
 
     const std::set<std::string>& actions = monitor.getChoiceLabeling().getLabels();
 
@@ -63,7 +66,7 @@ std::shared_ptr<MonitorVerifier<ValueType>> GenerateMonitorVerifier<ValueType>::
     std::vector<std::string> monitorChoiceLabels;
     for (typename storm::storage::SparseMatrix<ValueType>::index_type i = 0; i < monitor.getTransitionMatrix().getRowCount(); i++) {
         auto const& monitorLabels = monitor.getChoiceLabeling().getLabelsOfChoice(i);
-        STORM_LOG_THROW(monitorLabels.size() == 1, storm::exceptions::InvalidArgumentException, "Monitor choice has not exactly one choice label");
+        STORM_LOG_THROW(monitorLabels.size() == 1, storm::exceptions::InvalidArgumentException, "Monitor choice has not exactly one choice label.");
         monitorChoiceLabels.push_back(*monitorLabels.begin());
     }
 
@@ -119,8 +122,9 @@ std::shared_ptr<MonitorVerifier<ValueType>> GenerateMonitorVerifier<ValueType>::
             state_type index = nextStateId++;
             prodToIndexMap[prod_s] = index;
             initialStates.push_back(index);
-            if (options.useRestartSemantics)
+            if (options.useRestartSemantics) {
                 rejectToStates.push_back(index);
+            }
             todo.push_back(prod_s);
         }
     }
@@ -167,7 +171,7 @@ std::shared_ptr<MonitorVerifier<ValueType>> GenerateMonitorVerifier<ValueType>::
                 actionsNotTaken.erase(action);
 
                 const auto& monitorRow = monitor.getTransitionMatrix().getRow(mon_from, i);
-                STORM_LOG_ASSERT(monitorRow.getNumberOfEntries() == 1, "Monitor is not fully deterministic");
+                STORM_LOG_ASSERT(monitorRow.getNumberOfEntries() == 1, "Monitor is not fully deterministic.");
                 const auto& monitorEntry = monitorRow.begin();
 
                 const auto& mcRow = mc.getTransitionMatrix().getRow(mc_from);
@@ -186,10 +190,11 @@ std::shared_ptr<MonitorVerifier<ValueType>> GenerateMonitorVerifier<ValueType>::
                 // Direct probability not used towards the initial states
                 if (totalProbability < storm::utility::one<ValueType>()) {
                     for (state_type initState : rejectToStates) {
-                        if (newRow.contains(initState))
+                        if (newRow.contains(initState)) {
                             newRow[initState] = newRow[initState] + (1 - totalProbability) / rejectToStates.size();
-                        else
+                        } else {
                             newRow[initState] = (1 - totalProbability) / rejectToStates.size();
+                        }
                     }
                 }
 
@@ -206,10 +211,11 @@ std::shared_ptr<MonitorVerifier<ValueType>> GenerateMonitorVerifier<ValueType>::
                                 todo.push_back(to_pair);
                                 prodToIndexMap[to_pair] = indexTo;
                             }
-                            if (newRow.contains(indexTo))
+                            if (newRow.contains(indexTo)) {
                                 newRow[indexTo] = newRow[indexTo] + mcEntry.getValue();
-                            else
+                            } else {
                                 newRow[indexTo] = mcEntry.getValue();
+                            }
                         }
                     }
 
@@ -240,7 +246,7 @@ std::shared_ptr<MonitorVerifier<ValueType>> GenerateMonitorVerifier<ValueType>::
 
         if (monitor.getStateLabeling().getStateHasLabel(options.acceptingLabel, mon_from)) {
             STORM_LOG_THROW(risk[mc_from] >= -utility::convertNumber<ValueType>(1e-12) && risk[mc_from] <= utility::convertNumber<ValueType>(1.0 + 1e-12),
-                            exceptions::IllegalArgumentException, "Risk for state " + std::to_string(mc_from) + " is not in [0, 1]");
+                            exceptions::IllegalArgumentException, "Risk for state " + std::to_string(mc_from) + " is not in [0, 1].");
             if (utility::isAlmostZero(risk[mc_from])) {
                 builder.addNextValue(currentRow, stopIndex, utility::one<ValueType>());
             } else if (utility::isAlmostOne(risk[mc_from])) {
@@ -275,12 +281,10 @@ std::shared_ptr<MonitorVerifier<ValueType>> GenerateMonitorVerifier<ValueType>::
         }
 
         for (auto const& action : actionsInObs) {
-            // std::cout << "Keeping action obs (" << action << ", " << currentObservation << ")" << std::endl;
             rowsToKeep |= rowActionObservationMap[std::make_pair(action, currentObservation)];
         }
         currentObservation++;
     }
-    // std::cout << "Kept " << rowsToKeep.getNumberOfSetBits() << " out of " << numberOfRows << " rows." << std::endl;
     // rowsToKeep.setMultiple(0, numberOfRows);
     numberOfRows = rowsToKeep.getNumberOfSetBits();
     storm::storage::SparseMatrix<ValueType> reducedTransitionMatrix = transMatrix.restrictRows(rowsToKeep);
@@ -314,9 +318,10 @@ std::shared_ptr<MonitorVerifier<ValueType>> GenerateMonitorVerifier<ValueType>::
     for (const auto& [labelObsPair, bitvec] : rowActionObservationMap) {
         // Rebuild bitvec with restricted rows
         storm::storage::BitVector newBitVec(numberOfRows);
-        for (const auto& setbit : bitvec) {
-            if (rowsToKeep[setbit])
+        for (uint64_t setbit : bitvec) {
+            if (rowsToKeep[setbit]) {
                 newBitVec.set(rowMapping[setbit]);
+            }
         }
         // auto newBitVec = bitvec;
 
@@ -331,82 +336,47 @@ std::shared_ptr<MonitorVerifier<ValueType>> GenerateMonitorVerifier<ValueType>::
 
     if (mc.hasStateValuations()) {
         // Add state valuations
-        storm::storage::sparse::StateValuationsBuilder svBuilder;
-        svBuilder.addVariable(monvar);
-        svBuilder.addVariable(mcvar);
-        std::set<expressions::Variable> variables;
-        for (uint64_t i = 0; i < mc.getNumberOfStates(); i++) {
-            const auto& valAssignment = mc.getStateValuations().at(i);
-            for (auto val = valAssignment.begin(); val != valAssignment.end(); ++val) {
-                if (val.isVariableAssignment() && !variables.contains(val.getVariable())) {
-                    variables.emplace(val.getVariable());
-                    svBuilder.addVariable(val.getVariable());
-                }
-            }
-        }
+        auto const& oldValuations = mc.getStateValuations().getStorage();
+        storm::storage::sparse::ValuationsStorage stateValuations = [this, &oldValuations]() {
+            storm::storage::sparse::ValuationDescriptionBuilder svBuilder(exprManager);
+            svBuilder.addIntegerVariable(monvar, -1, monitor.getNumberOfStates() - 1);
+            svBuilder.addIntegerVariable(mcvar, -1, mc.getNumberOfStates() - 1);
+            STORM_LOG_ASSERT(oldValuations.numClasses() == 1, "Only one class of valuations supported.");
+            svBuilder.addVariables(oldValuations.getClassDescription());
+            return storm::storage::sparse::ValuationsStorage(svBuilder.buildClassDescription(), exprManager);
+        }();
+        stateValuations.resize(numberOfStates);
 
         for (uint64_t i = 0; i < mc.getNumberOfStates(); i++) {
             for (uint64_t j = 0; j < monitor.getNumberOfStates(); j++) {
-                product_state_type s(i, j);
-                if (!prodToIndexMap.contains(s))
+                product_state_type const s(i, j);
+                if (!prodToIndexMap.contains(s)) {
                     continue;
-
-                std::vector<bool> booleanValues;
-                std::vector<int64_t> integerValues;
-                std::vector<storm::RationalNumber> rationalValues;
-
-                integerValues.push_back(j);  // Set monvar
-                integerValues.push_back(i);  // Set mcvar
-
-                const auto& valAssignment = mc.getStateValuations().at(i);
-
-                for (auto& var : variables) {
-                    for (auto val = valAssignment.begin(); val != valAssignment.end(); ++val) {
-                        if (var == val.getVariable()) {
-                            if (val.isBoolean()) {
-                                booleanValues.push_back(val.getBooleanValue());
-                            } else if (val.isInteger()) {
-                                integerValues.push_back(val.getIntegerValue());
-                            } else if (val.isRational()) {
-                                rationalValues.push_back(val.getRationalValue());
-                            }
-                            break;
-                        }
-                    }
                 }
-                svBuilder.addState(prodToIndexMap[std::make_pair(i, j)], std::move(booleanValues), std::move(integerValues), std::move(rationalValues));
+                auto const productStateIndex = prodToIndexMap[s];
+                // Set the variable values for the product state.
+                // We copy the valuations from the original model and set the monvar and mcvar to the corresponding state indices.
+                stateValuations.writeCallback(productStateIndex, [this, &oldValuations, i, j](auto, auto const& var, auto& value) {
+                    using VT = std::remove_cvref_t<decltype(value)>;
+                    if (var == monvar || var == mcvar) {
+                        if constexpr (std::is_same_v<VT, int64_t>) {
+                            value = var == monvar ? j : i;
+                        } else {
+                            STORM_LOG_ASSERT(false, "Unexpected type.");
+                        }
+                    } else {
+                        // This is a variable of the original model. Copy old valuation value.
+                        value = oldValuations.template readValue<VT>(i, var);
+                    }
+                });
             }
         }
 
-        std::vector<bool> goalBooleanValues;
-        std::vector<int64_t> goalIntegerValues(2, -1);
-        std::vector<storm::RationalNumber> goalRationalValues;
-        for (auto& var : variables) {
-            if (var.hasBooleanType()) {
-                goalBooleanValues.push_back(false);
-            } else if (var.hasIntegerType()) {
-                goalIntegerValues.push_back(-1);
-            } else if (var.hasRationalType()) {
-                goalRationalValues.emplace_back(-1);
-            }
-        }
-        svBuilder.addState(goalIndex, std::move(goalBooleanValues), std::move(goalIntegerValues), std::move(goalRationalValues));
-
-        std::vector<bool> stopBooleanValues;
-        std::vector<int64_t> stopIntegerValues(2, -1);
-        std::vector<storm::RationalNumber> stopRationalValues;
-        for (auto& var : variables) {
-            if (var.hasBooleanType()) {
-                stopBooleanValues.push_back(false);
-            } else if (var.hasIntegerType()) {
-                stopIntegerValues.push_back(-1);
-            } else if (var.hasRationalType()) {
-                stopRationalValues.emplace_back(-1);
-            }
-        }
-        svBuilder.addState(stopIndex, std::move(stopBooleanValues), std::move(stopIntegerValues), std::move(stopRationalValues));
-
-        components.stateValuations = svBuilder.build();
+        stateValuations.writeValue<int64_t>(goalIndex, monvar, -1);
+        stateValuations.writeValue<int64_t>(goalIndex, mcvar, -1);
+        stateValuations.writeValue<int64_t>(stopIndex, monvar, -1);
+        stateValuations.writeValue<int64_t>(stopIndex, mcvar, -1);
+        components.stateValuations.emplace(std::move(stateValuations));
     }
 
     // Store model

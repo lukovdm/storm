@@ -5,6 +5,7 @@
 #endif
 
 #include "storm/adapters/RationalNumberAdapter.h"
+#include "storm/environment/Environment.h"
 #include "storm/exceptions/GurobiLicenseException.h"
 #include "storm/settings/SettingsManager.h"
 #include "storm/settings/modules/GurobiSettings.h"
@@ -17,8 +18,9 @@ namespace internal {
 GTEST_API_ AssertionResult DoubleNearPredFormat(const char* expr1, const char* expr2, const char* abs_error_expr, storm::RationalNumber val1,
                                                 storm::RationalNumber val2, storm::RationalNumber abs_error) {
     const storm::RationalNumber diff = storm::utility::abs<storm::RationalNumber>(val1 - val2);
-    if (diff <= abs_error)
+    if (diff <= abs_error) {
         return AssertionSuccess();
+    }
     return AssertionFailure() << "The difference between " << expr1 << " and " << expr2 << " is " << diff << " (approx. "
                               << storm::utility::convertNumber<double>(diff) << "), which exceeds " << abs_error_expr << ", where\n"
                               << expr1 << " evaluates to " << val1 << " (approx. " << storm::utility::convertNumber<double>(val1) << "),\n"
@@ -52,7 +54,8 @@ bool testGurobiLicense() {
         return true;  // Gurobi not relevant for this test suite
     }
     try {
-        auto lpSolver = storm::utility::solver::getLpSolver<double>("test", storm::solver::LpSolverTypeSelection::Gurobi);
+        storm::Environment env;
+        auto lpSolver = storm::utility::solver::getLpSolver<double>(env, "test", storm::solver::LpSolverTypeSelection::Gurobi);
     } catch (storm::exceptions::GurobiLicenseException const&) {
         return false;
     }

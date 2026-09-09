@@ -4,8 +4,6 @@
 #include "storm/adapters/sylvan.h"
 #include "storm/exceptions/InvalidSettingsException.h"
 #include "storm/exceptions/NotSupportedException.h"
-#include "storm/settings/SettingsManager.h"
-#include "storm/settings/modules/SylvanSettings.h"
 #include "storm/utility/constants.h"
 #include "storm/utility/macros.h"
 
@@ -13,11 +11,13 @@ namespace storm {
 namespace dd {
 
 #ifdef STORM_HAVE_SYLVAN
-#if defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wzero-length-array"
 #pragma clang diagnostic ignored "-Wc99-extensions"
-#endif
+#pragma clang diagnostic ignored "-Wused-but-marked-unused"
+#pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+#pragma clang diagnostic ignored "-Wzero-length-array"
 
 #ifndef NDEBUG
 VOID_TASK_0(gc_start) {
@@ -37,9 +37,8 @@ VOID_TASK_2(execute_sylvan, std::function<void()> const*, f, std::exception_ptr*
     }
 }
 
-#if defined(__clang__)
 #pragma clang diagnostic pop
-#endif
+#pragma GCC diagnostic pop
 
 uint_fast64_t InternalDdManager<DdType::Sylvan>::numberOfInstances = 0;
 bool InternalDdManager<DdType::Sylvan>::suspended = false;
@@ -57,16 +56,15 @@ uint_fast64_t findLargestPowerOfTwoFitting(uint_fast64_t number) {
     return 0;
 }
 
-InternalDdManager<DdType::Sylvan>::InternalDdManager() {
+InternalDdManager<DdType::Sylvan>::InternalDdManager(storm::SylvanDdManagerEnvironment const& environment) {
     if (numberOfInstances == 0) {
-        storm::settings::modules::SylvanSettings const& settings = storm::settings::getModule<storm::settings::modules::SylvanSettings>();
-        size_t const task_deque_size = 1024 * 1024;
+        size_t const task_deque_size = size_t{1024} * 1024;
 
-        lace_set_stacksize(1024 * 1024 * 16);  // 16 MiB
+        lace_set_stacksize(size_t{1024} * 1024 * 16);  // 16 MiB
 
-        lace_start(settings.getNumberOfThreads(), task_deque_size);
+        lace_start(environment.getNumberOfThreads(), task_deque_size);
 
-        sylvan_set_limits(storm::settings::getModule<storm::settings::modules::SylvanSettings>().getMaximalMemory() * 1024 * 1024, 0, 0);
+        sylvan_set_limits(environment.getMaximalMemory() * 1024 * 1024, 0, 0);
         sylvan_init_package();
 
         sylvan::Sylvan::initBdd();
@@ -239,12 +237,18 @@ void InternalDdManager<DdType::Sylvan>::execute(std::function<void()> const& f) 
     if (suspended) {
         lace_resume();
         suspended = false;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wused-but-marked-unused"
         RUN(execute_sylvan, &f, &e);
+#pragma clang diagnostic pop
         lace_suspend();
         suspended = true;
     } else {
         // The sylvan threads are already running, don't suspend afterwards.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wused-but-marked-unused"
         RUN(execute_sylvan, &f, &e);
+#pragma clang diagnostic pop
     }
     if (e) {
         std::rethrow_exception(e);
@@ -255,7 +259,7 @@ uint_fast64_t InternalDdManager<DdType::Sylvan>::getNumberOfDdVariables() const 
     return nextFreeVariableIndex;
 }
 #else
-InternalDdManager<DdType::Sylvan>::InternalDdManager() {
+InternalDdManager<DdType::Sylvan>::InternalDdManager(storm::SylvanDdManagerEnvironment const&) {
     STORM_LOG_THROW(false, storm::exceptions::MissingLibraryException,
                     "This version of Storm was compiled without support for Sylvan. Yet, a method was called that requires this support. Please choose a "
                     "version of Storm with Sylvan support.");

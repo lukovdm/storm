@@ -294,7 +294,7 @@ class LraCtmcCslModelCheckerTest : public ::testing::Test {
     buildModelFormulas(std::string const& pathToPrismFile, std::string const& formulasAsString, std::string const& constantDefinitionString = "") const {
         std::pair<std::shared_ptr<MT>, std::vector<std::shared_ptr<storm::logic::Formula const>>> result;
         storm::prism::Program program = storm::api::parseProgram(pathToPrismFile, true);
-        program = storm::utility::prism::preprocess(program, constantDefinitionString);
+        program = program.preprocess(constantDefinitionString);
         if (TestType::engine == CtmcEngine::PrismSparse) {
             result.second = storm::api::extractFormulasFromProperties(storm::api::parsePropertiesForPrismProgram(formulasAsString, program));
             result.first = storm::api::buildSparseModel<ValueType>(program, result.second)->template as<MT>();
@@ -313,12 +313,12 @@ class LraCtmcCslModelCheckerTest : public ::testing::Test {
     buildModelFormulas(std::string const& pathToPrismFile, std::string const& formulasAsString, std::string const& constantDefinitionString = "") const {
         std::pair<std::shared_ptr<MT>, std::vector<std::shared_ptr<storm::logic::Formula const>>> result;
         storm::prism::Program program = storm::api::parseProgram(pathToPrismFile, true);
-        program = storm::utility::prism::preprocess(program, constantDefinitionString);
+        program = program.preprocess(constantDefinitionString);
         if (TestType::engine == CtmcEngine::JaniHybrid) {
             auto janiData = storm::api::convertPrismToJani(program, storm::api::parsePropertiesForPrismProgram(formulasAsString, program));
             janiData.first.substituteFunctions();
             result.second = storm::api::extractFormulasFromProperties(janiData.second);
-            result.first = storm::api::buildSymbolicModel<TestType::ddType, ValueType>(janiData.first, result.second)->template as<MT>();
+            result.first = storm::api::buildSymbolicModel<TestType::ddType, ValueType>(this->env(), janiData.first, result.second)->template as<MT>();
         }
         return result;
     }
@@ -369,8 +369,8 @@ class LraCtmcCslModelCheckerTest : public ::testing::Test {
         return result->asQualitativeCheckResult().forallTrue();
     }
 
-    ValueType getQuantitativeResultAtInitialState(std::shared_ptr<storm::models::Model<ValueType>> const& model,
-                                                  std::unique_ptr<storm::modelchecker::CheckResult>& result) {
+    storm::utility::ExtendedValueType<ValueType> getQuantitativeResultAtInitialState(std::shared_ptr<storm::models::Model<ValueType>> const& model,
+                                                                                     std::unique_ptr<storm::modelchecker::CheckResult>& result) {
         auto filter = getInitialStateFilter(model);
         result->filter(*filter);
         return result->asQuantitativeCheckResult<ValueType>().getMin();

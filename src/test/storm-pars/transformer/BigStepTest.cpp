@@ -5,6 +5,7 @@
 #include <string>
 
 #include "storm-pars/api/region.h"
+#include "storm-pars/modelchecker/instantiation/SparseDtmcInstantiationModelChecker.h"
 #include "storm-pars/modelchecker/instantiation/SparseInstantiationModelChecker.h"
 #include "storm-pars/transformer/BigStep.h"
 #include "storm-parsers/api/model_descriptions.h"
@@ -12,6 +13,7 @@
 #include "storm/adapters/RationalFunctionAdapter.h"
 #include "storm/api/bisimulation.h"
 #include "storm/api/builder.h"
+#include "storm/api/properties.h"
 #include "storm/environment/Environment.h"
 #include "storm/environment/solver/MinMaxSolverEnvironment.h"
 #include "storm/modelchecker/CheckTask.h"
@@ -22,11 +24,10 @@
 #include "storm/storage/bisimulation/BisimulationType.h"
 #include "storm/storage/prism/Program.h"
 #include "storm/utility/constants.h"
-#include "storm/utility/prism.h"
 
 void testModel(std::string programFile, std::string formulaAsString, std::string constantsAsString) {
     storm::prism::Program program = storm::api::parseProgram(programFile);
-    program = storm::utility::prism::preprocess(program, constantsAsString);
+    program = program.preprocess(constantsAsString);
     std::vector<std::shared_ptr<const storm::logic::Formula>> formulas =
         storm::api::extractFormulasFromProperties(storm::api::parsePropertiesForPrismProgram(formulaAsString, program));
     std::shared_ptr<storm::models::sparse::Dtmc<storm::RationalFunction>> model =
@@ -40,10 +41,11 @@ void testModel(std::string programFile, std::string formulaAsString, std::string
     storm::transformer::BigStep BigStep;
     auto timeTravelledDtmc = BigStep.bigStep(*dtmc, checkTask).first;
 
-    storm::modelchecker::SparseDtmcInstantiationModelChecker<storm::models::sparse::Dtmc<storm::RationalFunction>, storm::RationalNumber> modelChecker(*dtmc);
+    storm::modelchecker::SparseDtmcInstantiationModelChecker<storm::models::sparse::Dtmc<storm::RationalFunction>, storm::RationalNumber> modelChecker(
+        storm::Environment(), *dtmc);
     modelChecker.specifyFormula(checkTask);
     storm::modelchecker::SparseDtmcInstantiationModelChecker<storm::models::sparse::Dtmc<storm::RationalFunction>, storm::RationalNumber> modelCheckerTT(
-        timeTravelledDtmc);
+        storm::Environment(), timeTravelledDtmc);
     modelCheckerTT.specifyFormula(checkTask);
 
     auto parameters = storm::models::sparse::getAllParameters(*dtmc);
@@ -73,8 +75,8 @@ void testModel(std::string programFile, std::string formulaAsString, std::string
         auto result = modelChecker.check(env, instantiation)->asExplicitQuantitativeCheckResult<storm::RationalNumber>();
         auto resultTT = modelCheckerTT.check(env, instantiation)->asExplicitQuantitativeCheckResult<storm::RationalNumber>();
 
-        storm::RationalNumber resA = result[*modelChecker.getOriginalModel().getInitialStates().begin()];
-        storm::RationalNumber resB = resultTT[*modelCheckerTT.getOriginalModel().getInitialStates().begin()];
+        auto const resA = result[*modelChecker.getOriginalModel().getInitialStates().begin()];
+        auto const resB = resultTT[*modelCheckerTT.getOriginalModel().getInitialStates().begin()];
         ASSERT_NEAR(resA, resB, storm::utility::convertNumber<storm::RationalNumber>(1e-6));
     }
 

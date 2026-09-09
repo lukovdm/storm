@@ -95,9 +95,7 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
     if (allowModelSimplifications && graphPreserving) {
         auto simplifier = storm::transformer::SparseParametricDtmcSimplifier<SparseModelType>(*dtmc);
         simplifier.setPreserveParametricTransitions(true);
-        if (!simplifier.simplify(checkTask.getFormula())) {
-            STORM_LOG_THROW(false, storm::exceptions::UnexpectedException, "Simplifying the model was not successfull.");
-        }
+        STORM_LOG_THROW(simplifier.simplify(checkTask.getFormula()), storm::exceptions::UnexpectedException, "Simplifying the model was not successfull.");
         this->parametricModel = simplifier.getSimplifiedModel();
         this->specifyFormula(env, checkTask.substituteFormula(*simplifier.getSimplifiedFormula()));
     } else {
@@ -109,7 +107,8 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
             getOrderBasedMonotonicityBackend().registerParameterLifterReference(*parameterLifter);
             getOrderBasedMonotonicityBackend().registerPLABoundFunction(
                 [this](storm::Environment const& environment, AnnotatedRegion<ParametricType>& region, storm::OptimizationDirection dir) {
-                    return this->computeQuantitativeValues(environment, region, dir);  // sets known value bounds within the region
+                    // sets known value bounds within the region
+                    return storm::utility::narrowFinite<ConstantType>(this->computeQuantitativeValues(environment, region, dir));
                 });
         }
     }
@@ -147,7 +146,7 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
     storm::modelchecker::SparsePropositionalModelChecker<SparseModelType> propositionalChecker(*this->parametricModel);
     STORM_LOG_THROW(propositionalChecker.canHandle(checkTask.getFormula().getLeftSubformula()) &&
                         propositionalChecker.canHandle(checkTask.getFormula().getRightSubformula()),
-                    storm::exceptions::NotSupportedException, "Parameter lifting with non-propositional subformulas is not supported");
+                    storm::exceptions::NotSupportedException, "Parameter lifting with non-propositional subformulas is not supported.");
     storm::storage::BitVector phiStates = std::move(propositionalChecker.check(checkTask.getFormula().getLeftSubformula())
                                                         ->template asExplicitQualitativeCheckResult<typename SparseModelType::ValueType>()
                                                         .getTruthValuesVector());
@@ -160,7 +159,7 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
     maybeStates &= ~psiStates;
 
     // set the result for all non-maybe states
-    resultsForNonMaybeStates = std::vector<ConstantType>(this->parametricModel->getNumberOfStates(), storm::utility::zero<ConstantType>());
+    resultsForNonMaybeStates = std::vector<ExtendedConstantType>(this->parametricModel->getNumberOfStates(), storm::utility::zero<ConstantType>());
     storm::utility::vector::setVectorValues(resultsForNonMaybeStates, psiStates, storm::utility::one<ConstantType>());
 
     // if there are maybestates, create the parameterLifter
@@ -191,7 +190,7 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
     storm::modelchecker::SparsePropositionalModelChecker<SparseModelType> propositionalChecker(*this->parametricModel);
     STORM_LOG_THROW(propositionalChecker.canHandle(checkTask.getFormula().getLeftSubformula()) &&
                         propositionalChecker.canHandle(checkTask.getFormula().getRightSubformula()),
-                    storm::exceptions::NotSupportedException, "Parameter lifting with non-propositional subformulas is not supported");
+                    storm::exceptions::NotSupportedException, "Parameter lifting with non-propositional subformulas is not supported.");
     storm::storage::BitVector phiStates = std::move(propositionalChecker.check(checkTask.getFormula().getLeftSubformula())
                                                         ->template asExplicitQualitativeCheckResult<typename SparseModelType::ValueType>()
                                                         .getTruthValuesVector());
@@ -205,7 +204,7 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
     maybeStates = ~(statesWithProbability01.first | statesWithProbability01.second);
 
     // set the result for all non-maybe states
-    resultsForNonMaybeStates = std::vector<ConstantType>(this->parametricModel->getNumberOfStates(), storm::utility::zero<ConstantType>());
+    resultsForNonMaybeStates = std::vector<ExtendedConstantType>(this->parametricModel->getNumberOfStates(), storm::utility::zero<ConstantType>());
     storm::utility::vector::setVectorValues(resultsForNonMaybeStates, statesWithProbability01.second, storm::utility::one<ConstantType>());
 
     // if there are maybestates, create the parameterLifter
@@ -265,7 +264,7 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
     // get the results for the subformula
     storm::modelchecker::SparsePropositionalModelChecker<SparseModelType> propositionalChecker(*this->parametricModel);
     STORM_LOG_THROW(propositionalChecker.canHandle(checkTask.getFormula().getSubformula()), storm::exceptions::NotSupportedException,
-                    "Parameter lifting with non-propositional subformulas is not supported");
+                    "Parameter lifting with non-propositional subformulas is not supported.");
     storm::storage::BitVector targetStates = std::move(propositionalChecker.check(checkTask.getFormula().getSubformula())
                                                            ->template asExplicitQualitativeCheckResult<typename SparseModelType::ValueType>()
                                                            .getTruthValuesVector());
@@ -276,8 +275,8 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
     maybeStates = ~(targetStates | infinityStates);
 
     // set the result for all the non-maybe states
-    resultsForNonMaybeStates = std::vector<ConstantType>(this->parametricModel->getNumberOfStates(), storm::utility::zero<ConstantType>());
-    storm::utility::vector::setVectorValues(resultsForNonMaybeStates, infinityStates, storm::utility::infinity<ConstantType>());
+    resultsForNonMaybeStates = std::vector<ExtendedConstantType>(this->parametricModel->getNumberOfStates(), storm::utility::zero<ConstantType>());
+    storm::utility::vector::setVectorValues(resultsForNonMaybeStates, infinityStates, storm::utility::positiveInfinity<ConstantType>());
 
     // if there are maybestates, create the parameterLifter
     if (Robust || !maybeStates.empty()) {
@@ -341,7 +340,7 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
 
     // Every state is a maybeState
     maybeStates = storm::storage::BitVector(this->parametricModel->getTransitionMatrix().getColumnCount(), true);
-    resultsForNonMaybeStates = std::vector<ConstantType>(this->parametricModel->getNumberOfStates());
+    resultsForNonMaybeStates = std::vector<ExtendedConstantType>(this->parametricModel->getNumberOfStates());
 
     // Create the reward vector
     STORM_LOG_THROW((checkTask.isRewardModelSet() && this->parametricModel->hasRewardModel(checkTask.getRewardModel())) ||
@@ -364,10 +363,10 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
 
 template<typename SparseModelType, typename ConstantType, bool Robust>
 storm::modelchecker::SparseInstantiationModelChecker<SparseModelType, ConstantType>&
-SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robust>::getInstantiationCheckerSAT(bool quantitative) {
+SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robust>::getInstantiationCheckerSAT(Environment const& env, bool quantitative) {
     if (!instantiationCheckerSAT) {
         instantiationCheckerSAT =
-            std::make_unique<storm::modelchecker::SparseDtmcInstantiationModelChecker<SparseModelType, ConstantType>>(*this->parametricModel);
+            std::make_unique<storm::modelchecker::SparseDtmcInstantiationModelChecker<SparseModelType, ConstantType>>(env, *this->parametricModel);
         instantiationCheckerSAT->specifyFormula(quantitative ? *this->currentCheckTaskNoBound
                                                              : this->currentCheckTask->template convertValueType<ParametricType>());
         instantiationCheckerSAT->setInstantiationsAreGraphPreserving(true);
@@ -377,10 +376,10 @@ SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robust>::g
 
 template<typename SparseModelType, typename ConstantType, bool Robust>
 storm::modelchecker::SparseInstantiationModelChecker<SparseModelType, ConstantType>&
-SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robust>::getInstantiationCheckerVIO(bool quantitative) {
+SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robust>::getInstantiationCheckerVIO(Environment const& env, bool quantitative) {
     if (!instantiationCheckerVIO) {
         instantiationCheckerVIO =
-            std::make_unique<storm::modelchecker::SparseDtmcInstantiationModelChecker<SparseModelType, ConstantType>>(*this->parametricModel);
+            std::make_unique<storm::modelchecker::SparseDtmcInstantiationModelChecker<SparseModelType, ConstantType>>(env, *this->parametricModel);
         instantiationCheckerVIO->specifyFormula(quantitative ? *this->currentCheckTaskNoBound
                                                              : this->currentCheckTask->template convertValueType<ParametricType>());
         instantiationCheckerVIO->setInstantiationsAreGraphPreserving(true);
@@ -390,10 +389,10 @@ SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robust>::g
 
 template<typename SparseModelType, typename ConstantType, bool Robust>
 storm::modelchecker::SparseInstantiationModelChecker<SparseModelType, ConstantType>&
-SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robust>::getInstantiationChecker(bool quantitative) {
+SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robust>::getInstantiationChecker(Environment const& env, bool quantitative) {
     if (!instantiationChecker) {
         instantiationChecker =
-            std::make_unique<storm::modelchecker::SparseDtmcInstantiationModelChecker<SparseModelType, ConstantType>>(*this->parametricModel);
+            std::make_unique<storm::modelchecker::SparseDtmcInstantiationModelChecker<SparseModelType, ConstantType>>(env, *this->parametricModel);
         instantiationChecker->specifyFormula(quantitative ? *this->currentCheckTaskNoBound
                                                           : this->currentCheckTask->template convertValueType<ParametricType>());
         instantiationChecker->setInstantiationsAreGraphPreserving(true);
@@ -402,7 +401,8 @@ SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robust>::g
 }
 
 template<typename SparseModelType, typename ConstantType, bool Robust>
-std::vector<ConstantType> SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robust>::computeQuantitativeValues(
+std::vector<typename SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robust>::ExtendedConstantType>
+SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robust>::computeQuantitativeValues(
     Environment const& env, AnnotatedRegion<ParametricType>& region, storm::solver::OptimizationDirection const& dirForParameters) {
     if (maybeStates.empty()) {
         this->updateKnownValueBoundInRegion(region, dirForParameters, resultsForNonMaybeStates);
@@ -414,14 +414,12 @@ std::vector<ConstantType> SparseDtmcParameterLiftingModelChecker<SparseModelType
     bool nonTrivialEndComponents = false;
     if constexpr (Robust) {
         if (parameterLifter->isCurrentRegionAllIllDefined()) {
-            return std::vector<ConstantType>();
+            return std::vector<ExtendedConstantType>();
         }
         if (!graphPreserving) {
             transformer::IntervalEndComponentPreserver endComponentPreserver;
             auto const& result = endComponentPreserver.eliminateMECs(liftedMatrix, liftedVector);
             if (result) {
-                // std::cout << liftedMatrix << std::endl;
-                // std::cout << *result << std::endl;
                 liftedMatrix = *result;
                 nonTrivialEndComponents = true;
             }
@@ -431,7 +429,7 @@ std::vector<ConstantType> SparseDtmcParameterLiftingModelChecker<SparseModelType
 
     if (stepBound) {
         if constexpr (!Robust) {
-            assert(*stepBound > 0);
+            STORM_LOG_ASSERT(*stepBound > 0, "Expected positive step bound.");
             x = std::vector<ConstantType>(resultVectorSize, storm::utility::zero<ConstantType>());
             auto multiplier = storm::solver::MultiplierFactory<ConstantType>().create(env, liftedMatrix);
             multiplier->repeatedMultiplyAndReduce(env, dirForParameters, x, &liftedVector, *stepBound);
@@ -444,8 +442,9 @@ std::vector<ConstantType> SparseDtmcParameterLiftingModelChecker<SparseModelType
         solver->setHasNoEndComponents();
         // Uncertainty is not robust (=adversarial)
         solver->setUncertaintyResolutionMode(UncertaintyResolutionMode::Cooperative);
-        if (lowerResultBound)
+        if (lowerResultBound) {
             solver->setLowerBound(lowerResultBound.value());
+        }
         if (upperResultBound) {
             solver->setUpperBound(upperResultBound.value());
         } else if (solvingRequiresUpperRewardBounds) {
@@ -530,14 +529,14 @@ std::vector<ConstantType> SparseDtmcParameterLiftingModelChecker<SparseModelType
     }
 
     // Get the result for the complete model (including maybestates)
-    std::vector<ConstantType> result = resultsForNonMaybeStates;
+    std::vector<ExtendedConstantType> result = resultsForNonMaybeStates;
     auto maybeStateResIt = x.begin();
-    for (auto const& maybeState : maybeStates) {
+    for (uint64_t maybeState : maybeStates) {
         result[maybeState] = *maybeStateResIt;
         ++maybeStateResIt;
     }
 
-    STORM_LOG_INFO(dirForParameters << " " << region.region << ": " << result[this->getUniqueInitialState()] << std::endl);
+    STORM_LOG_INFO(dirForParameters << " " << region.region << ": " << result[this->getUniqueInitialState()]);
 
     this->updateKnownValueBoundInRegion(region, dirForParameters, result);
     return result;
@@ -559,8 +558,13 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
         helper::SparseDeterministicVisitingTimesHelper<ConstantType> visitingTimesHelper(instantiatedModel.getTransitionMatrix());
         auto const visitingTimes = visitingTimesHelper.computeExpectedVisitingTimes(env, this->parametricModel->getInitialStates());
         uint64_t rowIndex = 0;
-        for (auto const& state : maybeStates) {
-            weighting[rowIndex++] = visitingTimes[state];
+        for (uint64_t state : maybeStates) {
+            ExtendedConstantType const& visitingTime = visitingTimes[state];
+            STORM_LOG_WARN_COND(!storm::utility::isInfinity(visitingTime), "Expected a finite number of visits to maybe-state " << state << ".");
+            if (!storm::utility::isInfinity(visitingTime)) {
+                weighting[rowIndex] = storm::utility::getFinite(visitingTime);
+            }
+            ++rowIndex;
         }
     }
 
@@ -714,7 +718,7 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
                     uint64_t rowOffset = matrix.getRowGroupIndices()[state];
                     uint64_t optimalChoice = schedulerChoices[state];
                     auto const& optimalChoiceVal = choiceValuations[rowOffset + optimalChoice];
-                    assert(optimalChoiceVal.getUnspecifiedParameters().empty());
+                    STORM_LOG_ASSERT(optimalChoiceVal.getUnspecifiedParameters().empty(), "Expected no unspecified parameters.");
                     stateResults.clear();
                     for (uint64_t row = rowOffset; row < matrix.getRowGroupIndices()[state + 1]; ++row) {
                         stateResults.push_back(matrix.multiplyRowWithVector(row, quantitativeResult) + vector[row]);
@@ -768,20 +772,20 @@ void SparseDtmcParameterLiftingModelChecker<SparseModelType, ConstantType, Robus
         }
         case RegionSplitEstimateKind::Derivative: {
             storm::modelchecker::SparseDtmcInstantiationModelChecker<storm::models::sparse::Dtmc<ParametricType>, ConstantType> instantiationModelChecker(
-                *this->parametricModel);
+                env, *this->parametricModel);
             instantiationModelChecker.specifyFormula(*this->currentCheckTaskNoBound);
 
             auto const center = region.getCenterPoint();
 
             std::unique_ptr<storm::modelchecker::CheckResult> result = instantiationModelChecker.check(env, center);
-            auto const reachabilityProbabilities = result->asExplicitQuantitativeCheckResult<ConstantType>().getValueVector();
+            auto const reachabilityProbabilities = result->asExplicitQuantitativeCheckResult<ConstantType>().getFiniteValueVector();
 
-            STORM_LOG_ASSERT(this->derivativeChecker, "Derivative checker not intialized");
+            STORM_LOG_ASSERT(this->derivativeChecker, "Derivative checker not intialized.");
 
             for (auto const& param : region.getVariables()) {
                 auto result = this->derivativeChecker->check(env, center, param, reachabilityProbabilities);
-                ConstantType derivative =
-                    result->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector()[this->derivativeChecker->getInitialState()];
+                ConstantType derivative = storm::utility::getFinite(
+                    result->template asExplicitQuantitativeCheckResult<ConstantType>().getValueVector()[this->derivativeChecker->getInitialState()]);
                 cachedRegionSplitEstimates[param] = utility::abs(derivative) * utility::convertNumber<ConstantType>(region.getDifference(param));
             }
             break;

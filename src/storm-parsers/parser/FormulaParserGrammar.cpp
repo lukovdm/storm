@@ -1,6 +1,7 @@
 #include "FormulaParserGrammar.h"
 
 #include <memory>
+#include <optional>
 
 #include "storm/storage/expressions/ExpressionManager.h"
 
@@ -473,11 +474,23 @@ std::shared_ptr<storm::logic::Formula const> FormulaParserGrammar::createEventua
                                            std::shared_ptr<storm::logic::TimeBoundReference>>>> const& timeBounds,
     storm::logic::FormulaContext context, std::shared_ptr<storm::logic::Formula const> const& subformula) const {
     if (timeBounds && !timeBounds.get().empty()) {
-        std::vector<boost::optional<storm::logic::TimeBound>> lowerBounds, upperBounds;
+        // Conversion of boost::optional to std::optional
+        // This can be simplified if the input is changed to already use std::optional
+        std::vector<std::optional<storm::logic::TimeBound>> lowerBounds, upperBounds;
         std::vector<storm::logic::TimeBoundReference> timeBoundReferences;
         for (auto const& timeBound : timeBounds.get()) {
-            lowerBounds.push_back(std::get<0>(timeBound));
-            upperBounds.push_back(std::get<1>(timeBound));
+            auto const& lowerBound = std::get<0>(timeBound);
+            auto const& upperBound = std::get<1>(timeBound);
+            if (lowerBound) {
+                lowerBounds.emplace_back(lowerBound.get());
+            } else {
+                lowerBounds.emplace_back();
+            }
+            if (upperBound) {
+                upperBounds.emplace_back(upperBound.get());
+            } else {
+                upperBounds.emplace_back();
+            }
             timeBoundReferences.emplace_back(*std::get<2>(timeBound));
         }
         return std::shared_ptr<storm::logic::Formula const>(
@@ -501,11 +514,23 @@ std::shared_ptr<storm::logic::Formula const> FormulaParserGrammar::createUntilFo
                                            std::shared_ptr<storm::logic::TimeBoundReference>>>> const& timeBounds,
     std::shared_ptr<storm::logic::Formula const> const& rightSubformula) {
     if (timeBounds && !timeBounds.get().empty()) {
-        std::vector<boost::optional<storm::logic::TimeBound>> lowerBounds, upperBounds;
+        // Conversion of boost::optional to std::optional
+        // This can be simplified if the input is changed to already use std::optional
+        std::vector<std::optional<storm::logic::TimeBound>> lowerBounds, upperBounds;
         std::vector<storm::logic::TimeBoundReference> timeBoundReferences;
         for (auto const& timeBound : timeBounds.get()) {
-            lowerBounds.push_back(std::get<0>(timeBound));
-            upperBounds.push_back(std::get<1>(timeBound));
+            auto const& lowerBound = std::get<0>(timeBound);
+            auto const& upperBound = std::get<1>(timeBound);
+            if (lowerBound) {
+                lowerBounds.emplace_back(lowerBound.get());
+            } else {
+                lowerBounds.emplace_back();
+            }
+            if (upperBound) {
+                upperBounds.emplace_back(upperBound.get());
+            } else {
+                upperBounds.emplace_back();
+            }
             timeBoundReferences.emplace_back(*std::get<2>(timeBound));
         }
         return std::shared_ptr<storm::logic::Formula const>(
@@ -555,15 +580,15 @@ std::shared_ptr<storm::logic::Formula const> FormulaParserGrammar::createOperato
                                                                                          std::shared_ptr<storm::logic::Formula const> const& subformula) {
     switch (context) {
         case storm::logic::FormulaContext::Probability:
-            STORM_LOG_ASSERT(!rewardModelName, "Probability operator with reward information parsed");
+            STORM_LOG_ASSERT(!rewardModelName, "Probability operator with reward information parsed.");
             return createProbabilityOperatorFormula(operatorInformation, subformula);
         case storm::logic::FormulaContext::Reward:
             return createRewardOperatorFormula(rewardModelName, operatorInformation, subformula);
         case storm::logic::FormulaContext::LongRunAverage:
-            STORM_LOG_ASSERT(!rewardModelName, "LRA operator with reward information parsed");
+            STORM_LOG_ASSERT(!rewardModelName, "LRA operator with reward information parsed.");
             return createLongRunAverageOperatorFormula(operatorInformation, subformula);
         case storm::logic::FormulaContext::Time:
-            STORM_LOG_ASSERT(!rewardModelName, "Time operator with reward model name parsed");
+            STORM_LOG_ASSERT(!rewardModelName, "Time operator with reward model name parsed.");
             return createTimeOperatorFormula(operatorInformation, subformula);
         default:
             STORM_LOG_THROW(false, storm::exceptions::WrongFormatException, "Unexpected formula context.");
@@ -656,11 +681,11 @@ bool FormulaParserGrammar::isValidMultiBoundedPathFormulaOperand(std::shared_ptr
 std::shared_ptr<storm::logic::Formula const> FormulaParserGrammar::createMultiBoundedPathFormula(
     std::vector<std::shared_ptr<storm::logic::Formula const>> const& subformulas) {
     std::vector<std::shared_ptr<storm::logic::Formula const>> leftSubformulas, rightSubformulas;
-    std::vector<boost::optional<storm::logic::TimeBound>> lowerBounds, upperBounds;
+    std::vector<std::optional<storm::logic::TimeBound>> lowerBounds, upperBounds;
     std::vector<storm::logic::TimeBoundReference> timeBoundReferences;
     for (auto const& subformula : subformulas) {
         STORM_LOG_THROW(subformula->isBoundedUntilFormula(), storm::exceptions::WrongFormatException,
-                        "multi-path formulas require bounded until (or eventually) subformulae. Got '" << *subformula << "' instead.");
+                        "Multi-path formulas require bounded until (or eventually) subformulae. Got '" << *subformula << "' instead.");
         auto const& f = subformula->asBoundedUntilFormula();
         STORM_LOG_THROW(!f.isMultiDimensional(), storm::exceptions::WrongFormatException,
                         "Composition of multidimensional bounded until formula must consist of single dimension subformulas. Got '" << f << "' instead.");

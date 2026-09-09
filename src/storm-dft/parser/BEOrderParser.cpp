@@ -3,6 +3,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "storm-dft/parser/DFTGalileoParser.h"
+#include "storm-dft/storage/DFT.h"
 #include "storm/exceptions/FileIoException.h"
 #include "storm/exceptions/InvalidArgumentException.h"
 #include "storm/io/file.h"
@@ -42,7 +43,7 @@ std::vector<size_t> BEOrderParser<ValueType>::parseBEOrder(std::string const& fi
             }
         }
     } catch (storm::exceptions::BaseException const& exception) {
-        STORM_LOG_THROW(false, storm::exceptions::FileIoException, "A parsing exception occurred in line " << lineNo << ": " << exception.what());
+        STORM_LOG_THROW(false, storm::exceptions::FileIoException, "A parsing exception occurred in line " << lineNo << ": " << exception.what() << ".");
     }
     storm::io::closeFile(file);
     STORM_LOG_THROW(beOrder.size() == dft.nrBasicElements(), storm::exceptions::InvalidArgumentException,

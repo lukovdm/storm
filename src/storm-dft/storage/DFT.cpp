@@ -145,7 +145,7 @@ DFTStateGenerationInfo DFT<ValueType>::buildStateGenerationInfo(storm::dft::stor
                     }
                 } else {
                     STORM_LOG_ASSERT(restr->isMutex(), "Restriction " << *restr << " is neither SEQ nor MUTEX.");
-                    bool found = false;
+                    [[maybe_unused]] bool found = false;
                     for (auto it = restr->children().cbegin(); it != restr->children().cend(); ++it) {
                         if ((*it)->id() != elem->id()) {
                             mutexRestrictionElements.push_back((*it)->id());
@@ -197,7 +197,7 @@ DFTStateGenerationInfo DFT<ValueType>::buildStateGenerationInfo(storm::dft::stor
                 STORM_LOG_ASSERT(symmetricElements.size() == noSymmetricElements, "No. of symmetric elements do not coincide.");
                 if (visited[symmetricElements[1]]) {
                     // Elements already mirrored
-                    for (size_t index : symmetricElements) {
+                    for ([[maybe_unused]] size_t index : symmetricElements) {
                         STORM_LOG_ASSERT(visited[index], "Element not mirrored.");
                     }
                     continue;
@@ -252,7 +252,7 @@ DFTStateGenerationInfo DFT<ValueType>::buildStateGenerationInfo(storm::dft::stor
         visitQueue.push(dependency->dependentEvents()[0]->id());
     }
     stateIndex = performStateGenerationInfoDFS(generationInfo, visitQueue, visited, stateIndex);
-    STORM_LOG_ASSERT(visitQueue.empty(), "VisitQueue not empty");
+    STORM_LOG_ASSERT(visitQueue.empty(), "VisitQueue not empty.");
 
     // Visit all remaining states
     for (size_t i = 0; i < visited.size(); ++i) {
@@ -646,8 +646,9 @@ std::vector<size_t> DFT<ValueType>::findModularisationRewrite() const {
 
                 std::vector<size_t> rewrite = {e->id(), child->id()};
                 for (size_t isdElemId : ISD) {
-                    if (isdElemId == child->id())
+                    if (isdElemId == child->id()) {
                         continue;
+                    }
                     if (std::find_if(children.begin(), children.end(),
                                      [&isdElemId](std::shared_ptr<storm::dft::storage::elements::DFTElement<ValueType>> const& element) {
                                          return element->id() == isdElemId;

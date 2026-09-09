@@ -4,7 +4,9 @@
 
 #include "storm/settings/SettingsManager.h"
 #include "storm/settings/modules/CoreSettings.h"
+#include "storm/settings/modules/DebugSettings.h"
 #include "storm/settings/modules/GeneralSettings.h"
+#include "storm/solver/SolverSelectionOptions.h"
 #include "storm/utility/macros.h"
 
 #include "storm/exceptions/InvalidEnvironmentException.h"
@@ -18,6 +20,11 @@ SolverEnvironment::SolverEnvironment() {
     forceExact = generalSettings.isExactSet() || generalSettings.isExactFinitePrecisionSet();
     linearEquationSolverType = storm::settings::getModule<storm::settings::modules::CoreSettings>().getEquationSolver();
     linearEquationSolverTypeSetFromDefault = storm::settings::getModule<storm::settings::modules::CoreSettings>().isEquationSolverSetFromDefaultValue();
+    lpSolverType = storm::settings::getModule<storm::settings::modules::CoreSettings>().getLpSolver();
+    lpSolverTypeSetFromDefault = storm::settings::getModule<storm::settings::modules::CoreSettings>().isLpSolverSetFromDefaultValue();
+    debug = storm::settings::getModule<storm::settings::modules::DebugSettings>().isDebugSet();
+    verbose = generalSettings.isVerboseSet();
+    showProgressDelay = generalSettings.getShowProgressDelay();
 }
 
 SolverEnvironment::~SolverEnvironment() {
@@ -96,12 +103,36 @@ TopologicalSolverEnvironment const& SolverEnvironment::topological() const {
     return topologicalSolverEnvironment.get();
 }
 
+EliminationSolverEnvironment& SolverEnvironment::elimination() {
+    return eliminationSolverEnvironment.get();
+}
+
+EliminationSolverEnvironment const& SolverEnvironment::elimination() const {
+    return eliminationSolverEnvironment.get();
+}
+
 OviSolverEnvironment& SolverEnvironment::ovi() {
     return oviSolverEnvironment.get();
 }
 
 OviSolverEnvironment const& SolverEnvironment::ovi() const {
     return oviSolverEnvironment.get();
+}
+
+GurobiSolverEnvironment& SolverEnvironment::gurobi() {
+    return gurobiSolverEnvironment.get();
+}
+
+GurobiSolverEnvironment const& SolverEnvironment::gurobi() const {
+    return gurobiSolverEnvironment.get();
+}
+
+GlpkSolverEnvironment& SolverEnvironment::glpk() {
+    return glpkSolverEnvironment.get();
+}
+
+GlpkSolverEnvironment const& SolverEnvironment::glpk() const {
+    return glpkSolverEnvironment.get();
 }
 
 bool SolverEnvironment::isForceSoundness() const {
@@ -120,6 +151,30 @@ void SolverEnvironment::setForceExact(bool value) {
     SolverEnvironment::forceExact = value;
 }
 
+bool SolverEnvironment::isDebugSet() const {
+    return debug;
+}
+
+void SolverEnvironment::setDebug(bool value) {
+    SolverEnvironment::debug = value;
+}
+
+bool SolverEnvironment::isVerboseSet() const {
+    return verbose;
+}
+
+void SolverEnvironment::setVerbose(bool value) {
+    SolverEnvironment::verbose = value;
+}
+
+uint64_t SolverEnvironment::getShowProgressDelay() const {
+    return showProgressDelay;
+}
+
+void SolverEnvironment::setShowProgressDelay(uint64_t delay) {
+    SolverEnvironment::showProgressDelay = delay;
+}
+
 storm::solver::EquationSolverType const& SolverEnvironment::getLinearEquationSolverType() const {
     return linearEquationSolverType;
 }
@@ -131,6 +186,19 @@ void SolverEnvironment::setLinearEquationSolverType(storm::solver::EquationSolve
 
 bool SolverEnvironment::isLinearEquationSolverTypeSetFromDefaultValue() const {
     return linearEquationSolverTypeSetFromDefault;
+}
+
+storm::solver::LpSolverType const& SolverEnvironment::getLpSolverType() const {
+    return lpSolverType;
+}
+
+void SolverEnvironment::setLpSolverType(storm::solver::LpSolverType const& value, bool isSetFromDefault) {
+    lpSolverTypeSetFromDefault = isSetFromDefault;
+    lpSolverType = value;
+}
+
+bool SolverEnvironment::isLpSolverTypeSetFromDefaultValue() const {
+    return lpSolverTypeSetFromDefault;
 }
 
 std::pair<boost::optional<storm::RationalNumber>, boost::optional<bool>> SolverEnvironment::getPrecisionOfLinearEquationSolver(

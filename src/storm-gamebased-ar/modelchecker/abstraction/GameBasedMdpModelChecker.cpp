@@ -1,5 +1,7 @@
 #include "storm-gamebased-ar/modelchecker/abstraction/GameBasedMdpModelChecker.h"
 
+#include <sstream>
+
 #include "storm-gamebased-ar/abstraction/ExplicitQualitativeGameResultMinMax.h"
 #include "storm-gamebased-ar/abstraction/ExplicitQuantitativeResultMinMax.h"
 #include "storm-gamebased-ar/abstraction/MenuGameRefiner.h"
@@ -19,7 +21,6 @@
 #include "storm/models/symbolic/Mdp.h"
 #include "storm/models/symbolic/StandardRewardModel.h"
 #include "storm/settings/SettingsManager.h"
-#include "storm/settings/modules/CoreSettings.h"
 #include "storm/settings/modules/GeneralSettings.h"
 #include "storm/solver/StandardGameSolver.h"
 #include "storm/solver/SymbolicGameSolver.h"
@@ -36,7 +37,6 @@
 #include "storm/storage/jani/ParallelComposition.h"
 #include "storm/storage/jani/visitor/CompositionInformationVisitor.h"
 #include "storm/utility/macros.h"
-#include "storm/utility/prism.h"
 #include "storm/utility/vector.h"
 
 namespace storm::gbar {
@@ -47,7 +47,6 @@ using storm::gbar::abstraction::ExplicitQuantitativeResult;
 using storm::gbar::abstraction::ExplicitQuantitativeResultMinMax;
 using storm::gbar::abstraction::SymbolicQuantitativeGameResult;
 using storm::gbar::abstraction::SymbolicQuantitativeGameResultMinMax;
-using storm::storage::ExplicitGameStrategyPair;
 
 template<storm::dd::DdType Type, typename ModelType>
 GameBasedMdpModelChecker<Type, ModelType>::GameBasedMdpModelChecker(storm::storage::SymbolicModelDescription const& model,
@@ -352,7 +351,7 @@ std::unique_ptr<storm::modelchecker::CheckResult> checkForResultAfterQuantitativ
     // If the lower and upper bounds are close enough, we can return the result.
     if (comparator.isEqual(minValue, maxValue)) {
         result = std::make_unique<storm::modelchecker::ExplicitQuantitativeCheckResult<ValueType>>(storm::storage::sparse::state_type(0),
-                                                                                                   (minValue + maxValue) / ValueType(2));
+                                                                                                   ValueType((minValue + maxValue) / ValueType(2)));
     }
 
     return result;
@@ -509,10 +508,10 @@ ExplicitQuantitativeResult<ValueType> computeQuantitativeResult(
     uint64_t position = 0;
     uint64_t previousPlayer2States = 0;
     storm::storage::BitVector player2MaybeStates(transitionMatrix.getRowGroupCount());
-    for (auto state : maybeStates) {
+    for (uint64_t state : maybeStates) {
         subPlayer1Groups[position] = previousPlayer2States;
 
-        bool hasMaybePlayer2Successor = false;
+        [[maybe_unused]] bool hasMaybePlayer2Successor = false;
         for (uint64_t player2State = player1Groups[state]; player2State < player1Groups[state + 1]; ++player2State) {
             if (!player2Prob0States.get(player2State) && !player2Prob1States.get(player2State)) {
                 player2MaybeStates.set(player2State);
@@ -549,7 +548,7 @@ ExplicitQuantitativeResult<ValueType> computeQuantitativeResult(
         // If the starting strategy pair was provided, we need to extract the choices of the maybe states here.
         uint64_t maybeStatePosition = 0;
         previousPlayer2States = 0;
-        for (auto state : maybeStates) {
+        for (uint64_t state : maybeStates) {
             uint64_t chosenPlayer2State = startingStrategyPair->getPlayer1Strategy().getChoice(state);
 
             uint64_t previousPlayer2MaybeStatesForState = 0;
@@ -586,9 +585,9 @@ ExplicitQuantitativeResult<ValueType> computeQuantitativeResult(
     // Obtain strategies from solver and fuse them with the pre-existing strategy pair for the qualitative result.
     uint64_t previousPlayer1MaybeStates = 0;
     uint64_t previousPlayer2MaybeStates = 0;
-    for (auto state : maybeStates) {
+    for (uint64_t state : maybeStates) {
         uint64_t previousPlayer2MaybeStatesForState = 0;
-        bool madePlayer1Choice = false;
+        [[maybe_unused]] bool madePlayer1Choice = false;
         for (uint64_t player2State = player1Groups[state]; player2State < player1Groups[state + 1]; ++player2State) {
             if (player1Scheduler[previousPlayer1MaybeStates] == previousPlayer2MaybeStatesForState) {
                 strategyPair.getPlayer1Strategy().setChoice(state, player2State);
@@ -632,10 +631,10 @@ std::unique_ptr<storm::modelchecker::CheckResult> GameBasedMdpModelChecker<Type,
     // Create the abstractor.
     storm::gbar::abstraction::MenuGameAbstractorOptions abstractorOptions(std::move(options.constraints));
     if (preprocessedModel.isPrismProgram()) {
-        abstractor = std::make_shared<storm::gbar::abstraction::prism::PrismMenuGameAbstractor<Type, ValueType>>(preprocessedModel.asPrismProgram(),
+        abstractor = std::make_shared<storm::gbar::abstraction::prism::PrismMenuGameAbstractor<Type, ValueType>>(env, preprocessedModel.asPrismProgram(),
                                                                                                                  smtSolverFactory, abstractorOptions);
     } else {
-        abstractor = std::make_shared<storm::gbar::abstraction::jani::JaniMenuGameAbstractor<Type, ValueType>>(preprocessedModel.asJaniModel(),
+        abstractor = std::make_shared<storm::gbar::abstraction::jani::JaniMenuGameAbstractor<Type, ValueType>>(env, preprocessedModel.asJaniModel(),
                                                                                                                smtSolverFactory, abstractorOptions);
     }
     std::unique_ptr<storm::modelchecker::CheckResult> result;
@@ -1090,7 +1089,7 @@ class ExplicitGameExporter {
         std::vector<EdgeData> edges;
 
         std::vector<uint64_t> stack;
-        for (auto state : initialStates) {
+        for (uint64_t state : initialStates) {
             stack.push_back(state);
         }
         storm::storage::BitVector reachablePlayer1(player1Groups.size() - 1);
@@ -1745,48 +1744,44 @@ template<storm::dd::DdType Type, typename ModelType>
 void GameBasedMdpModelChecker<Type, ModelType>::printStatistics(storm::gbar::abstraction::MenuGameAbstractor<Type, ValueType> const& abstractor,
                                                                 storm::gbar::abstraction::MenuGame<Type, ValueType> const& game, uint64_t refinements,
                                                                 uint64_t peakPlayer1States, uint64_t peakTransitions) const {
-    if (storm::settings::getModule<storm::settings::modules::CoreSettings>().isShowStatisticsSet()) {
-        storm::gbar::abstraction::AbstractionInformation<Type> const& abstractionInformation = abstractor.getAbstractionInformation();
+    storm::gbar::abstraction::AbstractionInformation<Type> const& abstractionInformation = abstractor.getAbstractionInformation();
 
-        std::streamsize originalPrecision = std::cout.precision();
-        std::cout << std::fixed << std::setprecision(2);
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(2);
 
-        std::cout << '\n';
-        std::cout << "Statistics:\n";
-        std::cout << "    * size of final game: " << game.getReachableStates().getNonZeroCount() << " player 1 states, "
-                  << game.getTransitionMatrix().getNonZeroCount() << " transitions\n";
-        std::cout << "    * peak size of game: " << peakPlayer1States << " player 1 states, " << peakTransitions << " transitions\n";
-        std::cout << "    * refinements: " << refinements << '\n';
-        std::cout << "    * predicates: " << abstractionInformation.getNumberOfPredicates() << "\n\n";
+    oss << '\n';
+    oss << "Statistics:\n";
+    oss << "    * size of final game: " << game.getReachableStates().getNonZeroCount() << " player 1 states, " << game.getTransitionMatrix().getNonZeroCount()
+        << " transitions\n";
+    oss << "    * peak size of game: " << peakPlayer1States << " player 1 states, " << peakTransitions << " transitions\n";
+    oss << "    * refinements: " << refinements << '\n';
+    oss << "    * predicates: " << abstractionInformation.getNumberOfPredicates() << "\n\n";
 
-        uint64_t totalAbstractionTimeMillis = totalAbstractionWatch.getTimeInMilliseconds();
-        uint64_t totalTranslationTimeMillis = totalTranslationWatch.getTimeInMilliseconds();
-        uint64_t totalStrategyProcessingTimeMillis = totalStrategyProcessingWatch.getTimeInMilliseconds();
-        uint64_t totalSolutionTimeMillis = totalSolutionWatch.getTimeInMilliseconds();
-        uint64_t totalRefinementTimeMillis = totalRefinementWatch.getTimeInMilliseconds();
-        uint64_t setupTime = setupWatch.getTimeInMilliseconds();
-        uint64_t totalTimeMillis = totalWatch.getTimeInMilliseconds();
+    uint64_t totalAbstractionTimeMillis = totalAbstractionWatch.getTimeInMilliseconds();
+    uint64_t totalTranslationTimeMillis = totalTranslationWatch.getTimeInMilliseconds();
+    uint64_t totalStrategyProcessingTimeMillis = totalStrategyProcessingWatch.getTimeInMilliseconds();
+    uint64_t totalSolutionTimeMillis = totalSolutionWatch.getTimeInMilliseconds();
+    uint64_t totalRefinementTimeMillis = totalRefinementWatch.getTimeInMilliseconds();
+    uint64_t setupTime = setupWatch.getTimeInMilliseconds();
+    uint64_t totalTimeMillis = totalWatch.getTimeInMilliseconds();
 
-        std::cout << "Time breakdown:\n";
-        std::cout << "    * setup: " << setupTime << "ms (" << 100 * static_cast<double>(setupTime) / totalTimeMillis << "%)\n";
-        std::cout << "    * abstraction: " << totalAbstractionTimeMillis << "ms (" << 100 * static_cast<double>(totalAbstractionTimeMillis) / totalTimeMillis
-                  << "%)\n";
-        if (this->solveMode == storm::settings::modules::AbstractionSettings::SolveMode::Sparse) {
-            std::cout << "    * translation: " << totalTranslationTimeMillis << "ms ("
-                      << 100 * static_cast<double>(totalTranslationTimeMillis) / totalTimeMillis << "%)\n";
-            if (fixPlayer1Strategy || fixPlayer2Strategy) {
-                std::cout << "    * strategy processing: " << totalStrategyProcessingTimeMillis << "ms ("
-                          << 100 * static_cast<double>(totalStrategyProcessingTimeMillis) / totalTimeMillis << "%)\n";
-            }
+    oss << "Time breakdown:\n";
+    oss << "    * setup: " << setupTime << "ms (" << 100 * static_cast<double>(setupTime) / totalTimeMillis << "%)\n";
+    oss << "    * abstraction: " << totalAbstractionTimeMillis << "ms (" << 100 * static_cast<double>(totalAbstractionTimeMillis) / totalTimeMillis << "%)\n";
+    if (this->solveMode == storm::settings::modules::AbstractionSettings::SolveMode::Sparse) {
+        oss << "    * translation: " << totalTranslationTimeMillis << "ms (" << 100 * static_cast<double>(totalTranslationTimeMillis) / totalTimeMillis
+            << "%)\n";
+        if (fixPlayer1Strategy || fixPlayer2Strategy) {
+            oss << "    * strategy processing: " << totalStrategyProcessingTimeMillis << "ms ("
+                << 100 * static_cast<double>(totalStrategyProcessingTimeMillis) / totalTimeMillis << "%)\n";
         }
-        std::cout << "    * solution: " << totalSolutionTimeMillis << "ms (" << 100 * static_cast<double>(totalSolutionTimeMillis) / totalTimeMillis << "%)\n";
-        std::cout << "    * refinement: " << totalRefinementTimeMillis << "ms (" << 100 * static_cast<double>(totalRefinementTimeMillis) / totalTimeMillis
-                  << "%)\n";
-        std::cout << "    ---------------------------------------------\n";
-        std::cout << "    * total: " << totalTimeMillis << "ms\n\n";
-
-        std::cout << std::defaultfloat << std::setprecision(originalPrecision);
     }
+    oss << "    * solution: " << totalSolutionTimeMillis << "ms (" << 100 * static_cast<double>(totalSolutionTimeMillis) / totalTimeMillis << "%)\n";
+    oss << "    * refinement: " << totalRefinementTimeMillis << "ms (" << 100 * static_cast<double>(totalRefinementTimeMillis) / totalTimeMillis << "%)\n";
+    oss << "    ---------------------------------------------\n";
+    oss << "    * total: " << totalTimeMillis << "ms\n\n";
+
+    STORM_LOG_STATISTICS(oss.str());
 }
 
 template<storm::dd::DdType Type, typename ModelType>

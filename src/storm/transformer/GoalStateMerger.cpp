@@ -28,7 +28,7 @@ typename GoalStateMerger<SparseModelType>::ReturnType GoalStateMerger<SparseMode
     std::vector<std::string> const& selectedRewardModels, boost::optional<storm::storage::BitVector> const& choiceFilter) const {
     STORM_LOG_THROW(maybeStates.isDisjointFrom(targetStates) && targetStates.isDisjointFrom(sinkStates) && sinkStates.isDisjointFrom(maybeStates),
                     storm::exceptions::InvalidArgumentException,
-                    "maybestates, targetstates, and sinkstates are assumed to be disjoint when creating the submodel. However, this is not the case.");
+                    "Maybestates, targetstates, and sinkstates are assumed to be disjoint when creating the submodel. However, this is not the case.");
 
     auto result = initialize(maybeStates, targetStates, sinkStates, choiceFilter);
 
@@ -55,7 +55,7 @@ std::pair<typename GoalStateMerger<SparseModelType>::ReturnType, uint_fast64_t> 
     uint_fast64_t transitionCount(0), stateCount(0);
     bool targetStateRequired = !originalModel.getInitialStates().isDisjointFrom(targetStates);
     bool sinkStateRequired = !originalModel.getInitialStates().isDisjointFrom(sinkStates);
-    for (auto state : maybeStates) {
+    for (uint64_t state : maybeStates) {
         result.oldToNewStateIndexMapping[state] = stateCount;
 
         auto const& endOfRowGroup = origMatrix.getRowGroupIndices()[state + 1];
@@ -125,7 +125,7 @@ storm::storage::SparseMatrix<typename SparseModelType::ValueType> GoalStateMerge
         rowCount, stateCount, transitionCount, true, !origMatrix.hasTrivialRowGrouping(), origMatrix.hasTrivialRowGrouping() ? 0 : stateCount);
 
     uint_fast64_t currRow = 0;
-    for (auto state : maybeStates) {
+    for (uint64_t state : maybeStates) {
         if (!origMatrix.hasTrivialRowGrouping()) {
             builder.newRowGroup(currRow);
         }

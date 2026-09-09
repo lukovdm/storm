@@ -3,7 +3,9 @@
 #include <boost/algorithm/string.hpp>
 
 #include "storm-dft/builder/DFTBuilder.h"
+#include "storm-dft/storage/DFT.h"
 #include "storm-dft/utility/RelevantEvents.h"
+#include "storm-parsers/parser/ValueParser.h"
 #include "storm/adapters/JsonAdapter.h"
 #include "storm/adapters/RationalFunctionAdapter.h"
 #include "storm/exceptions/FileIoException.h"
@@ -36,7 +38,6 @@ storm::dft::storage::DFT<ValueType> DFTJsonParser<ValueType>::parseJson(Json con
     // Initialize DFT builder and value parser
     storm::dft::builder::DFTBuilder<ValueType> builder;
     storm::parser::ValueParser<ValueType> valueParser;
-    std::string toplevelName = "";
     storm::dft::utility::RelevantEvents relevantEvents;
 
     std::string currentLocation;
@@ -155,9 +156,10 @@ storm::dft::storage::DFT<ValueType> DFTJsonParser<ValueType>::parseJson(Json con
         builder.setTopLevel(nameMapping.at(topLevelId));
 
     } catch (storm::exceptions::BaseException const& exception) {
-        STORM_LOG_THROW(false, storm::exceptions::FileIoException, "A parsing exception occurred in " << currentLocation << ": " << exception.what());
+        STORM_LOG_THROW(false, storm::exceptions::FileIoException, "A parsing exception occurred in " << currentLocation << ": " << exception.what() << ".");
     } catch (std::exception const& exception) {
-        STORM_LOG_THROW(false, storm::exceptions::FileIoException, "An exception occurred during parsing in " << currentLocation << ": " << exception.what());
+        STORM_LOG_THROW(false, storm::exceptions::FileIoException,
+                        "An exception occurred during parsing in " << currentLocation << ": " << exception.what() << ".");
     }
 
     // Build DFT

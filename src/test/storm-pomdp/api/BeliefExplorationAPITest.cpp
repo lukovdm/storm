@@ -52,7 +52,7 @@ class BeliefExplorationAPITest : public ::testing::Test {
     Input buildPrism(std::string const& programFile, std::string const& formulaAsString, std::string const& constantsAsString = "") const {
         // Parse and build input
         storm::prism::Program program = storm::api::parseProgram(programFile);
-        program = storm::utility::prism::preprocess(program, constantsAsString);
+        program = program.preprocess(constantsAsString);
         Input input;
         input.formula = storm::api::parsePropertiesForPrismProgram(formulaAsString, program).front().getRawFormula();
         input.model = storm::api::buildSparseModel<ValueType>(program, {input.formula})->template as<storm::models::sparse::Pomdp<ValueType>>();
@@ -67,10 +67,11 @@ class BeliefExplorationAPITest : public ::testing::Test {
         return TestType::precision();
     }
     ValueType modelcheckingPrecision() const {
-        if (TestType::isExactModelChecking)
+        if (TestType::isExactModelChecking) {
             return storm::utility::zero<ValueType>();
-        else
+        } else {
             return storm::utility::convertNumber<ValueType>(1e-6);
+        }
     }
 
    private:

@@ -61,7 +61,7 @@ void expectThrow(std::string const& path, std::string const& formulaString,
 
 void expectThrowPrism(std::string const& path, std::string const& formulaString) {
     storm::prism::Program program = storm::api::parseProgram(path);
-    program = storm::utility::prism::preprocess(program, "");
+    program = program.preprocess("");
 
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas = storm::api::extractFormulasFromProperties(storm::api::parseProperties(formulaString));
     std::shared_ptr<storm::models::sparse::Model<storm::Interval>> modelPtr = storm::api::buildSparseModel<storm::Interval>(program, formulas);
@@ -101,7 +101,7 @@ void checkExplicitModelForQuantitativeResult(std::string const& path, std::strin
 
 void checkPrismModelForQuantitativeResult(std::string const& path, std::string const& formulaString, double min, double max) {
     storm::prism::Program program = storm::api::parseProgram(path);
-    program = storm::utility::prism::preprocess(program, "");
+    program = program.preprocess("");
 
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas = storm::api::extractFormulasFromProperties(storm::api::parseProperties(formulaString));
     std::shared_ptr<storm::models::sparse::Model<storm::Interval>> modelPtr = storm::api::buildSparseModel<storm::Interval>(program, formulas);
@@ -160,8 +160,8 @@ std::unique_ptr<storm::modelchecker::QualitativeCheckResult> getInitialStateFilt
     return std::make_unique<storm::modelchecker::ExplicitQualitativeCheckResult<storm::RationalNumber>>(model->getInitialStates());
 }
 
-storm::RationalNumber getQuantitativeResultAtInitialState(std::shared_ptr<storm::models::sparse::Model<storm::RationalNumber>> const& model,
-                                                          std::unique_ptr<storm::modelchecker::CheckResult>& result) {
+storm::ExtendedRationalNumber getQuantitativeResultAtInitialState(std::shared_ptr<storm::models::sparse::Model<storm::RationalNumber>> const& model,
+                                                                  std::unique_ptr<storm::modelchecker::CheckResult>& result) {
     auto filter = getInitialStateFilter(model);
     result->filter(*filter);
     return result->asQuantitativeCheckResult<storm::RationalNumber>().getMin();
@@ -172,8 +172,8 @@ std::unique_ptr<storm::modelchecker::QualitativeCheckResult> getInitialStateFilt
     return std::make_unique<storm::modelchecker::ExplicitQualitativeCheckResult<storm::RationalNumber>>(model->getInitialStates());
 }
 
-storm::RationalNumber getQuantitativeResultAtInitialState(std::shared_ptr<storm::models::sparse::Model<storm::RationalInterval>> const& model,
-                                                          std::unique_ptr<storm::modelchecker::CheckResult>& result) {
+storm::ExtendedRationalNumber getQuantitativeResultAtInitialState(std::shared_ptr<storm::models::sparse::Model<storm::RationalInterval>> const& model,
+                                                                  std::unique_ptr<storm::modelchecker::CheckResult>& result) {
     auto filter = getInitialStateFilter(model);
     result->filter(*filter);
     return result->asQuantitativeCheckResult<storm::RationalNumber>().getMin();
@@ -199,8 +199,8 @@ void expectThrowRational(std::string const& path, std::string const& formulaStri
     STORM_SILENT_EXPECT_THROW(checker.check(env, task), storm::exceptions::BaseException);
 }
 
-void checkExplicitModelForQuantitativeResultRational(std::string const& path, std::string const& formulaString, storm::RationalNumber min,
-                                                     storm::RationalNumber max) {
+void checkExplicitModelForQuantitativeResultRational(std::string const& path, std::string const& formulaString, storm::ExtendedRationalNumber min,
+                                                     storm::ExtendedRationalNumber max) {
     std::shared_ptr<storm::models::sparse::Model<storm::RationalInterval>> modelPtr = storm::parser::parseDirectEncodingModel<storm::RationalInterval>(path);
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas = storm::api::extractFormulasFromProperties(storm::api::parseProperties(formulaString));
     storm::Environment env;
@@ -225,7 +225,7 @@ void checkExplicitModelForQuantitativeResultRational(std::string const& path, st
 void checkPrismModelForQuantitativeResultRational(std::string const& path, std::string const& formulaString, storm::RationalNumber min,
                                                   storm::RationalNumber max) {
     storm::prism::Program program = storm::api::parseProgram(path);
-    program = storm::utility::prism::preprocess(program, "");
+    program = program.preprocess("");
 
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas = storm::api::extractFormulasFromProperties(storm::api::parseProperties(formulaString));
     std::shared_ptr<storm::models::sparse::Model<storm::RationalInterval>> modelPtr = storm::api::buildSparseModel<storm::RationalInterval>(program, formulas);
@@ -251,7 +251,7 @@ void checkPrismModelForQuantitativeResultRational(std::string const& path, std::
 
 void makeUncertainAndCheckRational(std::string const& path, std::string const& formulaString, storm::RationalNumber amountOfUncertainty) {
     storm::prism::Program program = storm::api::parseProgram(path);
-    program = storm::utility::prism::preprocess(program, "");
+    program = program.preprocess("");
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas =
         storm::api::extractFormulasFromProperties(storm::api::parsePropertiesForPrismProgram(formulaString, program));
     std::shared_ptr<storm::models::sparse::Model<storm::RationalNumber>> modelPtr = storm::api::buildSparseModel<storm::RationalNumber>(program, formulas);
@@ -261,7 +261,7 @@ void makeUncertainAndCheckRational(std::string const& path, std::string const& f
     auto taskCertain = storm::modelchecker::CheckTask<storm::logic::Formula, storm::RationalNumber>(*formulas[0]);
     auto checker = storm::modelchecker::SparseDtmcPrctlModelChecker<storm::models::sparse::Dtmc<storm::RationalNumber>>(*dtmc);
     auto exresult = checker.check(env, taskCertain);
-    storm::RationalNumber certainValue = getQuantitativeResultAtInitialState(modelPtr, exresult);
+    auto const certainValue = getQuantitativeResultAtInitialState(modelPtr, exresult);
 
     storm::Environment envIntervals;
     envIntervals.solver().minMax().setMethod(storm::solver::MinMaxMethod::ValueIteration);
@@ -272,13 +272,13 @@ void makeUncertainAndCheckRational(std::string const& path, std::string const& f
     auto taskMin = storm::modelchecker::CheckTask<storm::logic::Formula, storm::RationalNumber>(*formulas[0]);
     taskMin.setUncertaintyResolutionMode(storm::UncertaintyResolutionMode::Minimize);
     auto iresultMin = ichecker.check(envIntervals, taskMin);
-    storm::RationalNumber minValue = getQuantitativeResultAtInitialState(idtmc, iresultMin);
+    auto const minValue = getQuantitativeResultAtInitialState(idtmc, iresultMin);
     EXPECT_LE(minValue, certainValue);
 
     auto taskMax = storm::modelchecker::CheckTask<storm::logic::Formula, storm::RationalNumber>(*formulas[0]);
     taskMax.setUncertaintyResolutionMode(storm::UncertaintyResolutionMode::Maximize);
     auto iresultMax = ichecker.check(envIntervals, taskMax);
-    storm::RationalNumber maxValue = getQuantitativeResultAtInitialState(idtmc, iresultMax);
+    auto const maxValue = getQuantitativeResultAtInitialState(idtmc, iresultMax);
     EXPECT_LE(certainValue, maxValue);
 }
 
@@ -456,7 +456,8 @@ TEST(RobustRationalDtmcModelCheckerTest, Tiny03RewardsNoUncertaintyResolutionMod
 
 TEST(RobustRationalDtmcModelCheckerTest, Tiny04MaxMinRewards) {
     checkExplicitModelForQuantitativeResultRational(STORM_TEST_RESOURCES_DIR "/idtmc/tiny-04.drn", "R=? [ F \"target\"];R=? [ F \"target\"]",
-                                                    storm::utility::infinity<storm::RationalNumber>(), storm::utility::infinity<storm::RationalNumber>());
+                                                    storm::utility::positiveInfinity<storm::RationalNumber>(),
+                                                    storm::utility::positiveInfinity<storm::RationalNumber>());
 }
 
 TEST(RobustRationalDtmcModelCheckerTest, AddUncertaintyBrpMax) {

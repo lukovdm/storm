@@ -1,5 +1,4 @@
-#ifndef STORM_SOLVER_ABSTRACTEQUATIONSOLVER_H_
-#define STORM_SOLVER_ABSTRACTEQUATIONSOLVER_H_
+#pragma once
 
 #include <boost/optional.hpp>
 #include <chrono>
@@ -17,6 +16,14 @@ template<typename ValueType>
 class AbstractEquationSolver {
    public:
     AbstractEquationSolver();
+
+    /*!
+     * Configures whether this solver should show progress during iterative solving.
+     *
+     * @param verbose If true, progress will be shown.
+     * @param delay The delay (in seconds) between progress emissions.
+     */
+    void setShowProgress(bool verbose, uint64_t delay = 5);
 
     /*!
      * Sets a custom termination condition that is used together with the regular termination condition of the
@@ -262,5 +269,3 @@ class AbstractEquationSolver {
 
 }  // namespace solver
 }  // namespace storm
-
-#endif /* STORM_SOLVER_ABSTRACTEQUATIONSOLVER_H_ */

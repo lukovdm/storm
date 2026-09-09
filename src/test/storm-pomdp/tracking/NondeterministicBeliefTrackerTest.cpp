@@ -12,7 +12,7 @@ namespace {
 
 std::shared_ptr<storm::models::sparse::Pomdp<double>> buildMaze(std::string const& constants = "sl=0.0") {
     storm::prism::Program program = storm::parser::PrismParser::parse(STORM_TEST_RESOURCES_DIR "/pomdp/maze2.prism");
-    program = storm::utility::prism::preprocess(program, constants);
+    program = program.preprocess(constants);
     auto formula = storm::api::parsePropertiesForPrismProgram("Pmax=? [F \"goal\" ]", program).front().getRawFormula();
     auto model = storm::api::buildSparseModel<double>(program, {formula})->as<storm::models::sparse::Pomdp<double>>();
     storm::transformer::MakePOMDPCanonic<double> makeCanonic(*model);
@@ -167,8 +167,9 @@ TEST(SparseBeliefTracker, MixedRiskMaxMin) {
     // that has risk 1.0. We iterate until we either find one or exhaust observations.
     bool movedToHighRisk = false;
     for (uint32_t obs = 0; obs < static_cast<uint32_t>(pomdp->getNrObservations()); ++obs) {
-        if (obs == initObs)
+        if (obs == initObs) {
             continue;
+        }
         storm::generator::NondeterministicBeliefTracker<double, storm::generator::SparseBeliefState<double>> t2(*pomdp);
         t2.setRisk(mixedRisk);
         t2.reset(initObs);

@@ -23,7 +23,7 @@ bool expectPointConained(std::vector<std::vector<ValueType>> const& pointset, st
         EXPECT_EQ(p.size(), point.size()) << "Missmatch in point dimension.";
         bool found = true;
         for (uint64_t i = 0; i < p.size(); ++i) {
-            if (storm::utility::abs<ValueType>(p[i] - point[i]) > precision) {
+            if (storm::utility::abs(p[i] - point[i]) > precision) {
                 found = false;
                 break;
             }
@@ -80,8 +80,8 @@ bool expectSubset(std::vector<std::vector<ValueType>> const& lhs, std::vector<st
 }
 
 template<typename ValueType>
-std::vector<std::vector<ValueType>> convertPointset(std::vector<std::vector<std::string>> const& in) {
-    std::vector<std::vector<ValueType>> out;
+std::vector<std::vector<storm::utility::ExtendedValueType<ValueType>>> convertPointset(std::vector<std::vector<std::string>> const& in) {
+    std::vector<std::vector<storm::utility::ExtendedValueType<ValueType>>> out;
     for (auto const& point_str : in) {
         out.emplace_back();
         for (auto const& pi_str : point_str) {
@@ -108,7 +108,7 @@ void evaluateScheduler(storm::Environment const& env, storm::models::sparse::Mdp
         auto objRes = modelChecker.check(env, *obj);
         EXPECT_TRUE(objRes->isExplicitQuantitativeCheckResult()) << "Objective " << *obj << " did not produce a quantitative result.";
         auto const& quantitativeResult = objRes->template asExplicitQuantitativeCheckResult<ValueType>();
-        result.push_back(quantitativeResult[*dtmc.getInitialStates().begin()]);
+        result.push_back(storm::utility::getFinite(quantitativeResult[*dtmc.getInitialStates().begin()]));
     }
 }
 
@@ -118,8 +118,9 @@ void assertParetoResult(storm::Environment const& env, storm::models::sparse::Md
     ASSERT_TRUE(result.isExplicitParetoCurveCheckResult()) << "Result is not an explicit Pareto curve check result.";
     ValueType const eps = storm::utility::convertNumber<ValueType>(1e-4);
     auto const& paretoResult = result.asExplicitParetoCurveCheckResult<ValueType>();
-    EXPECT_TRUE(expectSubset(paretoResult.getPoints(), convertPointset<ValueType>(expectedPoints), eps)) << "Non-Pareto point found.";
-    EXPECT_TRUE(expectSubset(convertPointset<ValueType>(expectedPoints), paretoResult.getPoints(), eps)) << "Pareto point missing.";
+    auto const extendedEps = storm::utility::ExtendedValueType<ValueType>(eps);
+    EXPECT_TRUE(expectSubset(paretoResult.getPoints(), convertPointset<ValueType>(expectedPoints), extendedEps)) << "Non-Pareto point found.";
+    EXPECT_TRUE(expectSubset(convertPointset<ValueType>(expectedPoints), paretoResult.getPoints(), extendedEps)) << "Pareto point missing.";
     ASSERT_EQ(expectSchedulers, paretoResult.hasScheduler());
     if (expectSchedulers) {
         ASSERT_EQ(paretoResult.getPoints().size(), paretoResult.getSchedulers().size());
@@ -155,7 +156,7 @@ TEST_F(SparseMdpPcaaMultiObjectiveModelCheckerTest, simple_memory) {
 
     // program, model,  formula
     storm::prism::Program program = storm::api::parseProgram(programFile);
-    program = storm::utility::prism::preprocess(program, "p=0");  // qualitative version
+    program = program.preprocess("p=0");  // qualitative version
     program.checkValidity();
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas =
         storm::api::extractFormulasFromProperties(storm::api::parsePropertiesForPrismProgram(formulasAsString, program));
@@ -182,7 +183,7 @@ TEST_F(SparseMdpPcaaMultiObjectiveModelCheckerTest, simple_memory) {
     }
 
     program = storm::api::parseProgram(programFile);
-    program = storm::utility::prism::preprocess(program, "p=0.1");  // quantitative version
+    program = program.preprocess("p=0.1");  // quantitative version
     program.checkValidity();
     mdp = storm::builder::ExplicitModelBuilder<storm::RationalNumber>(program, options).build()->as<storm::models::sparse::Mdp<storm::RationalNumber>>();
 
@@ -221,7 +222,7 @@ TEST_F(SparseMdpPcaaMultiObjectiveModelCheckerTest, consensus) {
 
     // programm, model,  formula
     storm::prism::Program program = storm::api::parseProgram(programFile);
-    program = storm::utility::prism::preprocess(program, "");
+    program = program.preprocess("");
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas =
         storm::api::extractFormulasFromProperties(storm::api::parsePropertiesForPrismProgram(formulasAsString, program));
     std::shared_ptr<storm::models::sparse::Mdp<double>> mdp = storm::api::buildSparseModel<double>(program, formulas)->as<storm::models::sparse::Mdp<double>>();
@@ -251,7 +252,7 @@ TEST_F(SparseMdpPcaaMultiObjectiveModelCheckerTest, zeroconf) {
 
     // programm, model,  formula
     storm::prism::Program program = storm::api::parseProgram(programFile);
-    program = storm::utility::prism::preprocess(program, "");
+    program = program.preprocess("");
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas =
         storm::api::extractFormulasFromProperties(storm::api::parsePropertiesForPrismProgram(formulasAsString, program));
     std::shared_ptr<storm::models::sparse::Mdp<double>> mdp = storm::api::buildSparseModel<double>(program, formulas)->as<storm::models::sparse::Mdp<double>>();
@@ -274,7 +275,7 @@ TEST_F(SparseMdpPcaaMultiObjectiveModelCheckerTest, team3with3objectives) {
 
     // programm, model,  formula
     storm::prism::Program program = storm::api::parseProgram(programFile);
-    program = storm::utility::prism::preprocess(program, "");
+    program = program.preprocess("");
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas =
         storm::api::extractFormulasFromProperties(storm::api::parsePropertiesForPrismProgram(formulasAsString, program));
     std::shared_ptr<storm::models::sparse::Mdp<double>> mdp = storm::api::buildSparseModel<double>(program, formulas)->as<storm::models::sparse::Mdp<double>>();
@@ -295,7 +296,7 @@ TEST_F(SparseMdpPcaaMultiObjectiveModelCheckerTest, tiny_rewards_negative) {
 
     // programm, model,  formula
     storm::prism::Program program = storm::api::parseProgram(programFile);
-    program = storm::utility::prism::preprocess(program, "");
+    program = program.preprocess("");
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas =
         storm::api::extractFormulasFromProperties(storm::api::parsePropertiesForPrismProgram(formulasAsString, program));
     std::shared_ptr<storm::models::sparse::Mdp<double>> mdp = storm::api::buildSparseModel<double>(program, formulas)->as<storm::models::sparse::Mdp<double>>();
@@ -315,7 +316,7 @@ TEST_F(SparseMdpPcaaMultiObjectiveModelCheckerTest, scheduler) {
 
     // programm, model,  formula
     storm::prism::Program program = storm::api::parseProgram(programFile);
-    program = storm::utility::prism::preprocess(program, "");
+    program = program.preprocess("");
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas =
         storm::api::extractFormulasFromProperties(storm::api::parsePropertiesForPrismProgram(formulasAsString, program));
     std::shared_ptr<storm::models::sparse::Mdp<double>> mdp = storm::api::buildSparseModel<double>(program, formulas)->as<storm::models::sparse::Mdp<double>>();
@@ -336,7 +337,7 @@ TEST_F(SparseMdpPcaaMultiObjectiveModelCheckerTest, dpm) {
 
     // programm, model,  formula
     storm::prism::Program program = storm::api::parseProgram(programFile);
-    program = storm::utility::prism::preprocess(program, "");
+    program = program.preprocess("");
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas =
         storm::api::extractFormulasFromProperties(storm::api::parsePropertiesForPrismProgram(formulasAsString, program));
     std::shared_ptr<storm::models::sparse::Mdp<double>> mdp = storm::api::buildSparseModel<double>(program, formulas)->as<storm::models::sparse::Mdp<double>>();
@@ -449,7 +450,7 @@ TEST_F(SparseMdpPcaaMultiObjectiveModelCheckerTest, resource_gathering) {
 
     // programm, model,  formula
     storm::prism::Program program = storm::api::parseProgram(programFile);
-    program = storm::utility::prism::preprocess(program, constantsDef);
+    program = program.preprocess(constantsDef);
     program.checkValidity();
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas =
         storm::api::extractFormulasFromProperties(storm::api::parsePropertiesForPrismProgram(formulasAsString, program));
@@ -536,7 +537,7 @@ TEST_F(SparseMdpPcaaMultiObjectiveModelCheckerTest, uav) {
     std::string const formulasAsString = "multi(Pmax=? [F !\"timeExceeded\" & \"mission\" ], R{\"ROZ\"}min=? [ C ]);\n";  // pareto
                                                                                                                           // programm, model,  formula
     storm::prism::Program program = storm::api::parseProgram(programFile);
-    program = storm::utility::prism::preprocess(program, constantsDef);
+    program = program.preprocess(constantsDef);
     program.checkValidity();
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas =
         storm::api::extractFormulasFromProperties(storm::api::parsePropertiesForPrismProgram(formulasAsString, program));

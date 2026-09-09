@@ -1,6 +1,7 @@
 #include "storm-pars-cli/feasibility.h"
 #include <optional>
 
+#include "storm-cli-utilities/print.h"
 #include "storm-pars/modelchecker/region/RegionSplittingStrategy.h"
 #include "storm-pars/storage/ParameterRegion.h"
 #include "storm/api/verification.h"
@@ -101,7 +102,7 @@ void performFeasibility(std::shared_ptr<storm::models::sparse::Model<ValueType>>
     } else if (feasibilitySettings.getFeasibilityMethod() == storm::pars::FeasibilityMethod::PLA) {
         runFeasibilityWithPLA(model, task, omittedParameters, monotonicitySettings);
     } else {
-        STORM_LOG_ASSERT(feasibilitySettings.getFeasibilityMethod() == storm::pars::FeasibilityMethod::SCP, "Remaining method must be SCP");
+        STORM_LOG_ASSERT(feasibilitySettings.getFeasibilityMethod() == storm::pars::FeasibilityMethod::SCP, "Remaining method must be SCP.");
         STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "SCP is not yet implemented.");
     }
 }
@@ -172,8 +173,8 @@ void runFeasibilityWithGD(std::shared_ptr<storm::models::sparse::Model<ValueType
     STORM_PRINT("Finding an extremum using Gradient Descent\n");
     storm::utility::Stopwatch derivativeWatch(true);
     storm::derivative::GradientDescentInstantiationSearcher<storm::RationalFunction, double> gdsearch(
-        *dtmc, *method, derSettings.getLearningRate(), derSettings.getAverageDecay(), derSettings.getSquaredAverageDecay(), derSettings.getMiniBatchSize(),
-        derSettings.getTerminationEpsilon(), startPoint, *constraintMethod, region, derSettings.isPrintJsonSet());
+        Environment(), *dtmc, *method, derSettings.getLearningRate(), derSettings.getAverageDecay(), derSettings.getSquaredAverageDecay(),
+        derSettings.getMiniBatchSize(), derSettings.getTerminationEpsilon(), startPoint, *constraintMethod, region, derSettings.isPrintJsonSet());
 
     gdsearch.setup(Environment(), task);
     auto instantiationAndValue = gdsearch.gradientDescent();

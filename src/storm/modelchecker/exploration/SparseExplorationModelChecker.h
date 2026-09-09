@@ -1,5 +1,4 @@
-#ifndef STORM_MODELCHECKER_EXPLORATION_SPARSEEXPLORATIONMODELCHECKER_H_
-#define STORM_MODELCHECKER_EXPLORATION_SPARSEEXPLORATIONMODELCHECKER_H_
+#pragma once
 
 #include <random>
 
@@ -46,7 +45,7 @@ class SparseExplorationModelChecker : public AbstractModelChecker<ModelType> {
     typedef StateType ActionType;
     typedef std::vector<std::pair<StateType, ActionType>> StateActionStack;
 
-    SparseExplorationModelChecker(storm::prism::Program const& program);
+    SparseExplorationModelChecker(storm::Environment const& env, storm::prism::Program const& program);
 
     static bool canHandleStatic(CheckTask<storm::logic::Formula, ValueType> const& checkTask);
 
@@ -115,5 +114,3 @@ class SparseExplorationModelChecker : public AbstractModelChecker<ModelType> {
 };
 }  // namespace modelchecker
 }  // namespace storm
-
-#endif /* STORM_MODELCHECKER_EXPLORATION_SPARSEEXPLORATIONMODELCHECKER_H_ */

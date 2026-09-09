@@ -41,7 +41,7 @@ void analyzeMonotonicity(std::shared_ptr<storm::models::sparse::Model<ValueType>
     }
     std::vector<std::shared_ptr<storm::logic::Formula const>> formulas = storm::api::extractFormulasFromProperties(input.properties);
     storm::utility::Stopwatch monotonicityWatch(true);
-    STORM_LOG_THROW(regions.size() <= 1, storm::exceptions::InvalidArgumentException, "Monotonicity analysis only allowed on single region");
+    STORM_LOG_THROW(regions.size() <= 1, storm::exceptions::InvalidArgumentException, "Monotonicity analysis only allowed on single region.");
     if (!monSettings.isMonSolutionSet()) {
         auto monotonicityHelper = storm::analysis::MonotonicityHelper<ValueType, double>(
             model, formulas, regions, monSettings.getNumberOfSamples(), storm::settings::getModule<storm::settings::modules::GeneralSettings>().getPrecision(),
@@ -68,7 +68,8 @@ void analyzeMonotonicity(std::shared_ptr<storm::models::sparse::Model<ValueType>
         };
 
         for (auto& property : input.properties) {
-            auto result = verificationCallback(property.getRawFormula())->asExplicitQuantitativeCheckResult<ValueType>().getValueVector();
+            auto const checkResult = verificationCallback(property.getRawFormula());
+            auto const result = checkResult->asExplicitQuantitativeCheckResult<ValueType>().getFiniteValueVector();
             ValueType valuation;
 
             auto states = model->getInitialStates();

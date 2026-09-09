@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.25)
 
 # Set project name
 project(storm
-	VERSION 1.13.0.1
+	VERSION 1.14.0.1
 	# Version x.y.z.1 should be read as: This is an updated version of x.y.z that has not been released as x.y.z+1 yet.
 	LANGUAGES CXX C
 	DESCRIPTION "Storm - A Modern Probabilistic Model Checker"
@@ -48,6 +48,12 @@ option(STORM_FORCE_POPCNT "Sets whether the popcnt instruction is forced to be u
 MARK_AS_ADVANCED(STORM_FORCE_POPCNT)
 option(STORM_COMPILE_WITH_CCACHE "Compile using CCache [if found]" ON)
 mark_as_advanced(STORM_COMPILE_WITH_CCACHE)
+option(STORM_COMPILE_WITH_PCH "Enable pre-compiled headers" ON)
+mark_as_advanced(STORM_COMPILE_WITH_PCH)
+option(STORM_ENABLE_CLANG_TIDY "Sets whether a target for running clang-tidy is added." OFF)
+MARK_AS_ADVANCED(STORM_ENABLE_CLANG_TIDY)
+option(STORM_ENABLE_CLANG_FORMAT "Sets whether a target for running clang-format is added." OFF)
+MARK_AS_ADVANCED(STORM_ENABLE_CLANG_FORMAT)
 option(STORM_LOG_DISABLE_DEBUG "Disable log and trace message support" OFF)
 option(STORM_COMPILE_WITH_ADDRESS_SANITIZER "Sets whether to compile with AddressSanitizer enabled" OFF)
 option(STORM_COMPILE_WITH_ALL_SANITIZERS "Sets whether to compile with all sanitizers enabled" OFF)
@@ -71,7 +77,7 @@ MARK_AS_ADVANCED(STORM_QVBS_ROOT)
 
 ## Configuring dependencies
 set(STORM_CARL_GIT_REPO "https://github.com/stormchecker/carl-storm.git" CACHE STRING "For fetching carl: which git repo to use")
-option(STORM_CARL_GIT_TAG "For fetching carl: which git tag to use" "14.35")
+option(STORM_CARL_GIT_TAG "For fetching carl: which git tag to use" "14.36")
 MARK_AS_ADVANCED(STORM_CARL_GIT_TAG)
 option(STORM_DISABLE_CUDD "Sets whether linking with CUDD should be disabled." OFF)
 option(STORM_DISABLE_GLPK "Sets whether linking with GLPK should be disabled." OFF)
@@ -81,6 +87,7 @@ option(STORM_DISABLE_GMM "Sets whether linking with GMM should be disabled." OFF
 option(STORM_DISABLE_GUROBI "Sets whether linking with Gurobi should be disabled." OFF)
 set(GUROBI_ROOT "" CACHE STRING "A hint to the root directory of Gurobi.")
 MARK_AS_ADVANCED(GUROBI_ROOT)
+option(STORM_DISABLE_HIGHS "Sets whether linking with HiGHS should be disabled." OFF)
 option(STORM_DISABLE_LIBARCHIVE "Sets whether linking with LibArchive should be disabled." OFF)
 set(LibArchive_ROOT "" CACHE STRING "A hint to the root directory of LibArchive.")
 MARK_AS_ADVANCED(LibArchive_ROOT)
@@ -148,12 +155,12 @@ if (STORM_DEVELOPER)
     if (NOT CMAKE_BUILD_TYPE)
         set(CMAKE_BUILD_TYPE "DEBUG")
     endif()
-    # TODO Do this more targeted
-    add_definitions(-DSTORM_DEV)
     set(STORM_DEBUG_CUDD ON)
     set(STORM_DEBUG_SPOT ON)
     set(STORM_DEBUG_SYLVAN ON)
     set(STORM_WARNING_AS_ERROR ON)
+    set(STORM_ENABLE_CLANG_FORMAT ON)
+    set(STORM_ENABLE_CLANG_TIDY ON)
 else()
     set(STORM_LOG_DISABLE_DEBUG ON)
     if (NOT CMAKE_BUILD_TYPE)
@@ -308,6 +315,11 @@ endif ()
 ##
 #############################################################
 
+if(NOT STORM_COMPILE_WITH_PCH)
+	set(CMAKE_DISABLE_PRECOMPILE_HEADERS ON)
+	message(STATUS "Storm - Disabling precompiled headers.")
+endif()
+
 # Selection is based on (relatively extensive, but ad-hoc) compilation profiling in late 2023.
 # As changes mean recompilations of the complete code base, we only use std libraries and boost libraries here for now.
 SET(STORM_PRECOMPILED_HEADERS "<any>" "<map>" "<vector>" "<unordered_set>" "<forward_list>"
@@ -407,7 +419,7 @@ message(STATUS "Storm - Build type: ${CMAKE_BUILD_TYPE}")
 # in the the system does not have a library
 include(resources/3rdparty/CMakeLists.txt)
 
-if(STORM_HAVE_GLPK OR STORM_HAVE_GUROBI OR STORM_HAVE_SOPLEX OR STORM_HAVE_Z3)
+if(STORM_HAVE_GLPK OR STORM_HAVE_GUROBI OR STORM_HAVE_HIGHS OR STORM_HAVE_SOPLEX OR STORM_HAVE_Z3)
 	set(STORM_HAVE_LP_SOLVER ON)
 	message(STATUS "Storm - Compiled with an LP solver.")
 else()
@@ -426,6 +438,7 @@ export_option(STORM_HAVE_CUDD)
 export_option(STORM_HAVE_GMM)
 export_option(STORM_HAVE_GLPK)
 export_option(STORM_HAVE_GUROBI)
+export_option(STORM_HAVE_HIGHS)
 export_option(STORM_HAVE_MATHSAT)
 export_option(STORM_HAVE_SOPLEX)
 export_option(STORM_HAVE_SPOT)
@@ -517,9 +530,9 @@ if(PROJECT_IS_TOP_LEVEL AND STORM_BUILD_TESTS)
 	add_dependencies(check-verbose tests)
 endif()
 
+# Developer tools for formatting and static analysis
 if(PROJECT_IS_TOP_LEVEL)
-	# Apply code formatting
-	add_custom_target(format COMMAND ${PROJECT_SOURCE_DIR}/resources/scripts/auto-format.sh)
+	include(${PROJECT_SOURCE_DIR}/resources/cmake/ClangTools.cmake)
 endif()
 
 set(STORM_TARGETS "")

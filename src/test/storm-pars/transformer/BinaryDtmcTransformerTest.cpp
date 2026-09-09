@@ -12,6 +12,7 @@
 #include "storm/adapters/RationalFunctionAdapter.h"
 #include "storm/api/bisimulation.h"
 #include "storm/api/builder.h"
+#include "storm/api/properties.h"
 #include "storm/environment/Environment.h"
 #include "storm/modelchecker/CheckTask.h"
 #include "storm/modelchecker/results/ExplicitQuantitativeCheckResult.h"
@@ -21,11 +22,10 @@
 #include "storm/storage/bisimulation/BisimulationType.h"
 #include "storm/storage/prism/Program.h"
 #include "storm/utility/constants.h"
-#include "storm/utility/prism.h"
 
 void testModelB(std::string programFile, std::string formulaAsString, std::string constantsAsString) {
     storm::prism::Program program = storm::api::parseProgram(programFile);
-    program = storm::utility::prism::preprocess(program, constantsAsString);
+    program = program.preprocess(constantsAsString);
     std::vector<std::shared_ptr<const storm::logic::Formula>> formulas =
         storm::api::extractFormulasFromProperties(storm::api::parsePropertiesForPrismProgram(formulaAsString, program));
     std::shared_ptr<storm::models::sparse::Dtmc<storm::RationalFunction>> model =
@@ -40,9 +40,11 @@ void testModelB(std::string programFile, std::string formulaAsString, std::strin
     storm::transformer::BinaryDtmcTransformer binaryDtmcTransformer;
     auto simpleDtmc = binaryDtmcTransformer.transform(*dtmc, true);
 
-    storm::modelchecker::SparseDtmcInstantiationModelChecker<storm::models::sparse::Dtmc<storm::RationalFunction>, double> modelChecker(*dtmc);
+    storm::modelchecker::SparseDtmcInstantiationModelChecker<storm::models::sparse::Dtmc<storm::RationalFunction>, double> modelChecker(storm::Environment(),
+                                                                                                                                        *dtmc);
     modelChecker.specifyFormula(checkTask);
-    storm::modelchecker::SparseDtmcInstantiationModelChecker<storm::models::sparse::Dtmc<storm::RationalFunction>, double> modelCheckerSimple(*simpleDtmc);
+    storm::modelchecker::SparseDtmcInstantiationModelChecker<storm::models::sparse::Dtmc<storm::RationalFunction>, double> modelCheckerSimple(
+        storm::Environment(), *simpleDtmc);
     modelCheckerSimple.specifyFormula(checkTask);
 
     auto parameters = storm::models::sparse::getAllParameters(*dtmc);

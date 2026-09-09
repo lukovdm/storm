@@ -174,7 +174,7 @@ TYPED_TEST(ConditionalDtmcPrctlModelCheckerTest, Conditional) {
 
     result = checker.check(this->env(), *formula);
     storm::modelchecker::ExplicitQuantitativeCheckResult<ValueType>& quantitativeResult3 = result->asExplicitQuantitativeCheckResult<ValueType>();
-    EXPECT_EQ(storm::utility::infinity<ValueType>(), quantitativeResult3[0]);
+    EXPECT_EQ(storm::utility::positiveInfinity<ValueType>(), quantitativeResult3[0]);
 
     formula = formulaParser.parseSingleFormulaFromString("R=? [F \"target\" || F \"condition\"]");
 
@@ -219,7 +219,7 @@ TYPED_TEST(ConditionalDtmcPrctlModelCheckerTest, ConditionalUnreachableFromIniti
     std::unique_ptr<storm::modelchecker::CheckResult> result = checker.check(this->env(), *formula);
     storm::modelchecker::ExplicitQuantitativeCheckResult<ValueType>& quantitativeResult1 = result->asExplicitQuantitativeCheckResult<ValueType>();
     EXPECT_NEAR(storm::utility::one<ValueType>(), quantitativeResult1[*dtmc->getStates("start").begin()], this->precision());
-    EXPECT_EQ(storm::utility::infinity<ValueType>(), quantitativeResult1[*initialStatesWithoutCondition.begin()]);
+    EXPECT_EQ(storm::utility::positiveInfinity<ValueType>(), quantitativeResult1[*initialStatesWithoutCondition.begin()]);
 
     formula = formulaParser.parseSingleFormulaFromString("R=? [F \"target\" || F \"condition\"]");
 
@@ -229,6 +229,6 @@ TYPED_TEST(ConditionalDtmcPrctlModelCheckerTest, ConditionalUnreachableFromIniti
     result = checker.check(this->env(), *formula);
     storm::modelchecker::ExplicitQuantitativeCheckResult<ValueType>& quantitativeResult2 = result->asExplicitQuantitativeCheckResult<ValueType>();
     EXPECT_NEAR(storm::utility::one<ValueType>(), quantitativeResult2[*dtmc->getStates("start").begin()], this->precision());
-    EXPECT_EQ(storm::utility::infinity<ValueType>(), quantitativeResult2[*initialStatesWithoutCondition.begin()]);
+    EXPECT_EQ(storm::utility::positiveInfinity<ValueType>(), quantitativeResult2[*initialStatesWithoutCondition.begin()]);
 }
 }  // namespace

@@ -15,6 +15,14 @@ namespace dd {
 namespace bisimulation {
 
 #ifdef STORM_HAVE_SYLVAN
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Watomic-implicit-seq-cst"
+#pragma clang diagnostic ignored "-Wextra-semi-stmt"
+#pragma clang diagnostic ignored "-Wused-but-marked-unused"
+#pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+
 static const uint64_t NO_ELEMENT_MARKER = -1ull;
 
 InternalSylvanSignatureRefinerBase::InternalSylvanSignatureRefinerBase(storm::dd::DdManager<storm::dd::DdType::Sylvan> const& manager,
@@ -119,12 +127,6 @@ static uint64_t sylvan_hash(uint64_t a, uint64_t b) {
  * The code was modified in minor places to account for necessary changes, for example to handle
  * nondeterminism variables.
  */
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wc99-extensions"
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-
 VOID_TASK_3(sylvan_rehash, size_t, first, size_t, count, InternalSylvanSignatureRefinerBase*, refiner) {
     if (count > 128) {
         SPAWN(sylvan_rehash, first, count / 2, refiner);
@@ -142,7 +144,7 @@ VOID_TASK_3(sylvan_rehash, size_t, first, size_t, count, InternalSylvanSignature
         uint64_t hash = sylvan_hash(a, b);
         uint64_t pos = hash % refiner->currentCapacity;
 
-        volatile uint64_t* ptr = 0;
+        volatile uint64_t* ptr = nullptr;
         for (;;) {
             ptr = refiner->table.data() + pos * 3;
             if (*ptr == 0) {
@@ -153,8 +155,9 @@ VOID_TASK_3(sylvan_rehash, size_t, first, size_t, count, InternalSylvanSignature
                 }
             }
             pos++;
-            if (pos >= refiner->currentCapacity)
+            if (pos >= refiner->currentCapacity) {
                 pos = 0;
+            }
         }
 
         first++;
@@ -179,7 +182,7 @@ VOID_TASK_1(sylvan_grow, InternalSylvanSignatureRefinerBase*, refiner) {
         refiner->resizeFlag = 0;
     } else {
         /* wait for new frame to appear */
-        while (ATOMIC_READ(lace_newframe.t) == 0) {
+        while (ATOMIC_READ(lace_newframe.t) == nullptr) {
         }
         lace_yield(__lace_worker, __lace_dq_head);
     }
@@ -189,16 +192,20 @@ static uint64_t sylvan_search_or_insert(uint64_t sig, uint64_t previous_block, I
     uint64_t hash = sylvan_hash(sig, previous_block);
     uint64_t pos = hash % refiner->currentCapacity;
 
-    volatile uint64_t* ptr = 0;
+    volatile uint64_t* ptr = nullptr;
     uint64_t a, b, c;
     int count = 0;
     for (;;) {
         ptr = refiner->table.data() + pos * 3;
         a = *ptr;
         if (a == sig) {
-            while ((b = ptr[1]) == NO_ELEMENT_MARKER) continue;
+            while ((b = ptr[1]) == NO_ELEMENT_MARKER) {
+                continue;
+            }
             if (b == previous_block) {
-                while ((c = ptr[2]) == NO_ELEMENT_MARKER) continue;
+                while ((c = ptr[2]) == NO_ELEMENT_MARKER) {
+                    continue;
+                }
                 return c;
             }
         } else if (a == NO_ELEMENT_MARKER) {
@@ -212,10 +219,12 @@ static uint64_t sylvan_search_or_insert(uint64_t sig, uint64_t previous_block, I
             }
         }
         pos++;
-        if (pos >= refiner->currentCapacity)
+        if (pos >= refiner->currentCapacity) {
             pos = 0;
-        if (++count >= 128)
+        }
+        if (++count >= 128) {
             return NO_ELEMENT_MARKER;
+        }
     }
 }
 
@@ -245,7 +254,7 @@ TASK_3(BDD, sylvan_encode_block, BDD, vars, uint64_t, numberOfVariables, uint64_
 }
 
 TASK_3(BDD, sylvan_assign_block, BDD, sig, BDD, previous_block, InternalSylvanSignatureRefinerBase*, refiner) {
-    assert(previous_block != mtbdd_false);  // if so, incorrect call!
+    STORM_LOG_ASSERT(previous_block != mtbdd_false, "Incorrect call: previous_block is mtbdd_false.");
 
     // maybe do garbage collection
     sylvan_gc_test();
@@ -257,18 +266,21 @@ TASK_3(BDD, sylvan_assign_block, BDD, sig, BDD, previous_block, InternalSylvanSi
 
     if (refiner->options.reuseBlockNumbers) {
         // try to claim previous block number
-        assert(previous_block != sylvan_false);
+        STORM_LOG_ASSERT(previous_block != sylvan_false, "Previous_block is sylvan_false.");
         const uint64_t p_b = CALL(sylvan_decode_block, previous_block);
-        assert(p_b < refiner->signatures.size());
+        STORM_LOG_ASSERT(p_b < refiner->signatures.size(), "Block index out of range.");
 
         for (;;) {
             BDD cur = *(volatile BDD*)&refiner->signatures[p_b];
-            if (cur == sig)
+            if (cur == sig) {
                 return previous_block;
-            if (cur != 0)
+            }
+            if (cur != 0) {
                 break;
-            if (cas(&refiner->signatures[p_b], 0, sig))
+            }
+            if (cas(&refiner->signatures[p_b], 0, sig)) {
                 return previous_block;
+            }
         }
     }
 
@@ -293,8 +305,9 @@ TASK_5(BDD, sylvan_refine_partition, BDD, dd, BDD, previous_partition, BDD, nond
 
     if (sylvan_set_isempty(vars)) {
         BDD result;
-        if (cache_get(dd | (256LL << 42), vars, previous_partition | (refiner->numberOfRefinements << 40), &result))
+        if (cache_get(dd | (256LL << 42), vars, previous_partition | (refiner->numberOfRefinements << 40), &result)) {
             return result;
+        }
         result = CALL(sylvan_assign_block, dd, previous_partition, refiner);
         cache_put(dd | (256LL << 42), vars, previous_partition | (refiner->numberOfRefinements << 40), result);
         return result;
@@ -317,8 +330,9 @@ TASK_5(BDD, sylvan_refine_partition, BDD, dd, BDD, previous_partition, BDD, nond
         if (nondet) {
             nondetvars = sylvan_set_next(nondetvars);
         }
-        if (sylvan_set_isempty(vars))
+        if (sylvan_set_isempty(vars)) {
             return CALL(sylvan_refine_partition, dd, previous_partition, nondetvars, vars, refiner);
+        }
         vars_var = sylvan_var(vars);
         if (nondet) {
             nondetvars_var = sylvan_isconst(nondetvars) ? 0xffffffff : sylvan_var(nondetvars);
@@ -366,8 +380,8 @@ TASK_5(BDD, sylvan_refine_partition, BDD, dd, BDD, previous_partition, BDD, nond
     return result;
 }
 
-#pragma GCC diagnostic pop
 #pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 #else
 InternalSylvanSignatureRefinerBase::InternalSylvanSignatureRefinerBase(storm::dd::DdManager<storm::dd::DdType::Sylvan> const& manager,

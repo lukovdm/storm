@@ -90,7 +90,7 @@ PrismParserGrammar::PrismParserGrammar(std::string const& filename, Iterator fir
       filename(filename),
       annotate(first),
       manager(new storm::expressions::ExpressionManager()),
-      expressionParser(new ExpressionParser(*manager, keywords_, false, false)) {
+      expressionParser(new ExpressionParser(*manager, expressionKeywords_, false, false)) {
     ExpressionParser& expression_ = *expressionParser;
     boolExpression = (expression_[qi::_val = qi::_1])[qi::_pass = phoenix::bind(&PrismParserGrammar::isOfBoolType, phoenix::ref(*this), qi::_val)];
     boolExpression.name("boolean expression");
@@ -229,8 +229,9 @@ PrismParserGrammar::PrismParserGrammar(std::string const& filename, Iterator fir
          qi::lit("endinit"))[qi::_pass = phoenix::bind(&PrismParserGrammar::addInitialStatesConstruct, phoenix::ref(*this), qi::_1, qi::_r1)];
     initialStatesConstruct.name("initial construct");
 
-    observablesConstruct = (qi::lit("observables") > (identifier % qi::lit(",")) >
-                            qi::lit("endobservables"))[phoenix::bind(&PrismParserGrammar::createObservablesList, phoenix::ref(*this), qi::_1)];
+    observablesConstruct =
+        (qi::lit("observables") > (identifier % qi::lit(",")) >
+         qi::lit("endobservables"))[qi::_pass = phoenix::bind(&PrismParserGrammar::addObservablesConstruct, phoenix::ref(*this), qi::_1, qi::_r1)];
     observablesConstruct.name("observables construct");
 
     invariantConstruct = (qi::lit("invariant") > boolExpression > qi::lit("endinvariant"))[qi::_val = qi::_1];
@@ -381,8 +382,8 @@ PrismParserGrammar::PrismParserGrammar(std::string const& filename, Iterator fir
     start =
         (qi::eps[phoenix::bind(&PrismParserGrammar::removeInitialConstruct, phoenix::ref(*this), phoenix::ref(globalProgramInformation))] >
          modelTypeDefinition[phoenix::bind(&PrismParserGrammar::setModelType, phoenix::ref(*this), phoenix::ref(globalProgramInformation), qi::_1)] >
-         -observablesConstruct >
-         *(definedConstantDefinition[phoenix::push_back(phoenix::bind(&GlobalProgramInformation::constants, phoenix::ref(globalProgramInformation)), qi::_1)] |
+         *(observablesConstruct(phoenix::ref(globalProgramInformation)) |
+           definedConstantDefinition[phoenix::push_back(phoenix::bind(&GlobalProgramInformation::constants, phoenix::ref(globalProgramInformation)), qi::_1)] |
            undefinedConstantDefinition[phoenix::push_back(phoenix::bind(&GlobalProgramInformation::constants, phoenix::ref(globalProgramInformation)),
                                                           qi::_1)] |
            formulaDefinition[phoenix::push_back(phoenix::bind(&GlobalProgramInformation::formulas, phoenix::ref(globalProgramInformation)), qi::_1)] |
@@ -425,15 +426,19 @@ PrismParserGrammar::PrismParserGrammar(std::string const& filename, Iterator fir
     qi::on_success(assignmentDefinition, setLocationInfoFunction);
 
     // Enable error reporting.
-    qi::on_error<qi::fail>(start, handler(qi::_1, qi::_2, qi::_3, qi::_4));
+    qi::on_error<qi::fail>(start,
+                           (phoenix::bind(&PrismParserGrammar::reportRejectedKeywordIdentifier, phoenix::ref(*this)), handler(qi::_1, qi::_2, qi::_3, qi::_4)));
 }
 
 void PrismParserGrammar::moveToSecondRun() {
+    {
+        auto const undeclaredObsIt = std::find_if(observables.begin(), observables.end(), [](auto const& pair) { return !pair.second; });
+        STORM_LOG_THROW(undeclaredObsIt == observables.end(), storm::exceptions::WrongFormatException,
+                        "Some variables marked as observable, but never declared, e.g. " << undeclaredObsIt->first);
+    }
+
     // In the second run, we actually need to parse the commands instead of just skipping them,
     // so we adapt the rule for parsing commands.
-    STORM_LOG_THROW(observables.empty(), storm::exceptions::WrongFormatException,
-                    "Some variables marked as observable, but never declared, e.g. " << *observables.begin());
-
     commandDefinition =
         (((qi::lit("[") > -identifier > qi::lit("]")) | (qi::lit("<") > -identifier > qi::lit(">")[qi::_a = true])) > *expressionParser > qi::lit("->") >
          updateListDefinition(qi::_r1) >
@@ -458,7 +463,7 @@ void PrismParserGrammar::moveToSecondRun() {
 
 void PrismParserGrammar::createFormulaIdentifiers(std::vector<storm::prism::Formula> const& formulas) {
     STORM_LOG_THROW(formulas.size() == this->formulaExpressions.size(), storm::exceptions::UnexpectedException,
-                    "Unexpected number of formulas and formula expressions");
+                    "Unexpected number of formulas and formula expressions.");
     this->formulaOrder.clear();
     storm::storage::BitVector unprocessed(formulas.size(), true);
     // It might be that formulas are declared in a weird order.
@@ -490,19 +495,19 @@ void PrismParserGrammar::createFormulaIdentifiers(std::vector<storm::prism::Form
                 } catch (storm::exceptions::InvalidArgumentException const&) {
                     STORM_LOG_THROW(false, storm::exceptions::WrongFormatException,
                                     "Parsing error in " << this->getFilename() << ": illegal identifier '" << formulas[formulaIndex].getName() << "' at line '"
-                                                        << formulas[formulaIndex].getLineNumber());
+                                                        << formulas[formulaIndex].getLineNumber() << ".");
                 }
                 this->expressionParser->setIdentifierMapping(&this->identifiers_);
             }
         }
     }
     if (!unprocessed.empty()) {
-        for (auto formulaIndex : unprocessed) {
+        for (uint64_t formulaIndex : unprocessed) {
             STORM_LOG_ERROR("Parsing error in " << this->getFilename() << ": Invalid expression for formula '" << formulas[formulaIndex].getName()
                                                 << "' at line '" << formulas[formulaIndex].getLineNumber() << "':\n\t" << formulaExpressions[formulaIndex]);
         }
         STORM_LOG_THROW(unprocessed.getNumberOfSetBits() == 1, storm::exceptions::WrongFormatException,
-                        "Unable to parse expressions for " << unprocessed.getNumberOfSetBits() << " formulas. This could be due to circular dependencies");
+                        "Unable to parse expressions for " << unprocessed.getNumberOfSetBits() << " formulas. This could be due to circular dependencies.");
         STORM_LOG_THROW(false, storm::exceptions::WrongFormatException,
                         "Unable to parse expression for formula '" << formulas[unprocessed.getNextSetIndex(0)].getName() << "'.");
     }
@@ -518,9 +523,28 @@ std::string const& PrismParserGrammar::getFilename() const {
 
 bool PrismParserGrammar::isValidIdentifier(std::string const& identifier) {
     if (this->keywords_.find(identifier) != nullptr) {
+        // "player"/"endplayer" and "invariant"/"endinvariant" are only meaningful (and thus only reserved) for
+        // SMGs resp. PTAs; the model type is already known at this point since it is always the first thing
+        // parsed in the file.
+        auto const modelType = this->globalProgramInformation.modelType;
+        bool const isExemptSmgKeyword = (identifier == "player" || identifier == "endplayer") && modelType != storm::prism::Program::ModelType::SMG;
+        bool const isExemptPtaKeyword = (identifier == "invariant" || identifier == "endinvariant") && modelType != storm::prism::Program::ModelType::PTA;
+        if (isExemptSmgKeyword || isExemptPtaKeyword) {
+            return true;
+        }
+        // Do not log here: this check also fires on harmless speculative backtracking during a successful parse.
+        // Recorded for diagnostics in case parsing ultimately fails, see reportRejectedKeywordIdentifier.
+        this->lastRejectedKeywordIdentifier = identifier;
         return false;
     }
     return true;
+}
+
+void PrismParserGrammar::reportRejectedKeywordIdentifier() {
+    if (!this->lastRejectedKeywordIdentifier.empty()) {
+        STORM_LOG_ERROR("Parsing error in " << this->getFilename() << ": '" << this->lastRejectedKeywordIdentifier
+                                            << "' is a reserved keyword and cannot be used as an identifier.");
+    }
 }
 
 bool PrismParserGrammar::isKnownModuleName(std::string const& moduleName, bool inSecondRun) {
@@ -569,11 +593,19 @@ bool PrismParserGrammar::isFreshLabelName(std::string const& labelName) {
 
 bool PrismParserGrammar::isFreshObservationLabelName(std::string const& labelName) {
     if (!this->secondRun) {
-        for (auto const& existingLabel : this->globalProgramInformation.observationLabels) {
-            if (labelName == existingLabel.getName()) {
-                STORM_LOG_ERROR("Parsing error in " << this->getFilename() << ": Duplicate observable name '" << identifier << "'.");
-                return false;
-            }
+        // In the first run, check if we already know such an observation label
+        if (std::any_of(this->globalProgramInformation.observationLabels.begin(), this->globalProgramInformation.observationLabels.end(),
+                        [&labelName](auto const& existingLabel) { return labelName == existingLabel.getName(); })) {
+            STORM_LOG_ERROR("Parsing error in " << this->getFilename() << ": Duplicate observation label name '" << labelName << "'.");
+            return false;
+        }
+    } else {
+        // In the second run, check if there is a clash between observation label and known observable variable.
+        if (std::any_of(this->observables.begin(), this->observables.end(),
+                        [&labelName](auto const& observableVariable) { return labelName == observableVariable.first; })) {
+            STORM_LOG_ERROR("Parsing error in " << this->getFilename() << ": Observation label name '" << labelName
+                                                << "' coincides with the name of an observable variable.");
+            return false;
         }
     }
     return true;
@@ -872,9 +904,9 @@ storm::prism::BooleanVariable PrismParserGrammar::createBooleanVariable(std::str
                             "Parsing error in " << this->getFilename() << ": illegal identifier '" << variableName << "'.");
         }
     }
-    bool observable = this->observables.count(variableName) > 0;
+    bool const observable = this->observables.count(variableName) > 0;
     if (observable) {
-        this->observables.erase(variableName);
+        this->observables.at(variableName) = true;
     }
     return storm::prism::BooleanVariable(manager->getVariable(variableName), initialValueExpression, observable, this->getFilename());
 }
@@ -891,9 +923,9 @@ storm::prism::IntegerVariable PrismParserGrammar::createIntegerVariable(std::str
                             "Parsing error in " << this->getFilename() << ": illegal identifier '" << variableName << "'.");
         }
     }
-    bool observable = this->observables.count(variableName) > 0;
+    bool const observable = this->observables.count(variableName) > 0;
     if (observable) {
-        this->observables.erase(variableName);
+        this->observables.at(variableName) = true;
     }
 
     return storm::prism::IntegerVariable(manager->getVariable(variableName), lowerBoundExpression, upperBoundExpression, initialValueExpression, observable,
@@ -910,17 +942,25 @@ storm::prism::ClockVariable PrismParserGrammar::createClockVariable(std::string 
                             "Parsing error in " << this->getFilename() << ": illegal identifier '" << variableName << "'.");
         }
     }
-    bool observable = this->observables.count(variableName) > 0;
+    bool const observable = this->observables.count(variableName) > 0;
     if (observable) {
-        this->observables.erase(variableName);
+        this->observables.at(variableName) = true;
     }
 
     return storm::prism::ClockVariable(manager->getVariable(variableName), observable, this->getFilename());
 }
 
-void PrismParserGrammar::createObservablesList(std::vector<std::string> const& observables) {
-    this->observables.insert(observables.begin(), observables.end());
-    // We need this list to be filled in both runs.
+bool PrismParserGrammar::addObservablesConstruct(std::vector<std::string> const& observables, GlobalProgramInformation& globalProgramInformation) {
+    STORM_LOG_THROW(!globalProgramInformation.hasObservablesConstruct, storm::exceptions::WrongFormatException,
+                    "Parsing error in " << this->getFilename() << ": Program must not define two observables constructs.");
+    if (globalProgramInformation.hasObservablesConstruct) {
+        return false;
+    }
+    globalProgramInformation.hasObservablesConstruct = true;
+    for (auto const& observable : observables) {
+        this->observables[observable] = false;
+    }
+    return true;
 }
 
 storm::prism::Player PrismParserGrammar::createPlayer(std::string const& playerName, std::vector<std::string> const& moduleNames,
@@ -1040,7 +1080,7 @@ storm::prism::Module PrismParserGrammar::createRenamedModule(std::string const& 
             storm::expressions::Variable renamedVariable = manager->declareBooleanVariable(renamingPair->second);
             this->identifiers_.add(renamingPair->second, renamedVariable.getExpression());
             if (this->observables.count(renamingPair->second) > 0) {
-                this->observables.erase(renamingPair->second);
+                this->observables.at(renamingPair->second) = true;
             }
         }
         for (auto const& variable : moduleToRename.getIntegerVariables()) {
@@ -1050,7 +1090,7 @@ storm::prism::Module PrismParserGrammar::createRenamedModule(std::string const& 
             storm::expressions::Variable renamedVariable = manager->declareIntegerVariable(renamingPair->second);
             this->identifiers_.add(renamingPair->second, renamedVariable.getExpression());
             if (this->observables.count(renamingPair->second) > 0) {
-                this->observables.erase(renamingPair->second);
+                this->observables.at(renamingPair->second) = true;
             }
         }
         for (auto const& variable : moduleToRename.getClockVariables()) {
@@ -1060,7 +1100,7 @@ storm::prism::Module PrismParserGrammar::createRenamedModule(std::string const& 
             storm::expressions::Variable renamedVariable = manager->declareRationalVariable(renamingPair->second);
             this->identifiers_.add(renamingPair->second, renamedVariable.getExpression());
             if (this->observables.count(renamingPair->second) > 0) {
-                this->observables.erase(renamingPair->second);
+                this->observables.at(renamingPair->second) = true;
             }
         }
 
@@ -1103,9 +1143,9 @@ storm::prism::Module PrismParserGrammar::createRenamedModule(std::string const& 
             auto const& renamingPair = renaming.find(variable.getName());
             STORM_LOG_THROW(renamingPair != renaming.end(), storm::exceptions::WrongFormatException,
                             "Parsing error in " << this->getFilename() << ": Boolean variable '" << variable.getName() << " was not renamed.");
-            bool observable = this->observables.count(renamingPair->second) > 0;
+            bool const observable = this->observables.count(renamingPair->second) > 0;
             if (observable) {
-                this->observables.erase(renamingPair->second);
+                this->observables.at(renamingPair->second) = true;
             }
             booleanVariables.push_back(storm::prism::BooleanVariable(
                 manager->getVariable(renamingPair->second),
@@ -1119,9 +1159,9 @@ storm::prism::Module PrismParserGrammar::createRenamedModule(std::string const& 
             auto const& renamingPair = renaming.find(variable.getName());
             STORM_LOG_THROW(renamingPair != renaming.end(), storm::exceptions::WrongFormatException,
                             "Parsing error in " << this->getFilename() << ": Integer variable '" << variable.getName() << " was not renamed.");
-            bool observable = this->observables.count(renamingPair->second) > 0;
+            bool const observable = this->observables.count(renamingPair->second) > 0;
             if (observable) {
-                this->observables.erase(renamingPair->second);
+                this->observables.at(renamingPair->second) = true;
             }
             integerVariables.push_back(storm::prism::IntegerVariable(
                 manager->getVariable(renamingPair->second), variable.getLowerBoundExpression().substitute(expressionRenaming),
@@ -1136,9 +1176,9 @@ storm::prism::Module PrismParserGrammar::createRenamedModule(std::string const& 
             auto const& renamingPair = renaming.find(variable.getName());
             STORM_LOG_THROW(renamingPair != renaming.end(), storm::exceptions::WrongFormatException,
                             "Parsing error in " << this->getFilename() << ": Clock variable '" << variable.getName() << " was not renamed.");
-            bool observable = this->observables.count(renamingPair->second) > 0;
+            bool const observable = this->observables.count(renamingPair->second) > 0;
             if (observable) {
-                this->observables.erase(renamingPair->second);
+                this->observables.at(renamingPair->second) = true;
             }
             clockVariables.push_back(
                 storm::prism::ClockVariable(manager->getVariable(renamingPair->second), observable, this->getFilename(), moduleRenaming.getLineNumber()));

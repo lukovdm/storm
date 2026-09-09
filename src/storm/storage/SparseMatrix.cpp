@@ -13,6 +13,7 @@
 #include "storm/storage/BitVector.h"
 #include "storm/storage/sparse/StateType.h"
 #include "storm/utility/ConstantsComparator.h"
+#include "storm/utility/NumberTraits.h"
 #include "storm/utility/constants.h"
 #include "storm/utility/macros.h"
 #include "storm/utility/permutation.h"
@@ -187,7 +188,7 @@ void SparseMatrixBuilder<ValueType>::addNextValue(index_type row, index_type col
         // If we switched to another row, we have to adjust the missing entries in the row indices vector.
         if (row != lastRow) {
             // Otherwise, we need to push the correct values to the vectors, which might trigger reallocations.
-            assert(rowIndications.size() == lastRow + 1);
+            STORM_LOG_ASSERT(rowIndications.size() == lastRow + 1, "Row indications size mismatch.");
             rowIndications.resize(row + 1, currentEntryCount);
             lastRow = row;
         }
@@ -267,7 +268,7 @@ void SparseMatrixBuilder<ValueType>::newRowGroup(index_type startingRow) {
     // Handle the case where the previous row group ends with one or more empty rows
     if (lastRow + 1 < startingRow) {
         // Close all rows from the most recent one to the starting row.
-        assert(rowIndications.size() == lastRow + 1);
+        STORM_LOG_ASSERT(rowIndications.size() == lastRow + 1, "Row indications size mismatch.");
         rowIndications.resize(startingRow, currentEntryCount);
         // Reset the most recently seen row/column to allow for proper insertion of the following elements.
         lastRow = startingRow - 1;
@@ -384,7 +385,8 @@ void print(std::vector<typename SparseMatrix<ValueType>::index_type> const& rowG
         for (typename SparseMatrix<ValueType>::index_type i = rowGroupIndices[group]; i < endGroups; ++i) {
             endRows = i < rowIndications.size() - 1 ? rowIndications[i + 1] : columnsAndValues.size();
             // Print the actual row.
-            std::cout << "Row " << i << " (" << rowIndications[i] << " - " << endRows << ")" << ": ";
+            std::cout << "Row " << i << " (" << rowIndications[i] << " - " << endRows << ")"
+                      << ": ";
             for (typename SparseMatrix<ValueType>::index_type pos = rowIndications[i]; pos < endRows; ++pos) {
                 std::cout << "(" << columnsAndValues[pos].getColumn() << ": " << columnsAndValues[pos].getValue() << ") ";
             }
@@ -445,7 +447,7 @@ void SparseMatrixBuilder<ValueType>::addDiagonalEntry(index_type row, ValueType 
     }
     pendingDiagonalEntry = value;
     if (lastRow != row) {
-        assert(rowIndications.size() == lastRow + 1);
+        STORM_LOG_ASSERT(rowIndications.size() == lastRow + 1, "Row indications size mismatch.");
         rowIndications.resize(row + 1, currentEntryCount);
         lastRow = row;
         lastColumn = 0;
@@ -828,7 +830,7 @@ void SparseMatrix<ValueType>::makeRowGroupingTrivial() {
 template<typename ValueType>
 storm::storage::BitVector SparseMatrix<ValueType>::getRowFilter(storm::storage::BitVector const& groupConstraint) const {
     storm::storage::BitVector res(this->getRowCount(), false);
-    for (auto group : groupConstraint) {
+    for (uint64_t group : groupConstraint) {
         res.setMultiple(getRowGroupIndices()[group], getRowGroupSize(group));
     }
     return res;
@@ -838,7 +840,7 @@ template<typename ValueType>
 storm::storage::BitVector SparseMatrix<ValueType>::getRowFilter(storm::storage::BitVector const& groupConstraint,
                                                                 storm::storage::BitVector const& columnConstraint) const {
     storm::storage::BitVector result(this->getRowCount(), false);
-    for (auto group : groupConstraint) {
+    for (uint64_t group : groupConstraint) {
         for (auto row : this->getRowGroupIndices(group)) {
             bool choiceSatisfiesColumnConstraint = true;
             for (auto const& entry : this->getRow(row)) {
@@ -857,7 +859,7 @@ storm::storage::BitVector SparseMatrix<ValueType>::getRowFilter(storm::storage::
 
 template<typename ValueType>
 storm::storage::BitVector SparseMatrix<ValueType>::getRowGroupFilter(storm::storage::BitVector const& rowConstraint, bool setIfForAllRowsInGroup) const {
-    STORM_LOG_ASSERT(!this->hasTrivialRowGrouping(), "Tried to get a row group filter but this matrix does not have row groups");
+    STORM_LOG_ASSERT(!this->hasTrivialRowGrouping(), "Tried to get a row group filter but this matrix does not have row groups.");
     storm::storage::BitVector result(this->getRowGroupCount(), false);
     auto const& groupIndices = this->getRowGroupIndices();
     if (setIfForAllRowsInGroup) {
@@ -882,7 +884,7 @@ template<typename ValueType>
 void SparseMatrix<ValueType>::makeRowsAbsorbing(storm::storage::BitVector const& rows, bool dropZeroEntries) {
     // First transform ALL rows without dropping zero entries, then drop zero entries once
     // This prevents iteration over the whole matrix every time an entry is set to zero.
-    for (auto row : rows) {
+    for (uint64_t row : rows) {
         makeRowDirac(row, row, false);
     }
     if (dropZeroEntries) {
@@ -895,13 +897,13 @@ void SparseMatrix<ValueType>::makeRowGroupsAbsorbing(storm::storage::BitVector c
     // First transform ALL rows without dropping zero entries, then drop zero entries once.
     // This prevents iteration over the whole matrix every time an entry is set to zero.
     if (!this->hasTrivialRowGrouping()) {
-        for (auto rowGroup : rowGroupConstraint) {
+        for (uint64_t rowGroup : rowGroupConstraint) {
             for (index_type row = this->getRowGroupIndices()[rowGroup]; row < this->getRowGroupIndices()[rowGroup + 1]; ++row) {
                 makeRowDirac(row, rowGroup, false);
             }
         }
     } else {
-        for (auto rowGroup : rowGroupConstraint) {
+        for (uint64_t rowGroup : rowGroupConstraint) {
             makeRowDirac(rowGroup, rowGroup, false);
         }
     }
@@ -917,10 +919,8 @@ void SparseMatrix<ValueType>::makeRowDirac(index_type row, index_type column, bo
 
     // If the row has no elements in it, we cannot make it absorbing, because we would need to move all elements
     // in the vector of nonzeros otherwise.
-    if (columnValuePtr >= columnValuePtrEnd) {
-        throw storm::exceptions::InvalidStateException()
-            << "Illegal call to SparseMatrix::makeRowDirac: cannot make row " << row << " absorbing, because there is no entry in this row.";
-    }
+    STORM_LOG_THROW(columnValuePtr < columnValuePtrEnd, storm::exceptions::InvalidStateException,
+                    "Illegal call to SparseMatrix::makeRowDirac: cannot make row " << row << " absorbing, because there is no entry in this row.");
     iterator lastColumnValuePtr = this->end(row) - 1;
 
     // If there is at least one entry in this row, we can set it to one, modify its column value to the
@@ -1099,7 +1099,7 @@ std::vector<ValueType> SparseMatrix<ValueType>::getConstrainedRowSumVector(storm
                                                                            storm::storage::BitVector const& columnConstraint) const {
     std::vector<ValueType> result(rowConstraint.getNumberOfSetBits());
     index_type currentRowCount = 0;
-    for (auto row : rowConstraint) {
+    for (uint64_t row : rowConstraint) {
         result[currentRowCount++] = getConstrainedRowSum(row, columnConstraint);
     }
     return result;
@@ -1111,13 +1111,13 @@ std::vector<ValueType> SparseMatrix<ValueType>::getConstrainedRowGroupSumVector(
     std::vector<ValueType> result;
     result.reserve(this->getNumRowsInRowGroups(rowGroupConstraint));
     if (!this->hasTrivialRowGrouping()) {
-        for (auto rowGroup : rowGroupConstraint) {
+        for (uint64_t rowGroup : rowGroupConstraint) {
             for (index_type row = this->getRowGroupIndices()[rowGroup]; row < this->getRowGroupIndices()[rowGroup + 1]; ++row) {
                 result.push_back(getConstrainedRowSum(row, columnConstraint));
             }
         }
     } else {
-        for (auto rowGroup : rowGroupConstraint) {
+        for (uint64_t rowGroup : rowGroupConstraint) {
             result.push_back(getConstrainedRowSum(rowGroup, columnConstraint));
         }
     }
@@ -1186,7 +1186,7 @@ SparseMatrix<ValueType> SparseMatrix<ValueType>::getSubmatrix(storm::storage::Bi
     index_type subEntries = 0;
     index_type subRows = 0;
     index_type rowGroupCount = 0;
-    for (auto index : rowGroupConstraint) {
+    for (uint64_t index : rowGroupConstraint) {
         subRows += rowGroupIndices[index + 1] - rowGroupIndices[index];
         for (index_type i = rowGroupIndices[index]; i < rowGroupIndices[index + 1]; ++i) {
             bool foundDiagonalElement = false;
@@ -1216,7 +1216,7 @@ SparseMatrix<ValueType> SparseMatrix<ValueType>::getSubmatrix(storm::storage::Bi
     rowGroupCount = 0;
     index_type rowCount = 0;
     subEntries = 0;
-    for (auto index : rowGroupConstraint) {
+    for (uint64_t index : rowGroupConstraint) {
         if (!this->hasTrivialRowGrouping()) {
             matrixBuilder.newRowGroup(rowCount);
         }
@@ -1252,7 +1252,7 @@ SparseMatrix<ValueType> SparseMatrix<ValueType>::restrictRows(storm::storage::Bi
 
     // Count the number of entries of the resulting matrix
     index_type entryCount = 0;
-    for (auto row : rowsToKeep) {
+    for (uint64_t row : rowsToKeep) {
         entryCount += this->getRow(row).getNumberOfEntries();
     }
 
@@ -1295,13 +1295,13 @@ template<typename ValueType>
 SparseMatrix<ValueType> SparseMatrix<ValueType>::filterEntries(storm::storage::BitVector const& rowFilter) const {
     // Count the number of entries in the resulting matrix.
     index_type entryCount = 0;
-    for (auto row : rowFilter) {
+    for (uint64_t row : rowFilter) {
         entryCount += getRow(row).getNumberOfEntries();
     }
 
     // Build the resulting matrix.
     SparseMatrixBuilder<ValueType> builder(getRowCount(), getColumnCount(), entryCount);
-    for (auto row : rowFilter) {
+    for (uint64_t row : rowFilter) {
         for (auto const& entry : getRow(row)) {
             builder.addNextValue(row, entry.getColumn(), entry.getValue());
         }
@@ -1605,9 +1605,8 @@ void SparseMatrix<ValueType>::invertDiagonal() {
         }
 
         // Throw an exception if a row did not have an element on the diagonal.
-        if (!foundDiagonalElement) {
-            throw storm::exceptions::InvalidArgumentException() << "Illegal call to SparseMatrix::invertDiagonal: matrix is missing diagonal entries.";
-        }
+        STORM_LOG_THROW(foundDiagonalElement, storm::exceptions::InvalidArgumentException,
+                        "Illegal call to SparseMatrix::invertDiagonal: matrix is missing diagonal entries.");
     }
 }
 
@@ -1820,7 +1819,7 @@ void SparseMatrix<ValueType>::performSuccessiveOverRelaxationStep(ValueType omeg
                 diagonalElement += it->getValue();
             }
         }
-        assert(!storm::utility::isZero(diagonalElement));
+        STORM_LOG_ASSERT(!storm::utility::isZero(diagonalElement), "Diagonal element is zero.");
         *resultIterator = ((storm::utility::one<ValueType>() - omega) * *resultIterator) + (omega / diagonalElement) * (*bIt - tmpValue);
     }
 }
@@ -2146,7 +2145,8 @@ typename SparseMatrix<ValueType>::const_rows SparseMatrix<ValueType>::getRow(ind
     if (!this->hasTrivialRowGrouping()) {
         return getRow(this->getRowGroupIndices()[rowGroup] + offset);
     } else {
-        return getRow(this->getRowGroupIndices()[rowGroup] + offset);
+        STORM_LOG_ASSERT(offset == 0, "Invalid offset.");
+        return getRow(rowGroup + offset);
     }
 }
 
@@ -2264,6 +2264,9 @@ template<typename ValueType>
 bool SparseMatrix<ValueType>::isProbabilistic(ValueType const& tolerance, storm::OptionalRef<std::string> reason) const {
     using BaseType =
         std::conditional_t<std::is_same_v<ValueType, storm::RationalFunction>, storm::RationalFunctionCoefficient, storm::IntervalBaseType<ValueType>>;
+    if constexpr (storm::NumberTraits<ValueType>::IsExact) {
+        STORM_LOG_ASSERT(tolerance == storm::utility::zero<ValueType>(), "Exact value type requires zero tolerance for isProbabilistic.");
+    }
     auto toBaseType = [](ValueType const& value) {
         if constexpr (std::is_same_v<ValueType, BaseType>) {
             return value;

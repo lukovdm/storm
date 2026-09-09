@@ -1,11 +1,11 @@
-#ifndef STORM_MODELCHECKER_HINTS_EXPLICITMODELCHECKERHINT_H
-#define STORM_MODELCHECKER_HINTS_EXPLICITMODELCHECKERHINT_H
+#pragma once
 
 #include <boost/optional.hpp>
 #include <vector>
 
 #include "storm/modelchecker/hints/ModelCheckerHint.h"
 #include "storm/storage/Scheduler.h"
+#include "storm/utility/ExtendedNumber.h"
 
 namespace storm {
 namespace modelchecker {
@@ -17,6 +17,8 @@ namespace modelchecker {
 template<typename ValueType>
 class ExplicitModelCheckerHint : public ModelCheckerHint {
    public:
+    typedef storm::utility::ExtendedValueType<ValueType> ExtendedValueType;
+
     ExplicitModelCheckerHint() = default;
     ExplicitModelCheckerHint(ExplicitModelCheckerHint<ValueType> const& other) = default;
     ExplicitModelCheckerHint(ExplicitModelCheckerHint<ValueType>&& other) = default;
@@ -28,10 +30,11 @@ class ExplicitModelCheckerHint : public ModelCheckerHint {
     virtual bool isExplicitModelCheckerHint() const override;
 
     bool hasResultHint() const;
-    std::vector<ValueType> const& getResultHint() const;
-    std::vector<ValueType>& getResultHint();
-    void setResultHint(boost::optional<std::vector<ValueType>> const& resultHint);
-    void setResultHint(boost::optional<std::vector<ValueType>>&& resultHint);
+
+    std::vector<ExtendedValueType> const& getResultHint() const;
+    std::vector<ExtendedValueType>& getResultHint();
+    void setResultHint(boost::optional<std::vector<ExtendedValueType>> const& resultHint);
+    void setResultHint(boost::optional<std::vector<ExtendedValueType>>&& resultHint);
 
     // Set whether only the maybestates need to be computed, i.e., skips the qualitative check.
     // The result for non-maybe states is taken from the result hint.
@@ -56,7 +59,7 @@ class ExplicitModelCheckerHint : public ModelCheckerHint {
     void setNoEndComponentsInMaybeStates(bool value);
 
    private:
-    boost::optional<std::vector<ValueType>> resultHint;
+    boost::optional<std::vector<ExtendedValueType>> resultHint;
     boost::optional<storm::storage::Scheduler<ValueType>> schedulerHint;
 
     bool computeOnlyMaybeStates;
@@ -66,5 +69,3 @@ class ExplicitModelCheckerHint : public ModelCheckerHint {
 
 }  // namespace modelchecker
 }  // namespace storm
-
-#endif /* STORM_MODELCHECKER_HINTS_EXPLICITMODELCHECKERHINT_H */
