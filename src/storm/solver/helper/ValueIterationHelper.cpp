@@ -37,8 +37,7 @@ class VIOperatorBackend {
                 isConverged = storm::utility::abs<ValueType>(currValue - *best) <= precision;
             }
         }
-        // Record in which direction this iteration moves the operand, so that a sound bound on the solution can
-        // be derived once the iteration is over. See the comment in ValueIterationHelper::VI.
+        // Record the direction this iteration moves the operand in; see the comment in ValueIterationHelper::VI.
         if (isNonDecreasing && *best < currValue) {
             isNonDecreasing = false;
         }
@@ -123,26 +122,16 @@ SolverStatus ValueIterationHelper<ValueType, TrivialRowGrouping, SolutionType>::
     }
     if (solutionBounds.has_value() && mult == MultiplicationStyle::GaussSeidel) {
         /*
-         * Value iteration itself carries a sound bound on the solution whenever an entire iteration moved the
-         * operand in a single direction. Writing T for the update operator and x for the operand at the end of
-         * the last iteration, an iteration that decreased nothing means x >= x_old, and every entry of x was
-         * computed from entries that are at most the corresponding ones of x, so monotonicity of T gives
-         * x <= T(x). Iterating T from there yields an increasing sequence that converges to a fixpoint, and the
-         * equation systems handed to this helper have only one, so that is the solution and x lies below it.
-         * The dual argument applies to an iteration that increased nothing. Both apply at once to an iteration
-         * that moved nothing at all: the operator reproduced its operand, so x is the fixed point and bounds
-         * itself from either side.
+         * An iteration that decreased nothing gives x >= x_old, so every entry of x was computed from entries at
+         * most the corresponding ones of x and monotonicity of the update operator T gives x <= T(x). Iterating T
+         * from there increases towards a fixpoint, of which the systems handed to this helper have only one, so x
+         * lies below the solution. The dual argument applies to an iteration that increased nothing, and both at
+         * once to one that moved nothing. This is a property of the last iteration alone: it needs neither
+         * convergence nor a particular starting point.
          *
-         * Note that this reasoning does not depend on the iteration having converged, nor on the operand having
-         * been initialized below (resp. above) the solution: it is a property of the last completed iteration
-         * alone, which is exactly what the backend records.
-         *
-         * It does depend on the operand being updated in place: the backend learns the direction by comparing
-         * the new value of an entry against the one it overwrites, which is the previous iterate only for
-         * Gauss-Seidel. With a regular multiplication the two operands alternate, so the entry being overwritten
-         * holds the iterate from two steps ago (and, in the very first iteration, whatever the auxiliary vector
-         * happened to contain), which says nothing about the direction of the last step. Nothing is claimed
-         * there rather than claiming something unsound.
+         * It does need the operand to be updated in place, as the backend reads the direction off the entry it
+         * overwrites. With a regular multiplication that entry holds the iterate from two steps ago, so nothing
+         * is claimed there.
          */
         if (backend.nonDecreasing()) {
             solutionBounds->lower = operand;
