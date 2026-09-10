@@ -353,16 +353,18 @@ void ExplicitQuantitativeCheckResult<ValueType>::printValue(std::ostream& out, u
     // The enclosure is printed next to the estimate. Note that this is unrelated to the range over all states
     // that is printed for large results below.
     out << " [";
+    // A side that is not known is written as a dash rather than as the infinity that would bound anything, so
+    // that "nothing was proven here" cannot be read as "the value may be arbitrarily large".
     if (this->hasLowerBounds()) {
         print(out, this->getLowerBoundVector()[offset]);
     } else {
-        out << "-inf";
+        out << "-";
     }
     out << ", ";
     if (this->hasUpperBounds()) {
         print(out, this->getUpperBoundVector()[offset]);
     } else {
-        out << "inf";
+        out << "-";
     }
     out << "]";
 }
