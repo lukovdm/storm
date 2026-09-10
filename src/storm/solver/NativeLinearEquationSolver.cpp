@@ -579,10 +579,8 @@ bool NativeLinearEquationSolver<ValueType>::solveEquationsGuessingValueIteration
     auto status = helper.solveEquations(*lowerX, *upperX, b, numIterations, storm::utility::convertNumber<ValueType>(env.solver().native().getPrecision()),
                                         {},  // No optimization dir
                                         gviCallback);
-    // Read the enclosure out before the point estimate below overwrites x, which the lower bound aliases, with
-    // the average of the two sides. Guessing value iteration only ever writes back a guess it has verified, so
-    // the two vectors enclose the solution in every iteration and both sides hold even if it was aborted before
-    // converging.
+    // Guessing value iteration only writes back a guess it has verified, so the two vectors enclose the
+    // solution in every iteration, aborted or not. Read them out before x is overwritten with the average.
     storm::solver::SolutionBounds<ValueType> solutionBounds;
     solutionBounds.lower = *lowerX;
     solutionBounds.upper = *upperX;
@@ -627,7 +625,7 @@ bool NativeLinearEquationSolver<ValueType>::solveEquationsRationalSearch(Environ
     auto status = rsHelper.RS(x, b, numIterations, storm::utility::convertNumber<ValueType>(env.solver().native().getPrecision()), {}, rsCallback);
 
     // Rational search reports convergence only once it has verified a sharpened candidate to be an exact fixed
-    // point of the equation system, so on convergence the result is the solution rather than an approximation of it.
+    // point, so the result is the solution rather than an approximation.
     if (status == SolverStatus::Converged) {
         this->setSolutionBoundsExact(x);
     }

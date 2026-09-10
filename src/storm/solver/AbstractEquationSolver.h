@@ -251,9 +251,8 @@ class AbstractEquationSolver {
 
     /*!
      * Reports the given solution as an exact one, i.e. stores it as both the lower and the upper bound. Only for
-     * procedures that end up at the solution itself rather than approaching it, such as the direct methods and
-     * the ones that verify an exact fixed point. Reading this as exact is subject to the same rounding as every
-     * other bound: for an inexact value type it means the procedure is exact up to its arithmetic.
+     * procedures that end up at the solution rather than approaching it. For an inexact value type this means
+     * exact up to the arithmetic.
      *
      * @param x The computed solution.
      */

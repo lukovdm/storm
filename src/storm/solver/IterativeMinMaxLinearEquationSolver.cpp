@@ -425,10 +425,8 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::performPolicy
 
         STORM_LOG_INFO("Number of iterations: " << iterations);
 
-        // Once the scheduler stops improving, x is what the last solve of the induced equation system produced,
-        // so whatever that solver established about its solution carries over to ours. Note that this is the
-        // only statement policy iteration can make: its own termination says the scheduler is optimal, not how
-        // accurately the values under it were computed.
+        // Policy iteration's own termination says the scheduler is optimal, not how accurately the values under
+        // it were computed, so the only statement to make is the one the inner solver made.
         if (status == SolverStatus::Converged) {
             storm::solver::SolutionBounds<SolutionType> solutionBounds;
             if (solver->hasSolutionLowerBounds()) {
@@ -666,10 +664,8 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquation
         this->startMeasureProgress();
         auto statusIters = helper.solveEquations(lowerX, *upperX, b, numIterations,
                                                  storm::utility::convertNumber<ValueType>(env.solver().minMax().getPrecision()), dir, gviCallback);
-        // Read the enclosure out before the point estimate below overwrites x, which the lower bound aliases, with
-        // the average of the two sides. Guessing value iteration only ever writes back a guess it has verified, so
-        // the two vectors enclose the solution in every iteration and both sides hold even if it was aborted before
-        // converging.
+        // Guessing value iteration only writes back a guess it has verified, so the two vectors enclose the
+        // solution in every iteration, aborted or not. Read them out before x is overwritten with the average.
         storm::solver::SolutionBounds<SolutionType> solutionBounds;
         solutionBounds.lower = lowerX;
         solutionBounds.upper = *upperX;
@@ -761,9 +757,8 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquation
         return this->updateStatus(current, x, guarantee, numIterations, env.solver().minMax().getMaximalNumberOfIterations());
     };
     this->startMeasureProgress();
-    // The bound that value iteration carries on its own is only sound if the equation system has a unique
-    // fixed point; otherwise an iteration that moves in one direction only bounds the greatest (resp. least)
-    // fixed point, which need not be the solution we are after.
+    // Without a unique fixed point a monotone iteration only bounds the greatest resp. least one, which need
+    // not be the solution we are after.
     storm::solver::SolutionBounds<SolutionType> solutionBounds;
     storm::OptionalRef<storm::solver::SolutionBounds<SolutionType>> solutionBoundsRef;
     if (this->hasUniqueSolution()) {
@@ -1011,7 +1006,7 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquation
         auto status = rsHelper.RS(x, b, numIterations, storm::utility::convertNumber<ValueType>(env.solver().minMax().getPrecision()), dir, rsCallback);
 
         // Rational search reports convergence only once it has verified a sharpened candidate to be an exact fixed
-        // point of the equation system, so on convergence the result is the solution rather than an approximation of it.
+        // point, so the result is the solution rather than an approximation.
         if (status == SolverStatus::Converged) {
             this->setSolutionBoundsExact(x);
         }

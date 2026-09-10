@@ -152,19 +152,16 @@ void TopologicalLinearEquationSolver<ValueType>::trySetSolutionBoundsFromPrecisi
         // Precisions are meaningless for rational functions.
         return;
     } else {
-        // Only a sound solve gives us anything to work with: it hands every SCC a precision of eps divided by the
-        // length of the longest SCC chain, and the deviation an SCC inherits from its predecessors enters its own
-        // solution as a convex combination of the values at the exits, i.e. without amplification. The per-SCC
-        // deviations therefore add up to at most eps along any chain, so eps bounds the error of the overall
-        // solution. An unsound underlying solver instead only reports that its iteration stopped moving, which is
-        // no statement about the distance to the solution at all, so nothing is claimed in that case.
+        // A sound solve hands every SCC a precision of eps divided by the length of the longest SCC chain, and the
+        // deviation an SCC inherits from its predecessors enters its own solution as a convex combination of the
+        // values at the exits, without amplification. The per-SCC deviations therefore add up to at most eps along
+        // any chain. An unsound solve only reports that its iteration stopped moving, which says nothing about the
+        // distance to the solution.
         if (!env.solver().isForceSoundness()) {
             return;
         }
-        // Sound solving picks the native solver unless the user insisted on one of the exact ones, and the native
-        // precision is kept in sync with the one of whichever solver type is configured (see
-        // SolverEnvironment::setLinearEquationSolverPrecision), so this is the precision that was actually enforced
-        // in the SCCs. For an exact underlying solver it merely is a loose bound rather than a wrong one.
+        // The native precision is kept in sync with the one of whichever solver type is configured (see
+        // SolverEnvironment::setLinearEquationSolverPrecision), so this is the precision enforced in the SCCs.
         this->setSolutionBoundsFromPrecision(x, storm::utility::convertNumber<ValueType>(env.solver().native().getPrecision()),
                                              env.solver().native().getRelativeTerminationCriterion());
     }
