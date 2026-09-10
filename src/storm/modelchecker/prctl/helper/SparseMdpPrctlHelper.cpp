@@ -814,11 +814,6 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
         }
     }
 
-    if (qualitativeStateSets.maybeStates.empty()) {
-        // The qualitative precomputation already decided every state, so all values are exact.
-        resultBounds.setExact(result);
-    }
-
     // Extend scheduler with choices for the states in the qualitative state sets.
     if (produceScheduler) {
         extendScheduler(*scheduler, minimize, qualitativeStateSets, transitionMatrix, backwardTransitions, phiStates, psiStates);
@@ -829,6 +824,12 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || !scheduler->isPartialScheduler(), "Expected a fully defined scheduler.");
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || scheduler->isDeterministicScheduler(), "Expected a deterministic scheduler.");
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || scheduler->isMemorylessScheduler(), "Expected a memoryless scheduler.");
+
+    // Where the graph analysis settled every state there was no equation system to solve, so the values are
+    // exactly the ones it determined and each of them bounds itself from either side.
+    if (qualitativeStateSets.maybeStates.empty()) {
+        resultBounds.setExact(result);
+    }
 
     // Return result.
     MDPSparseModelCheckingHelperReturnType<SolutionType> returnValue(std::move(result), std::move(scheduler));
@@ -1539,6 +1540,12 @@ typename SparseMdpPrctlHelper<ValueType, SolutionType>::ExtendedReturnType Spars
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || !scheduler->isPartialScheduler(), "Expected a fully defined scheduler.");
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || scheduler->isDeterministicScheduler(), "Expected a deterministic scheduler.");
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || scheduler->isMemorylessScheduler(), "Expected a memoryless scheduler.");
+
+    // Where the graph analysis settled every state there was no equation system to solve, so the values are
+    // exactly the ones it determined and each of them bounds itself from either side.
+    if (qualitativeStateSets.maybeStates.empty()) {
+        resultBounds.setExact(result);
+    }
 
     if constexpr (storm::IsIntervalType<ValueType>) {
         ExtendedReturnType returnValue(std::move(result));

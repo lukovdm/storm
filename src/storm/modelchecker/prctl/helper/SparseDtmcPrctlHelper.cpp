@@ -294,11 +294,11 @@ DTMCSparseModelCheckingHelperReturnType<SolutionType> SparseDtmcPrctlHelper<Valu
             }
         }
     }
+    // Where the graph analysis settled every state there was no equation system to solve, so the values are
+    // exactly the ones it determined and each of them bounds itself from either side.
     if (maybeStates.empty()) {
-        // The qualitative precomputation already decided every state, so all values are exact.
         solutionBounds.setExact(result);
     }
-
     DTMCSparseModelCheckingHelperReturnType<SolutionType> returnValue(std::move(result));
     returnValue.solutionBounds = std::move(solutionBounds);
     return returnValue;
@@ -735,6 +735,11 @@ SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabi
                 storm::utility::vector::setVectorValues(result, maybeStates, x);
             }
         }
+    }
+    // Where the graph analysis settled every state there was no equation system to solve, so the values are
+    // exactly the ones it determined and each of them bounds itself from either side.
+    if (maybeStates.empty()) {
+        solutionBounds.setExact(result);
     }
     DTMCSparseModelCheckingHelperReturnType<ExtendedSolutionType> returnValue(std::move(result));
     returnValue.solutionBounds = std::move(solutionBounds);
