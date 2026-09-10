@@ -270,7 +270,7 @@ SolverStatus OptimisticValueIterationHelper<ValueType, TrivialRowGrouping>::OVI(
     std::vector<ValueType>& operand, std::vector<ValueType> const& offsets, uint64_t& numIterations, bool relative, ValueType const& precision,
     std::optional<storm::OptimizationDirection> const& dir, std::optional<ValueType> const& guessValue, std::optional<ValueType> const& lowerBound,
     std::optional<ValueType> const& upperBound, std::function<SolverStatus(SolverStatus const&, std::vector<ValueType> const&)> const& iterationCallback,
-    SolutionBounds<ValueType>* solutionBounds) const {
+    storm::OptionalRef<SolutionBounds<ValueType>> solutionBounds) const {
     // Create two vectors v and u using the given operand plus an auxiliary vector.
     std::pair<std::vector<ValueType>, std::vector<ValueType>> vu;
     auto& auxVector = viOperator->allocateAuxiliaryVector(operand.size());
@@ -282,7 +282,7 @@ SolverStatus OptimisticValueIterationHelper<ValueType, TrivialRowGrouping>::OVI(
     }
     auto status = OVI(vu, offsets, numIterations, relative, doublePrec, dir, guessValue ? *guessValue : doublePrec, lowerBound, upperBound, iterationCallback);
     bool const converged = status == SolverStatus::Converged;
-    if (solutionBounds != nullptr) {
+    if (solutionBounds.has_value()) {
         // The operand was initialized below the solution and every iteration -- both the ones of the value
         // iteration phase and the ones of the verification phase -- applies the (monotone) operator to it, so
         // vu.first lies below the solution no matter why we stopped iterating.
@@ -313,7 +313,7 @@ SolverStatus OptimisticValueIterationHelper<ValueType, TrivialRowGrouping>::OVI(
     std::vector<ValueType>& operand, std::vector<ValueType> const& offsets, bool relative, ValueType const& precision,
     std::optional<storm::OptimizationDirection> const& dir, std::optional<ValueType> const& guessValue, std::optional<ValueType> const& lowerBound,
     std::optional<ValueType> const& upperBound, std::function<SolverStatus(SolverStatus const&, std::vector<ValueType> const&)> const& iterationCallback,
-    SolutionBounds<ValueType>* solutionBounds) const {
+    storm::OptionalRef<SolutionBounds<ValueType>> solutionBounds) const {
     uint64_t numIterations = 0;
     return OVI(operand, offsets, numIterations, relative, precision, dir, guessValue, lowerBound, upperBound, iterationCallback, solutionBounds);
 }

@@ -120,7 +120,7 @@ SolverStatus IntervalIterationHelper<ValueType, TrivialRowGrouping>::II(
     std::vector<ValueType>& operand, std::vector<ValueType> const& offsets, uint64_t& numIterations, bool relative, ValueType const& precision,
     std::function<void(std::vector<ValueType>&)> const& prepareLowerBounds, std::function<void(std::vector<ValueType>&)> const& prepareUpperBounds,
     std::optional<storm::OptimizationDirection> const& dir, std::function<SolverStatus(IIData<ValueType> const&)> const& iterationCallback,
-    std::optional<storm::storage::BitVector> const& relevantValues, SolutionBounds<ValueType>* solutionBounds) const {
+    std::optional<storm::storage::BitVector> const& relevantValues, storm::OptionalRef<SolutionBounds<ValueType>> solutionBounds) const {
     // Create two vectors x and y using the given operand plus an auxiliary vector.
     std::pair<std::vector<ValueType>, std::vector<ValueType>> xy;
     auto& auxVector = viOperator->allocateAuxiliaryVector(operand.size());
@@ -138,7 +138,7 @@ SolverStatus IntervalIterationHelper<ValueType, TrivialRowGrouping>::II(
     } else {
         status = II<OptimizationDirection::Minimize>(xy, offsets, numIterations, relative, precision, iterationCallback, relevantValues);
     }
-    if (solutionBounds != nullptr) {
+    if (solutionBounds.has_value()) {
         // Hand out the enclosure before it is collapsed into the point estimate below. Interval iteration
         // maintains xy.first below and xy.second above the solution in every iteration, so both sides are
         // sound even if the iteration was aborted before converging.

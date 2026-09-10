@@ -11,6 +11,7 @@
 #include "storm/solver/SolverStatus.h"
 
 #include "storm/solver/helper/ValueIterationOperatorForward.h"
+#include "storm/utility/OptionalRef.h"
 
 namespace storm::solver::helper {
 
@@ -38,13 +39,13 @@ class OptimisticValueIterationHelper {
                      std::optional<storm::OptimizationDirection> const& dir = {}, std::optional<ValueType> const& guessValue = {},
                      std::optional<ValueType> const& lowerBound = {}, std::optional<ValueType> const& upperBound = {},
                      std::function<SolverStatus(SolverStatus const&, std::vector<ValueType> const&)> const& iterationCallback = {},
-                     SolutionBounds<ValueType>* solutionBounds = nullptr) const;
+                     storm::OptionalRef<SolutionBounds<ValueType>> solutionBounds = storm::NullRef) const;
 
     SolverStatus OVI(std::vector<ValueType>& operand, std::vector<ValueType> const& offsets, bool relative, ValueType const& precision,
                      std::optional<storm::OptimizationDirection> const& dir = {}, std::optional<ValueType> const& guessValue = {},
                      std::optional<ValueType> const& lowerBound = {}, std::optional<ValueType> const& upperBound = {},
                      std::function<SolverStatus(SolverStatus const&, std::vector<ValueType> const&)> const& iterationCallback = {},
-                     SolutionBounds<ValueType>* solutionBounds = nullptr) const;
+                     storm::OptionalRef<SolutionBounds<ValueType>> solutionBounds = storm::NullRef) const;
 
    private:
     template<storm::OptimizationDirection Dir, bool Relative>

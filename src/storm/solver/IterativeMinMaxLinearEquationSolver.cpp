@@ -598,7 +598,7 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquation
         this->startMeasureProgress();
         storm::solver::SolutionBounds<ValueType> solutionBounds;
         auto status = oviHelper.OVI(x, b, numIterations, env.solver().minMax().getRelativeTerminationCriterion(), prec, dir, guessingFactor, lowerBound,
-                                    upperBound, oviCallback, &solutionBounds);
+                                    upperBound, oviCallback, solutionBounds);
         if (solutionBounds.hasAny()) {
             this->setSolutionBounds(std::move(solutionBounds));
         }
@@ -812,7 +812,7 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquation
         this->startMeasureProgress();
         storm::solver::SolutionBounds<ValueType> solutionBounds;
         auto status = iiHelper.II(x, b, numIterations, env.solver().minMax().getRelativeTerminationCriterion(), prec, lowerBoundsCallback, upperBoundsCallback,
-                                  dir, iiCallback, optionalRelevantValues, &solutionBounds);
+                                  dir, iiCallback, optionalRelevantValues, solutionBounds);
         if (solutionBounds.hasAny()) {
             this->setSolutionBounds(std::move(solutionBounds));
         }
