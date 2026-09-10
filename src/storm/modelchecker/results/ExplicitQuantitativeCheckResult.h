@@ -183,9 +183,7 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
     }
 
     /*!
-     * Aggregates a single vector of this result, i.e. the values or one of the bounds on them. Unlike sum() and
-     * average(), which are for the values and reject an infinity, this tolerates one: an infinite bound on a value
-     * is a legitimate statement, and it carries over to the aggregate.
+     * Aggregates a single vector of this result, i.e. the values or one of the bounds on them.
      */
     static ExtendedValueType aggregateVector(vector_type const& vector, FilterType filter);
 

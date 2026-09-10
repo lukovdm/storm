@@ -10,9 +10,8 @@ namespace storm {
 namespace modelchecker {
 
 /*!
- * The outcome of aggregating a quantitative check result over the states it is for: the aggregate of the values,
- * together with an aggregate of the lower resp. upper bounds where the result carries them. The two bounds are
- * independently optional, exactly as the bounds on the individual values are.
+ * The aggregate of the values of a quantitative check result, together with the aggregate of each bound the
+ * result carries.
  */
 template<typename ValueType>
 struct AggregatedValue {
@@ -47,11 +46,8 @@ class QuantitativeCheckResult : public CheckResult {
     virtual ExtendedValueType sum() const = 0;
 
     /*!
-     * Aggregates the values of this result with the given filter. Where this result carries sound bounds on its
-     * values, the aggregate of those is reported alongside: every aggregation offered here is monotone in each
-     * individual value, so aggregating the lower resp. upper bounds bounds the aggregate of the values.
-     *
-     * The default implementation reports no bounds, which is what a result that cannot carry any should do.
+     * Aggregates the values of this result with the given filter, and each bound it carries alongside. Every
+     * aggregation offered here is monotone in each value, so aggregating a bound bounds the aggregate.
      *
      * @param filter One of MIN, MAX, SUM or AVG.
      */

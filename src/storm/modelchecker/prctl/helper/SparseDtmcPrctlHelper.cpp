@@ -163,8 +163,7 @@ std::vector<SolutionType> computeRobustValuesForMaybeStates(Environment const& e
     // Solve the corresponding system of equations.
     solver->solveEquations(env, x, b);
 
-    // This goes through the same MinMax solvers the MDP helper uses, so it gets the same bounds out of them. Note
-    // that the solver may well know only one of the two, e.g. value iteration that certified a single direction.
+    // This goes through the same MinMax solvers the MDP helper uses, so it gets the same bounds out of them.
     if (solver->hasSolutionLowerBounds()) {
         solutionBounds.lower = solver->getSolutionLowerBounds();
     }
@@ -304,8 +303,7 @@ DeterministicSparseModelCheckingHelperReturnType<SolutionType> SparseDtmcPrctlHe
             }
         }
     }
-    // Where the graph analysis settled every state there was no equation system to solve, so the values are
-    // exactly the ones it determined and each of them bounds itself from either side.
+    // With no maybe states nothing was solved, so the values are exact and bound themselves.
     if (maybeStates.empty()) {
         solutionBounds.lower = result;
         solutionBounds.upper = result;
@@ -685,8 +683,7 @@ SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabi
                 storm::solver::SolutionBounds<SolutionType> boundsForMaybeStates;
                 std::vector<SolutionType> x = computeRobustValuesForMaybeStates(env, std::move(goal), std::move(submatrix), b, true, boundsForMaybeStates);
 
-                // Outside of the maybe states the reward is exactly zero or exactly infinity, so the entries that
-                // result already holds bound those states from both sides.
+                // The copy of result supplies the exact values outside the maybe states.
                 auto embedBound = [&result, &maybeStates](std::vector<SolutionType> const& boundForMaybeStates) {
                     std::vector<ExtendedSolutionType> bound(result);
                     storm::utility::vector::setVectorValues(bound, maybeStates, boundForMaybeStates);
@@ -753,9 +750,7 @@ SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabi
                 // Now solve the resulting equation system.
                 solver->solveEquations(env, x, b);
 
-                // Outside of the maybe states the reward is exactly zero or exactly infinity, so the entries that
-                // result already holds bound those states from both sides. Note that the solver may well know
-                // only one of the two bounds, e.g. optimistic value iteration that did not converge.
+                // The copy of result supplies the exact values outside the maybe states.
                 auto embedBound = [&result, &maybeStates](std::vector<ValueType> const& boundForMaybeStates) {
                     std::vector<ExtendedSolutionType> bound(result);
                     storm::utility::vector::setVectorValues(bound, maybeStates, boundForMaybeStates);
@@ -773,8 +768,7 @@ SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabi
             }
         }
     }
-    // Where the graph analysis settled every state there was no equation system to solve, so the values are
-    // exactly the ones it determined and each of them bounds itself from either side.
+    // With no maybe states nothing was solved, so the values are exact and bound themselves.
     if (maybeStates.empty()) {
         solutionBounds.lower = result;
         solutionBounds.upper = result;
@@ -1017,8 +1011,6 @@ SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeConditio
                     newRelevantValues = transformedModel.getNewRelevantStates();
                 }
                 goal.setRelevantValues(std::move(newRelevantValues));
-                // The Baier transformation rewrites the model, so any bounds the solver produced are bounds on the
-                // transformed states. Carrying them back is not implemented, so only the values are taken here.
                 std::vector<ExtendedSolutionType> conditionalRewards =
                     computeReachabilityRewards(env, std::move(goal), newTransitionMatrix, newTransitionMatrix.transpose(), transformedModel.stateRewards.get(),
                                                transformedModel.targetStates.get(), qualitative)

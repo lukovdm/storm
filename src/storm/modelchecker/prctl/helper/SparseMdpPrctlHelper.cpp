@@ -813,8 +813,7 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || scheduler->isDeterministicScheduler(), "Expected a deterministic scheduler.");
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || scheduler->isMemorylessScheduler(), "Expected a memoryless scheduler.");
 
-    // Where the graph analysis settled every state there was no equation system to solve, so the values are
-    // exactly the ones it determined and each of them bounds itself from either side.
+    // With no maybe states nothing was solved, so the values are exact and bound themselves.
     if (qualitativeStateSets.maybeStates.empty()) {
         resultBounds.lower = result;
         resultBounds.upper = result;
@@ -1003,9 +1002,8 @@ typename SparseMdpPrctlHelper<ValueType, SolutionType>::ExtendedReturnType Spars
                     return newChoicesWithoutReward;
                 });
 
-            // Map the values, and any bounds on them, from the quotient back to the original states. All states of
-            // an eliminated end component share the value of the quotient state, so a bound on the latter bounds
-            // each of them.
+            // All states of an eliminated end component share the value of their quotient state, so a bound on
+            // the latter bounds each of them.
             auto liftFromEcQuotient = [&ecElimResult](std::vector<ExtendedSolutionType>& valuesInEcQuotient) {
                 std::vector<ExtendedSolutionType> lifted(ecElimResult.oldToNewStateMapping.size());
                 storm::utility::vector::selectVectorValues(lifted, ecElimResult.oldToNewStateMapping, valuesInEcQuotient);
@@ -1504,9 +1502,7 @@ typename SparseMdpPrctlHelper<ValueType, SolutionType>::ExtendedReturnType Spars
                     }
                 }
             } else {
-                // We only operated on the maybe states, and we must recover the qualitative values for the other
-                // states. Outside of the maybe states the reward is exactly zero or exactly infinity, so the
-                // entries that result already holds bound those states from both sides.
+                // The copy of result supplies the exact values outside the maybe states.
                 auto embedBound = [&result, &qualitativeStateSets](std::vector<SolutionType> const& boundForMaybeStates) {
                     std::vector<ExtendedSolutionType> bound(result);
                     storm::utility::vector::setVectorValues(bound, qualitativeStateSets.maybeStates, boundForMaybeStates);
@@ -1539,8 +1535,7 @@ typename SparseMdpPrctlHelper<ValueType, SolutionType>::ExtendedReturnType Spars
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || scheduler->isDeterministicScheduler(), "Expected a deterministic scheduler.");
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || scheduler->isMemorylessScheduler(), "Expected a memoryless scheduler.");
 
-    // Where the graph analysis settled every state there was no equation system to solve, so the values are
-    // exactly the ones it determined and each of them bounds itself from either side.
+    // With no maybe states nothing was solved, so the values are exact and bound themselves.
     if (qualitativeStateSets.maybeStates.empty()) {
         resultBounds.lower = result;
         resultBounds.upper = result;

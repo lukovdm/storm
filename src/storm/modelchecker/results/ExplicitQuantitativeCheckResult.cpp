@@ -274,9 +274,8 @@ typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQ
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::aggregateVector(vector_type const& vector,
                                                                                                                                    FilterType filter) {
-    // A bound has the same shape as the values, so aggregating one is exactly what the methods above do, applied
-    // to a different vector. Wrapping it in a result of its own reuses them rather than repeating them, and keeps
-    // the two kinds of aggregate in step should any of them ever change.
+    // A bound has the same shape as the values, so wrapping it in a result of its own reuses the methods above
+    // rather than repeating them.
     ExplicitQuantitativeCheckResult<ValueType> const asResult{vector};
     switch (filter) {
         case FilterType::MIN:
@@ -295,8 +294,8 @@ typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQ
 template<typename ValueType>
 AggregatedValue<typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType> ExplicitQuantitativeCheckResult<ValueType>::aggregate(
     FilterType filter) const {
-    // The values go through the base implementation, i.e. through getMin(), sum() and friends, so that the
-    // aggregations keep whatever those promise about them.
+    // The values go through the base implementation, so the aggregations keep what getMin(), sum() and friends
+    // promise about them.
     AggregatedValue<ExtendedValueType> result = QuantitativeCheckResult<ValueType>::aggregate(filter);
     if (this->hasLowerBounds()) {
         result.lower = aggregateVector(*bounds.lower, filter);
