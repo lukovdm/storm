@@ -276,9 +276,7 @@ DTMCSparseModelCheckingHelperReturnType<SolutionType> SparseDtmcPrctlHelper<Valu
                 solver->setBounds(storm::utility::zero<ValueType>(), storm::utility::one<ValueType>());
                 solver->solveEquations(env, x, b);
 
-                // Outside of the maybe states the probability is exactly zero or one, so the entries that
-                // result already holds bound those states from both sides. Note that the solver may well know
-                // only one of the two bounds, e.g. optimistic value iteration that did not converge.
+                // The copy of result supplies the exact values outside the maybe states.
                 auto embedBound = [&result, &maybeStates](std::vector<SolutionType> const& boundForMaybeStates) {
                     std::vector<SolutionType> bound(result);
                     storm::utility::vector::setVectorValues<SolutionType>(bound, maybeStates, boundForMaybeStates);
@@ -382,8 +380,7 @@ DTMCSparseModelCheckingHelperReturnType<SolutionType> SparseDtmcPrctlHelper<Valu
         for (auto& entry : returnValue.values) {
             entry = storm::utility::one<SolutionType>() - entry;
         }
-        // One minus is antitone, so the complement of the lower bound bounds the result from above and vice
-        // versa. In particular, knowing only one side before means knowing only the other side afterwards.
+        // Inverse the bounds, lb = 1 - ub and ub = 1 - lb.
         auto& bounds = returnValue.solutionBounds;
         for (auto* bound : {&bounds.lower, &bounds.upper}) {
             if (*bound) {

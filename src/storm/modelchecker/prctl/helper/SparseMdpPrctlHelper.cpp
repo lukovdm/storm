@@ -425,7 +425,6 @@ struct MaybeStateResult {
     std::vector<ValueType> values;
     boost::optional<std::vector<uint64_t>> scheduler;
 
-    // Sound bounds on the values, if the solver provided any.
     storm::solver::SolutionBounds<ValueType> solutionBounds;
 };
 
@@ -488,8 +487,6 @@ MaybeStateResult<SolutionType> computeValuesForMaybeStates(Environment const& en
 
     // Create result.
     MaybeStateResult<SolutionType> result(std::move(x));
-    // Note that the solver may well know only one of the two bounds, e.g. optimistic value iteration that did
-    // not converge.
     if (solver->hasSolutionLowerBounds()) {
         result.solutionBounds.lower = solver->getSolutionLowerBounds();
     }
@@ -702,7 +699,6 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
     // Prepare resulting vector.
     std::vector<SolutionType> result(transitionMatrix.getRowGroupCount(), storm::utility::zero<SolutionType>());
 
-    // Sound bounds on the result, if the solver provides any.
     storm::solver::SolutionBounds<SolutionType> resultBounds;
 
     // We need to identify the maybe states (states which have a probability for satisfying the until formula
@@ -780,8 +776,7 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
                 // Set values of resulting vector according to result.
                 if constexpr (!storm::IsIntervalType<ValueType>) {
                     // For non-interval models, we only operated on the maybe states, and we must recover the qualitative values for the other state.
-                    // Outside of the maybe states the probability is exactly zero or one, so the entries that
-                    // result already holds bound those states from both sides.
+                    // The copy of result supplies the exact values outside the maybe states.
                     auto embedBound = [&result, &qualitativeStateSets](std::vector<SolutionType> const& boundForMaybeStates) {
                         std::vector<SolutionType> bound(result);
                         storm::utility::vector::setVectorValues<SolutionType>(bound, qualitativeStateSets.maybeStates, boundForMaybeStates);
@@ -849,8 +844,7 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
         for (auto& element : result.values) {
             element = storm::utility::one<SolutionType>() - element;
         }
-        // One minus is antitone, so the complement of the lower bound bounds the result from above and vice
-        // versa. In particular, knowing only one side before means knowing only the other side afterwards.
+        // Inverse the bounds, lb = 1 - ub and ub = 1 - lb.
         auto& bounds = result.solutionBounds;
         for (auto* bound : {&bounds.lower, &bounds.upper}) {
             if (*bound) {

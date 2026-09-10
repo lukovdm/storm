@@ -180,8 +180,6 @@ void ExplicitQuantitativeCheckResult<ValueType>::setUpperBounds(vector_type uppe
 
 template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::setBounds(storm::solver::SolutionBounds<ExtendedValueType> bounds) {
-    // Each of the two sides is transferred only if the algorithm in question established it; the other side is
-    // left as it is.
     if (bounds.hasLower()) {
         this->setLowerBounds(std::move(*bounds.lower));
     }
@@ -226,8 +224,6 @@ void ExplicitQuantitativeCheckResult<ValueType>::filter(QualitativeCheckResult c
     STORM_LOG_THROW(selected.isSubsetOf(available), storm::exceptions::InvalidOperationException,
                     "The check result fails to contain some results referred to by the filter.");
 
-    // The entries that survive, in the index space the values are stored in. Note that the result is a result
-    // for the selected states even if those happen to be all of them.
     storm::storage::BitVector const keep = selected % available;
 
     if (this->hasLowerBounds()) {
@@ -350,11 +346,8 @@ void ExplicitQuantitativeCheckResult<ValueType>::printValue(std::ostream& out, u
     if (!this->hasLowerBounds() && !this->hasUpperBounds()) {
         return;
     }
-    // The enclosure is printed next to the estimate. Note that this is unrelated to the range over all states
-    // that is printed for large results below.
     out << " [";
-    // A side that is not known is written as a dash rather than as the infinity that would bound anything, so
-    // that "nothing was proven here" cannot be read as "the value may be arbitrarily large".
+    // A side that is not known is written as a dash, so that it cannot be read as an infinite bound.
     if (this->hasLowerBounds()) {
         print(out, this->getLowerBoundVector()[offset]);
     } else {
@@ -409,7 +402,7 @@ std::unique_ptr<CheckResult> ExplicitQuantitativeCheckResult<ValueType>::compare
         return false;
     };
 
-    // A comparison is only sound if the bound fall outside the lower and upperbound of te result.
+    // A comparison is only sound if the bound falls outside the lower and upper bound of the result.
     if (this->hasLowerBounds() && this->hasUpperBounds()) {
         for (uint64_t offset = 0; offset < values.size(); ++offset) {
             STORM_LOG_WARN_COND(!((*bounds.lower)[offset] < bound && bound < (*bounds.upper)[offset]),
@@ -474,7 +467,7 @@ void ExplicitQuantitativeCheckResult<ValueType>::oneMinus() {
     if (this->hasUpperBounds()) {
         storm::utility::vector::subtractFromConstantOneVector(*bounds.upper);
     }
-    // One minus is antitone, so what used to bound the values from below now bounds them from above.
+    // Inverse the bounds, lb = 1 - ub and ub = 1 - lb.
     std::swap(bounds.lower, bounds.upper);
 }
 

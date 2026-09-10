@@ -52,10 +52,8 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
                                     std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler = {});
 
     /*!
-     * Takes over values that are still expressed in the plain value type. Those are taken to be finite throughout:
-     * no sentinel is read out of them, mirroring how bounds arriving in the plain type are treated. A computation
-     * that can produce an infinite value says so by handing over the extended type instead, which every such path
-     * in the sparse engine does.
+     * Takes over values that are still expressed in the plain value type, which are taken to be finite. A
+     * computation that can produce an infinite value hands over the extended type instead.
      */
     ExplicitQuantitativeCheckResult(std::vector<ValueType> const& values)
         requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>);
@@ -120,8 +118,6 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
 
     /*!
      * Retrieves whether sound lower resp. upper bounds on the actual values are known.
-     * A bound that is not known is not stored at all, so that "no information" cannot be confused with an
-     * infinite bound: an individual entry of a known bound may well be (minus) infinity.
      */
     bool hasLowerBounds() const;
     bool hasUpperBounds() const;
@@ -148,9 +144,8 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
     void setBounds(storm::solver::SolutionBounds<ExtendedValueType> bounds);
 
     /*!
-     * Sets bounds that are still expressed in the plain value type. Bounds that arrive in that type are taken to
-     * be finite throughout: no sentinel is read out of them, since nothing hands bounds around by sentinel.
-     * An algorithm that can bound a value by infinity states so by handing over the extended type instead.
+     * Sets bounds that are still expressed in the plain value type, which are taken to be finite. An algorithm
+     * that can bound a value by infinity hands over the extended type instead.
      */
     void setBounds(storm::solver::SolutionBounds<ValueType> bounds)
         requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>);
@@ -222,8 +217,8 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
     // The states this result holds values for, or nothing at all if it is a result for all states.
     std::optional<storm::storage::BitVector> states;
 
-    // The values of the quantitative check result, one per state this result is for. These are estimates of the
-    // actual values, which lie within the bounds below but carry no further guarantee.
+    // The values of the quantitative check result, one per state this result is for. These are estimates that
+    // lie within the bounds below but carry no further guarantee.
     vector_type values;
 
     // Sound bounds on the actual values, if an algorithm provided them.

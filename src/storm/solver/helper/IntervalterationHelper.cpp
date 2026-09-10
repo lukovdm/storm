@@ -139,9 +139,8 @@ SolverStatus IntervalIterationHelper<ValueType, TrivialRowGrouping>::II(
         status = II<OptimizationDirection::Minimize>(xy, offsets, numIterations, relative, precision, iterationCallback, relevantValues);
     }
     if (solutionBounds.has_value()) {
-        // Hand out the enclosure before it is collapsed into the point estimate below. Interval iteration
-        // maintains xy.first below and xy.second above the solution in every iteration, so both sides are
-        // sound even if the iteration was aborted before converging.
+        // Interval iteration keeps xy.first below and xy.second above the solution in every iteration, so both
+        // sides are sound even if it was aborted. Read them out before they are collapsed into the estimate.
         solutionBounds->lower = xy.first;
         solutionBounds->upper = xy.second;
     }

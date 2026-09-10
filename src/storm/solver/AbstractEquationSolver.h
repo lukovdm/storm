@@ -185,9 +185,7 @@ class AbstractEquationSolver {
 
     /*!
      * Retrieves whether the last call to this solver computed a sound lower resp. upper bound on the solution.
-     * Only some algorithms, most notably interval iteration and optimistic value iteration, provide these, and
-     * they need not provide both: optimistic value iteration, for instance, only verifies its upper bound once
-     * it converges, while its lower bound is available in any case.
+     * Only some algorithms provide these, and they need not provide both.
      */
     bool hasSolutionLowerBounds() const;
     bool hasSolutionUpperBounds() const;

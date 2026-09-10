@@ -283,24 +283,19 @@ SolverStatus OptimisticValueIterationHelper<ValueType, TrivialRowGrouping>::OVI(
     auto status = OVI(vu, offsets, numIterations, relative, doublePrec, dir, guessValue ? *guessValue : doublePrec, lowerBound, upperBound, iterationCallback);
     bool const converged = status == SolverStatus::Converged;
     if (solutionBounds.has_value()) {
-        // The operand was initialized below the solution and every iteration -- both the ones of the value
-        // iteration phase and the ones of the verification phase -- applies the (monotone) operator to it, so
-        // vu.first lies below the solution no matter why we stopped iterating.
+        // The operand started below the solution and every iteration applies the monotone operator to it, so
+        // vu.first lies below the solution whatever stopped the iteration.
         solutionBounds->lower = vu.first;
-        // Only a converged run has verified that vu.second lies above the solution. Until the verification
-        // phase succeeds it is merely a guess, so handing it out as an upper bound would be unsound.
+        // Until the verification phase succeeds vu.second is merely a guess, not an upper bound.
         if (converged) {
             solutionBounds->upper = vu.second;
         }
     }
     if (converged) {
         auto two = storm::utility::convertNumber<ValueType>(2.0);
-        // get the average of lower- and upper result
         storm::utility::vector::applyPointwise<ValueType, ValueType, ValueType>(
             vu.first, vu.second, vu.first, [&two](ValueType const& a, ValueType const& b) -> ValueType { return (a + b) / two; });
     }
-    // Otherwise vu.second holds an unverified guess (or, if we never got to guessing, uninitialized data), so
-    // averaging it into the result would be meaningless and could even push the result below vu.first.
     // Swap operand and aux vector back to original positions.
     vu.first.swap(operand);
     vu.second.swap(auxVector);

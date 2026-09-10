@@ -172,8 +172,6 @@ void ExplicitQualitativeCheckResult<ValueType>::filter(QualitativeCheckResult co
     STORM_LOG_THROW(selected.isSubsetOf(available), storm::exceptions::InvalidOperationException,
                     "The check result fails to contain some results referred to by the filter.");
 
-    // Keep the truth values of the selected states. Note that the result is a result for the selected states
-    // even if those happen to be all of them.
     truthValues = truthValues % (selected % available);
     states = filterTruthValues;
 }
