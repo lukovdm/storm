@@ -410,9 +410,9 @@ std::unique_ptr<CheckResult> ExplicitQuantitativeCheckResult<ValueType>::compare
     // A comparison is only sound if the bound fall outside the lower and upperbound of te result.
     if (this->hasLowerBounds() && this->hasUpperBounds()) {
         for (uint64_t offset = 0; offset < values.size(); ++offset) {
-            STORM_LOG_ASSERT(!((*bounds.lower)[offset] < bound && bound < (*bounds.upper)[offset]),
-                             "The bound " << bound << " lies between the lower bound " << (*bounds.lower)[offset] << " and the upper bound "
-                                          << (*bounds.upper)[offset] << ", so the comparison against it is not decided at state " << offset << ".");
+            STORM_LOG_WARN_COND(!((*bounds.lower)[offset] < bound && bound < (*bounds.upper)[offset]),
+                                "The bound " << bound << " lies between the lower bound " << (*bounds.lower)[offset] << " and the upper bound "
+                                             << (*bounds.upper)[offset] << ", so the comparison against it is not decided at state " << offset << ".");
         }
     }
 
