@@ -46,21 +46,21 @@ ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(stor
 template<typename ValueType>
 ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(std::vector<ValueType> const& values)
     requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>)
-    : values(storm::utility::fromSentinel(std::vector<ValueType>(values))) {
+    : values(storm::utility::widen(std::vector<ValueType>(values))) {
     // Intentionally left empty.
 }
 
 template<typename ValueType>
 ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(std::vector<ValueType>&& values)
     requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>)
-    : values(storm::utility::fromSentinel(std::move(values))) {
+    : values(storm::utility::widen(std::move(values))) {
     // Intentionally left empty.
 }
 
 template<typename ValueType>
 ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(storm::storage::BitVector states, std::vector<ValueType>&& values)
     requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>)
-    : states(std::move(states)), values(storm::utility::fromSentinel(std::move(values))) {
+    : states(std::move(states)), values(storm::utility::widen(std::move(values))) {
     STORM_LOG_ASSERT(this->states->getNumberOfSetBits() == this->values.size(), "Expected one value per selected state.");
 }
 

@@ -52,8 +52,10 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
                                     std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler = {});
 
     /*!
-     * Takes over values that are still expressed in the plain value type, reading an entry equal to the value that
-     * storm::utility::infinity yields as an infinity.
+     * Takes over values that are still expressed in the plain value type. Those are taken to be finite throughout:
+     * no sentinel is read out of them, mirroring how bounds arriving in the plain type are treated. A computation
+     * that can produce an infinite value says so by handing over the extended type instead, which every such path
+     * in the sparse engine does.
      */
     ExplicitQuantitativeCheckResult(std::vector<ValueType> const& values)
         requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>);
