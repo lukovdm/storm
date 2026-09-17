@@ -734,6 +734,10 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
     if (qualitative || maybeStatesNotRelevant) {
         // Set the values for all maybe-states to 0.5 to indicate that their probability values are neither 0 nor 1.
         storm::utility::vector::setVectorValues<SolutionType>(result, qualitativeStateSets.maybeStates, storm::utility::convertNumber<SolutionType>(0.5));
+        resultBounds.lower = result;
+        storm::utility::vector::setVectorValues<SolutionType>(*resultBounds.lower, qualitativeStateSets.maybeStates, storm::utility::zero<SolutionType>());
+        resultBounds.upper = result;
+        storm::utility::vector::setVectorValues<SolutionType>(*resultBounds.upper, qualitativeStateSets.maybeStates, storm::utility::one<SolutionType>());
     } else {
         if (!qualitativeStateSets.maybeStates.empty()) {
             // In this case we have have to compute the remaining probabilities.
