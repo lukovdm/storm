@@ -766,6 +766,18 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
                 if constexpr (storm::IsIntervalType<ValueType>) {
                     STORM_LOG_THROW(false, storm::exceptions::NotImplementedException, "We do not support this end component with interval models.");
                 } else {
+                    // The copy of result supplies the exact values outside the maybe states.
+                    auto liftBound = [&result, &qualitativeStateSets, &ecInformation](std::vector<SolutionType> const& boundInEcQuotient) {
+                        std::vector<SolutionType> bound(result);
+                        ecInformation.get().setValues(bound, qualitativeStateSets.maybeStates, boundInEcQuotient);
+                        return bound;
+                    };
+                    if (resultForMaybeStates.solutionBounds.hasLower()) {
+                        resultBounds.lower = liftBound(*resultForMaybeStates.solutionBounds.lower);
+                    }
+                    if (resultForMaybeStates.solutionBounds.hasUpper()) {
+                        resultBounds.upper = liftBound(*resultForMaybeStates.solutionBounds.upper);
+                    }
                     ecInformation.get().setValues(result, qualitativeStateSets.maybeStates, resultForMaybeStates.getValues());
                     if (produceScheduler) {
                         ecInformation.get().setScheduler(*scheduler, qualitativeStateSets.maybeStates, transitionMatrix, backwardTransitions,

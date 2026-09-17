@@ -3,6 +3,7 @@
 
 #include "storm-parsers/api/model_descriptions.h"
 #include "storm-parsers/api/properties.h"
+#include "storm-parsers/parser/PrismParser.h"
 #include "storm/api/builder.h"
 #include "storm/api/properties.h"
 #include "storm/environment/solver/MinMaxSolverEnvironment.h"
@@ -90,11 +91,18 @@ class SolutionBoundsTest : public ::testing::Test {
     }
 
     /*!
-     * Builds the given PRISM model and checks the given property on it.
+     * Builds the PRISM model in the given file and checks the given property on it.
      */
     template<typename ModelType>
     std::unique_ptr<storm::modelchecker::CheckResult> check(std::string const& modelFile, std::string const& propertyString) const {
-        storm::prism::Program program = storm::api::parseProgram(modelFile);
+        return this->template check<ModelType>(storm::api::parseProgram(modelFile), propertyString);
+    }
+
+    /*!
+     * Builds the given PRISM model and checks the given property on it.
+     */
+    template<typename ModelType>
+    std::unique_ptr<storm::modelchecker::CheckResult> check(storm::prism::Program program, std::string const& propertyString) const {
         program = program.preprocess();
         auto formulas = storm::api::extractFormulasFromProperties(storm::api::parsePropertiesForPrismProgram(propertyString, program));
         auto model = storm::api::buildSparseModel<ValueType>(program, formulas)->template as<ModelType>();
@@ -144,6 +152,25 @@ TYPED_TEST(SolutionBoundsTest, MdpUntilProbabilities) {
     auto result = this->template check<storm::models::sparse::Mdp<ValueType>>(STORM_TEST_RESOURCES_DIR "/mdp/coin2-2.nm",
                                                                               "Pmin=? [F \"finished\" & \"all_coins_equal_1\"]");
     this->expectEncloses(result, this->parseNumber("49/128"));
+}
+
+// Maximizing makes the sound methods eliminate the end component {x=0} of the maybe states, so the bounds come from the quotient system.
+// The best scheduler leaves x=0 and x=1 through their probabilistic choices, reaching x=2 with probability 1/2 * 1/2.
+TYPED_TEST(SolutionBoundsTest, MdpUntilProbabilitiesWithEndComponent) {
+    typedef typename TestFixture::ValueType ValueType;
+    std::string const programString = R"(mdp
+module main
+    x : [0..3];
+    [] x=0 -> (x'=0);
+    [] x=0 -> 0.5 : (x'=1) + 0.5 : (x'=3);
+    [] x=1 -> (x'=0);
+    [] x=1 -> 0.5 : (x'=2) + 0.5 : (x'=3);
+    [] x>=2 -> true;
+endmodule
+)";
+    auto result =
+        this->template check<storm::models::sparse::Mdp<ValueType>>(storm::parser::PrismParser::parseFromString(programString, "<no file>"), "Pmax=? [F x=2]");
+    this->expectEncloses(result, this->parseNumber("1/4"));
 }
 
 }  // namespace
