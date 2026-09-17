@@ -396,6 +396,9 @@ TYPED_TEST(SolutionBoundsTest, AggregationWithoutBounds) {
  * iterations is a property of that method, not something the other configurations share.
  */
 TEST(SolutionBoundsTest, AbortedSoundValueIterationStillEncloses) {
+#ifndef STORM_HAVE_Z3
+    GTEST_SKIP() << "Z3 not available.";
+#endif
     auto environmentWithIterationCap = [](uint64_t maximalIterations) {
         storm::Environment env;
         env.solver().setForceSoundness(true);
