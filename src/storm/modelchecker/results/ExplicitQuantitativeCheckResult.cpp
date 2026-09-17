@@ -369,6 +369,22 @@ std::ostream& ExplicitQuantitativeCheckResult<ValueType>::writeToStream(std::ost
     if (values.size() >= 10 && minMaxSupported) {
         std::pair<ExtendedValueType, ExtendedValueType> minmax = this->getMinMax();
         printRange(out, minmax.first, minmax.second);
+        if (this->hasLowerBounds() || this->hasUpperBounds()) {
+            // The smallest lower and the largest upper bound enclose all values, with a dash for a side that is not known.
+            out << " [";
+            if (this->hasLowerBounds()) {
+                print(out, storm::utility::minmax(this->getLowerBoundVector()).first);
+            } else {
+                out << "-";
+            }
+            out << ", ";
+            if (this->hasUpperBounds()) {
+                print(out, storm::utility::minmax(this->getUpperBoundVector()).second);
+            } else {
+                out << "-";
+            }
+            out << "] (bounds)";
+        }
     } else if (!this->isResultForAllStates() && values.size() == 1) {
         this->printValue(out, 0);
     } else {

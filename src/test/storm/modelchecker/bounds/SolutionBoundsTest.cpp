@@ -173,4 +173,18 @@ endmodule
     this->expectEncloses(result, this->parseNumber("1/4"));
 }
 
+// A result with ten or more values is written as the range of its values, which then also has to show the bounds.
+TEST(SolutionBoundsOutputTest, RangeOutputShowsBounds) {
+    std::vector<double> values(10, 0.5);
+    values.front() = 0.25;
+    storm::modelchecker::ExplicitQuantitativeCheckResult<double> result(values);
+    std::vector<double> lower(10, 0.4);
+    lower.front() = 0.2;
+    result.setLowerBounds(storm::utility::widen(std::move(lower)));
+
+    std::stringstream stream;
+    result.writeToStream(stream);
+    EXPECT_EQ("[0.25, 0.5] (range) [0.2, -] (bounds)", stream.str());
+}
+
 }  // namespace
