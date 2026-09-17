@@ -269,8 +269,10 @@ TYPED_TEST(SolutionBoundsTest, CtmcReachabilityRewards) {
  *   0 --2--> 2                 p(2) = 3/4 p(0)         so p(0) = 2/3.
  *   2 --3--> 0
  *   2 --1--> 3 (a dead end)
+ *
+ * Staying away from the target forever is the complement, with probability 1/3.
  */
-TYPED_TEST(SolutionBoundsTest, CtmcUntilProbabilities) {
+TYPED_TEST(SolutionBoundsTest, CtmcUntilAndGloballyProbabilities) {
     typedef typename TestFixture::ValueType ValueType;
     storm::storage::SparseMatrixBuilder<ValueType> builder(4, 4, 6);
     builder.addNextValue(0, 1, this->parseValue("1"));
@@ -288,10 +290,13 @@ TYPED_TEST(SolutionBoundsTest, CtmcUntilProbabilities) {
     storm::models::sparse::Ctmc<ValueType> ctmc(builder.build(), labeling);
 
     storm::parser::FormulaParser formulaParser;
-    auto formula = formulaParser.parseSingleFormulaFromString("P=? [F \"target\"]");
-    storm::modelchecker::CheckTask<storm::logic::Formula, ValueType> task(*formula, true);
-    auto result = storm::modelchecker::SparseCtmcCslModelChecker<storm::models::sparse::Ctmc<ValueType>>(ctmc).check(this->env(), task);
-    this->expectEncloses(result, this->parseNumber("2/3"));
+    storm::modelchecker::SparseCtmcCslModelChecker<storm::models::sparse::Ctmc<ValueType>> checker(ctmc);
+    auto untilFormula = formulaParser.parseSingleFormulaFromString("P=? [F \"target\"]");
+    auto untilResult = checker.check(this->env(), storm::modelchecker::CheckTask<storm::logic::Formula, ValueType>(*untilFormula, true));
+    this->expectEncloses(untilResult, this->parseNumber("2/3"));
+    auto globallyFormula = formulaParser.parseSingleFormulaFromString("P=? [G !\"target\"]");
+    auto globallyResult = checker.check(this->env(), storm::modelchecker::CheckTask<storm::logic::Formula, ValueType>(*globallyFormula, true));
+    this->expectEncloses(globallyResult, this->parseNumber("1/3"));
 }
 
 /*
