@@ -156,19 +156,20 @@ ExplicitQuantitativeCheckResult<ValueType>::getSolutionBounds() const {
 
 template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::setLowerBounds(vector_type lowerBounds) {
+    STORM_LOG_ASSERT(lowerBounds.size() == values.size(), "Bounds must have the same size as the values.");
     this->bounds.lower = std::move(lowerBounds);
-    STORM_LOG_ASSERT(bounds.encloses(values), "Bounds must have the same size as the values and enclose them.");
 }
 
 template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::setUpperBounds(vector_type upperBounds) {
+    STORM_LOG_ASSERT(upperBounds.size() == values.size(), "Bounds must have the same size as the values.");
     this->bounds.upper = std::move(upperBounds);
-    STORM_LOG_ASSERT(bounds.encloses(values), "Bounds must have the same size as the values and enclose them.");
 }
 
 template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::setBounds(storm::solver::SolutionBounds<ExtendedValueType> bounds) {
-    STORM_LOG_ASSERT(bounds.encloses(values), "Bounds must have the same size as the values and enclose them.");
+    STORM_LOG_ASSERT(!bounds.hasLower() || bounds.lower->size() == values.size(), "Bounds must have the same size as the values.");
+    STORM_LOG_ASSERT(!bounds.hasUpper() || bounds.upper->size() == values.size(), "Bounds must have the same size as the values.");
     this->bounds = std::move(bounds);
 }
 
