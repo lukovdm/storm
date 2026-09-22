@@ -281,21 +281,18 @@ SolverStatus OptimisticValueIterationHelper<ValueType, TrivialRowGrouping>::OVI(
         doublePrec -= precision * 1e-6;  // be slightly more precise to avoid a good chunk of floating point issues
     }
     auto status = OVI(vu, offsets, numIterations, relative, doublePrec, dir, guessValue ? *guessValue : doublePrec, lowerBound, upperBound, iterationCallback);
-    bool const converged = status == SolverStatus::Converged;
     if (solutionBounds.has_value()) {
         // The operand started below the solution and every iteration applies the monotone operator to it, so
         // vu.first lies below the solution whatever stopped the iteration.
         solutionBounds->lower = vu.first;
         // Until the verification phase succeeds vu.second is merely a guess, not an upper bound.
-        if (converged) {
+        if (status == SolverStatus::Converged) {
             solutionBounds->upper = vu.second;
         }
     }
-    if (converged) {
-        auto two = storm::utility::convertNumber<ValueType>(2.0);
-        storm::utility::vector::applyPointwise<ValueType, ValueType, ValueType>(
-            vu.first, vu.second, vu.first, [&two](ValueType const& a, ValueType const& b) -> ValueType { return (a + b) / two; });
-    }
+    auto two = storm::utility::convertNumber<ValueType>(2.0);
+    storm::utility::vector::applyPointwise<ValueType, ValueType, ValueType>(
+        vu.first, vu.second, vu.first, [&two](ValueType const& a, ValueType const& b) -> ValueType { return (a + b) / two; });
     // Swap operand and aux vector back to original positions.
     vu.first.swap(operand);
     vu.second.swap(auxVector);
