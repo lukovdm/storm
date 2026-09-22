@@ -16,20 +16,20 @@ namespace modelchecker {
 template<typename ValueType>
 ExplicitQualitativeCheckResult<ValueType>::ExplicitQualitativeCheckResult(storm::storage::sparse::state_type state, bool value)
     : states(storm::storage::BitVector(state + 1)), truthValues(1, value) {
-    states->set(state);
+    states.set(state);
 }
 
 template<typename ValueType>
 ExplicitQualitativeCheckResult<ValueType>::ExplicitQualitativeCheckResult(vector_type const& truthValues,
                                                                           std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler)
-    : truthValues(truthValues), scheduler(scheduler) {
+    : states(truthValues.size(), true), truthValues(truthValues), scheduler(scheduler) {
     // Intentionally left empty.
 }
 
 template<typename ValueType>
 ExplicitQualitativeCheckResult<ValueType>::ExplicitQualitativeCheckResult(vector_type&& truthValues,
                                                                           std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler)
-    : truthValues(std::move(truthValues)), scheduler(scheduler) {
+    : states(truthValues.size(), true), truthValues(std::move(truthValues)), scheduler(scheduler) {
     // Intentionally left empty.
 }
 
@@ -37,7 +37,7 @@ template<typename ValueType>
 ExplicitQualitativeCheckResult<ValueType>::ExplicitQualitativeCheckResult(storm::storage::BitVector states, vector_type&& truthValues,
                                                                           std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler)
     : states(std::move(states)), truthValues(std::move(truthValues)), scheduler(scheduler) {
-    STORM_LOG_ASSERT(this->states->getNumberOfSetBits() == this->truthValues.size(), "Expected one truth value per selected state.");
+    STORM_LOG_ASSERT(this->states.getNumberOfSetBits() == this->truthValues.size(), "Expected one truth value per selected state.");
 }
 
 template<typename ValueType>
@@ -89,16 +89,13 @@ uint64_t ExplicitQualitativeCheckResult<ValueType>::count() const {
 
 template<typename ValueType>
 bool ExplicitQualitativeCheckResult<ValueType>::hasValueForState(storm::storage::sparse::state_type state) const {
-    if (states) {
-        return state < states->size() && states->get(state);
-    }
-    return state < truthValues.size();
+    return state < states.size() && states.get(state);
 }
 
 template<typename ValueType>
 uint64_t ExplicitQualitativeCheckResult<ValueType>::getOffset(storm::storage::sparse::state_type state) const {
-    STORM_LOG_THROW(this->hasValueForState(state), storm::exceptions::InvalidOperationException, "Unknown key '" << state << "'.");
-    return states ? states->getNumberOfSetBitsBeforeIndex(state) : state;
+    STORM_LOG_ASSERT(this->hasValueForState(state), "State '" << state << "' has no value.");
+    return states.getNumberOfSetBitsBeforeIndex(state);
 }
 
 template<typename ValueType>
@@ -108,9 +105,7 @@ bool ExplicitQualitativeCheckResult<ValueType>::operator[](storm::storage::spars
 
 template<typename ValueType>
 storm::storage::BitVector const& ExplicitQualitativeCheckResult<ValueType>::getStates() const {
-    STORM_LOG_THROW(!this->isResultForAllStates(), storm::exceptions::InvalidOperationException,
-                    "Unable to retrieve the states of a result that is for all states.");
-    return *states;
+    return states;
 }
 
 template<typename ValueType>
@@ -130,7 +125,7 @@ bool ExplicitQualitativeCheckResult<ValueType>::isExplicit() const {
 
 template<typename ValueType>
 bool ExplicitQualitativeCheckResult<ValueType>::isResultForAllStates() const {
-    return !states.has_value();
+    return states.full();
 }
 
 template<typename ValueType>
@@ -141,9 +136,7 @@ bool ExplicitQualitativeCheckResult<ValueType>::isExplicitQualitativeCheckResult
 template<typename ValueType>
 std::ostream& ExplicitQualitativeCheckResult<ValueType>::writeToStream(std::ostream& out) const {
     if (!this->isResultForAllStates() && truthValues.size() == 1) {
-        std::ios::fmtflags oldflags(out.flags());
-        out << std::boolalpha << truthValues.get(0);
-        out.flags(oldflags);
+        out << (truthValues.get(0) ? "true" : "false");
     } else if (truthValues.full()) {
         out << "{true}";
     } else if (truthValues.empty()) {
@@ -164,8 +157,8 @@ void ExplicitQualitativeCheckResult<ValueType>::filter(QualitativeCheckResult co
 
     // Line the filter up with the states this result has truth values for. The two need not span the same range
     // of states, e.g. if this result holds a truth value for a single state only.
-    uint64_t const numStates = std::max(filterTruthValues.size(), states ? states->size() : truthValues.size());
-    storm::storage::BitVector available = states ? *states : storm::storage::BitVector(truthValues.size(), true);
+    uint64_t const numStates = std::max(filterTruthValues.size(), states.size());
+    storm::storage::BitVector available = states;
     available.resize(numStates);
     storm::storage::BitVector selected(filterTruthValues);
     selected.resize(numStates);
@@ -221,9 +214,8 @@ template<typename JsonRationalType>
 storm::json<JsonRationalType> ExplicitQualitativeCheckResult<ValueType>::toJson(std::optional<storm::storage::sparse::Valuations> const& stateValuations,
                                                                                 std::optional<storm::models::sparse::StateLabeling> const& stateLabels) const {
     storm::json<JsonRationalType> result;
-    this->forEachState([&](storm::storage::sparse::state_type state, uint64_t offset) {
-        insertJsonEntry(result, state, truthValues.get(offset), stateValuations, stateLabels);
-    });
+    this->forEachState(
+        [&](storm::storage::sparse::state_type state, bool truthValue) { insertJsonEntry(result, state, truthValue, stateValuations, stateLabels); });
     return result;
 }
 

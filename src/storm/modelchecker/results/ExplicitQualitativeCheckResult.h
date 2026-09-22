@@ -17,9 +17,9 @@ namespace modelchecker {
 /*!
  * A qualitative check result over the states of a sparse model.
  *
- * The result either covers every state of the model or just a subset of them, e.g. after filtering it to the
- * initial states. In the latter case the states in question are recorded in a bit vector and the truth values are
- * stored compressed, i.e. the i-th truth value belongs to the i-th state selected by that bit vector.
+ * The states the result is for are recorded in a bit vector, which selects every state of the model unless the
+ * result was narrowed down, e.g. by filtering it to the initial states. The truth values are stored compressed,
+ * i.e. the i-th truth value belongs to the i-th state selected by that bit vector.
  */
 template<typename ValueType>
 class ExplicitQualitativeCheckResult : public QualitativeCheckResult {
@@ -75,13 +75,12 @@ class ExplicitQualitativeCheckResult : public QualitativeCheckResult {
 
     /*!
      * Retrieves the states this result holds truth values for.
-     * @pre This is not a result for all states.
      */
     storm::storage::BitVector const& getStates() const;
 
     /*!
-     * Retrieves the truth values, one per state this result is for. If this is not a result for all states, the
-     * i-th truth value belongs to the i-th state selected by getStates().
+     * Retrieves the truth values, one per state this result is for.
+     * The i-th truth value belongs to the i-th state selected by getStates().
      */
     vector_type const& getTruthValuesVector() const;
 
@@ -116,26 +115,19 @@ class ExplicitQualitativeCheckResult : public QualitativeCheckResult {
     uint64_t getOffset(storm::storage::sparse::state_type state) const;
 
     /*!
-     * Invokes the given function with the state and the offset of its truth value, for every state this result is
-     * for.
+     * Invokes the given function with the state and its truth value, for every state this result is for.
      */
     template<typename Function>
     void forEachState(Function const& f) const {
-        if (states) {
-            uint64_t offset = 0;
-            for (auto const& state : *states) {
-                f(state, offset);
-                ++offset;
-            }
-        } else {
-            for (uint64_t state = 0; state < truthValues.size(); ++state) {
-                f(state, state);
-            }
+        uint64_t offset = 0;
+        for (auto const& state : states) {
+            f(state, truthValues.get(offset));
+            ++offset;
         }
     }
 
-    // The states this result holds truth values for, or nothing at all if it is a result for all states.
-    std::optional<storm::storage::BitVector> states;
+    // The states this result holds truth values for, which are all states of the model unless it was narrowed down.
+    storm::storage::BitVector states;
 
     // The truth values of the qualitative check result, one per state this result is for.
     vector_type truthValues;

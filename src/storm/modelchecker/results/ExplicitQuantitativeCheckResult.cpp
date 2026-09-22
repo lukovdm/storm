@@ -19,20 +19,20 @@ namespace modelchecker {
 template<typename ValueType>
 ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(storm::storage::sparse::state_type const& state, ExtendedValueType const& value)
     : states(storm::storage::BitVector(state + 1)), values({value}) {
-    states->set(state);
+    states.set(state);
 }
 
 template<typename ValueType>
 ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(vector_type const& values,
                                                                             std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler)
-    : values(values), scheduler(scheduler) {
+    : states(values.size(), true), values(values), scheduler(scheduler) {
     // Intentionally left empty.
 }
 
 template<typename ValueType>
 ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(vector_type&& values,
                                                                             std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler)
-    : values(std::move(values)), scheduler(scheduler) {
+    : states(values.size(), true), values(std::move(values)), scheduler(scheduler) {
     // Intentionally left empty.
 }
 
@@ -40,20 +40,20 @@ template<typename ValueType>
 ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(storm::storage::BitVector states, vector_type&& values,
                                                                             std::optional<std::shared_ptr<storm::storage::Scheduler<ValueType>>> scheduler)
     : states(std::move(states)), values(std::move(values)), scheduler(scheduler) {
-    STORM_LOG_ASSERT(this->states->getNumberOfSetBits() == this->values.size(), "Expected one value per selected state.");
+    STORM_LOG_ASSERT(this->states.getNumberOfSetBits() == this->values.size(), "Expected one value per selected state.");
 }
 
 template<typename ValueType>
 ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(std::vector<ValueType> const& values)
     requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>)
-    : values(storm::utility::widen(std::vector<ValueType>(values))) {
+    : states(values.size(), true), values(storm::utility::widen(std::vector<ValueType>(values))) {
     // Intentionally left empty.
 }
 
 template<typename ValueType>
 ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(std::vector<ValueType>&& values)
     requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>)
-    : values(storm::utility::widen(std::move(values))) {
+    : states(values.size(), true), values(storm::utility::widen(std::move(values))) {
     // Intentionally left empty.
 }
 
@@ -61,7 +61,7 @@ template<typename ValueType>
 ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(storm::storage::BitVector states, std::vector<ValueType>&& values)
     requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>)
     : states(std::move(states)), values(storm::utility::widen(std::move(values))) {
-    STORM_LOG_ASSERT(this->states->getNumberOfSetBits() == this->values.size(), "Expected one value per selected state.");
+    STORM_LOG_ASSERT(this->states.getNumberOfSetBits() == this->values.size(), "Expected one value per selected state.");
 }
 
 template<typename ValueType>
@@ -70,12 +70,10 @@ ExplicitQuantitativeCheckResult<ValueType>::ExplicitQuantitativeCheckResult(Expl
 
     storm::storage::BitVector const& truthValues = other.getTruthValuesVector();
     values.reserve(truthValues.size());
-    for (std::size_t i = 0, n = truthValues.size(); i < n; i++) {
+    for (std::size_t i = 0; i < truthValues.size(); i++) {
         values.push_back(toValue(truthValues.get(i)));
     }
-    if (!other.isResultForAllStates()) {
-        states = other.getStates();
-    }
+    states = other.getStates();
 }
 
 template<typename ValueType>
@@ -85,23 +83,18 @@ std::unique_ptr<CheckResult> ExplicitQuantitativeCheckResult<ValueType>::clone()
 
 template<typename ValueType>
 bool ExplicitQuantitativeCheckResult<ValueType>::hasValueForState(storm::storage::sparse::state_type state) const {
-    if (states) {
-        return state < states->size() && states->get(state);
-    }
-    return state < values.size();
+    return state < states.size() && states.get(state);
 }
 
 template<typename ValueType>
 uint64_t ExplicitQuantitativeCheckResult<ValueType>::getOffset(storm::storage::sparse::state_type state) const {
-    STORM_LOG_THROW(this->hasValueForState(state), storm::exceptions::InvalidOperationException, "Unknown key '" << state << "'.");
-    return states ? states->getNumberOfSetBitsBeforeIndex(state) : state;
+    STORM_LOG_ASSERT(this->hasValueForState(state), "State '" << state << "' has no value.");
+    return states.getNumberOfSetBitsBeforeIndex(state);
 }
 
 template<typename ValueType>
 storm::storage::BitVector const& ExplicitQuantitativeCheckResult<ValueType>::getStates() const {
-    STORM_LOG_THROW(!this->isResultForAllStates(), storm::exceptions::InvalidOperationException,
-                    "Unable to retrieve the states of a result that is for all states.");
-    return *states;
+    return states;
 }
 
 template<typename ValueType>
@@ -162,42 +155,35 @@ ExplicitQuantitativeCheckResult<ValueType>::getSolutionBounds() const {
 }
 
 template<typename ValueType>
-void ExplicitQuantitativeCheckResult<ValueType>::assertBoundsShape([[maybe_unused]] vector_type const& bounds) const {
-    STORM_LOG_ASSERT(bounds.size() == values.size(), "Bounds must have the same size as the values.");
-}
-
-template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::setLowerBounds(vector_type lowerBounds) {
-    this->assertBoundsShape(lowerBounds);
+    STORM_LOG_ASSERT(lowerBounds.size() == values.size(), "Bounds must have the same size as the values.");
     this->bounds.lower = std::move(lowerBounds);
 }
 
 template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::setUpperBounds(vector_type upperBounds) {
-    this->assertBoundsShape(upperBounds);
+    STORM_LOG_ASSERT(upperBounds.size() == values.size(), "Bounds must have the same size as the values.");
     this->bounds.upper = std::move(upperBounds);
 }
 
 template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::setBounds(storm::solver::SolutionBounds<ExtendedValueType> bounds) {
-    if (bounds.hasLower()) {
-        this->setLowerBounds(std::move(*bounds.lower));
-    }
-    if (bounds.hasUpper()) {
-        this->setUpperBounds(std::move(*bounds.upper));
-    }
+    STORM_LOG_ASSERT(bounds.enclose(values), "Bounds must have the same size as the values and enclose them.");
+    this->bounds = std::move(bounds);
 }
 
 template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::setBounds(storm::solver::SolutionBounds<ValueType> bounds)
     requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>)
 {
+    storm::solver::SolutionBounds<ExtendedValueType> widened;
     if (bounds.hasLower()) {
-        this->setLowerBounds(storm::utility::widen(std::move(*bounds.lower)));
+        widened.lower = storm::utility::widen(std::move(*bounds.lower));
     }
     if (bounds.hasUpper()) {
-        this->setUpperBounds(storm::utility::widen(std::move(*bounds.upper)));
+        widened.upper = storm::utility::widen(std::move(*bounds.upper));
     }
+    this->setBounds(std::move(widened));
 }
 
 template<typename ValueType>
@@ -216,8 +202,8 @@ void ExplicitQuantitativeCheckResult<ValueType>::filter(QualitativeCheckResult c
 
     // Line the filter up with the states this result has values for. The two need not span the same range of
     // states, e.g. if this result holds a value for a single state only.
-    uint64_t const numStates = std::max(filterTruthValues.size(), states ? states->size() : values.size());
-    storm::storage::BitVector available = states ? *states : storm::storage::BitVector(values.size(), true);
+    uint64_t const numStates = std::max(filterTruthValues.size(), states.size());
+    storm::storage::BitVector available = states;
     available.resize(numStates);
     storm::storage::BitVector selected(filterTruthValues);
     selected.resize(numStates);
@@ -373,13 +359,13 @@ std::ostream& ExplicitQuantitativeCheckResult<ValueType>::writeToStream(std::ost
             // The smallest lower and the largest upper bound enclose all values, with a dash for a side that is not known.
             out << " [";
             if (this->hasLowerBounds()) {
-                print(out, storm::utility::minmax(this->getLowerBoundVector()).first);
+                print(out, storm::utility::minimum(this->getLowerBoundVector()));
             } else {
                 out << "-";
             }
             out << ", ";
             if (this->hasUpperBounds()) {
-                print(out, storm::utility::minmax(this->getUpperBoundVector()).second);
+                print(out, storm::utility::maximum(this->getUpperBoundVector()));
             } else {
                 out << "-";
             }
@@ -433,11 +419,7 @@ std::unique_ptr<CheckResult> ExplicitQuantitativeCheckResult<ValueType>::compare
             result.set(offset);
         }
     }
-    if (this->isResultForAllStates()) {
-        return std::unique_ptr<CheckResult>(new ExplicitQualitativeCheckResult<ValueType>(std::move(result), scheduler));
-    } else {
-        return std::unique_ptr<CheckResult>(new ExplicitQualitativeCheckResult<ValueType>(*states, std::move(result), scheduler));
-    }
+    return std::unique_ptr<CheckResult>(new ExplicitQualitativeCheckResult<ValueType>(states, std::move(result), scheduler));
 }
 
 template<>
@@ -466,7 +448,7 @@ bool ExplicitQuantitativeCheckResult<ValueType>::isExplicit() const {
 
 template<typename ValueType>
 bool ExplicitQuantitativeCheckResult<ValueType>::isResultForAllStates() const {
-    return !states.has_value();
+    return states.full();
 }
 
 template<typename ValueType>
@@ -533,10 +515,12 @@ template<typename ValueType>
 storm::json<ValueType> ExplicitQuantitativeCheckResult<ValueType>::toJson(std::optional<storm::storage::sparse::Valuations> const& stateValuations,
                                                                           std::optional<storm::models::sparse::StateLabeling> const& stateLabels) const {
     storm::json<ValueType> result;
-    this->forEachState([&](storm::storage::sparse::state_type state, uint64_t offset) {
-        insertJsonEntry(result, state, values[offset], stateValuations, stateLabels,
+    uint64_t offset = 0;
+    this->forEachState([&](storm::storage::sparse::state_type state, ExtendedValueType const& value) {
+        insertJsonEntry(result, state, value, stateValuations, stateLabels,
                         this->hasLowerBounds() ? std::make_optional(this->getLowerBoundVector()[offset]) : std::nullopt,
                         this->hasUpperBounds() ? std::make_optional(this->getUpperBoundVector()[offset]) : std::nullopt);
+        ++offset;
     });
     return result;
 }

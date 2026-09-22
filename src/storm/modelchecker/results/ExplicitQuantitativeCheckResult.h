@@ -22,9 +22,9 @@ class ExplicitQualitativeCheckResult;
 /*!
  * A quantitative check result over the states of a sparse model.
  *
- * The result either covers every state of the model or just a subset of them, e.g. after filtering it to the
- * initial states. In the latter case the states in question are recorded in a bit vector and the values are
- * stored compressed, i.e. the i-th value belongs to the i-th state selected by that bit vector.
+ * The states the result is for are recorded in a bit vector, which selects every state of the model unless the
+ * result was narrowed down, e.g. by filtering it to the initial states. The values are stored compressed, i.e.
+ * the i-th value belongs to the i-th state selected by that bit vector.
  */
 template<typename ValueType>
 class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType> {
@@ -93,13 +93,12 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
 
     /*!
      * Retrieves the states this result holds values for.
-     * @pre This is not a result for all states.
      */
     storm::storage::BitVector const& getStates() const;
 
     /*!
-     * Retrieves the values, one per state this result is for. If this is not a result for all states, the i-th
-     * value belongs to the i-th state selected by getStates().
+     * Retrieves the values, one per state this result is for.
+     * The i-th value belongs to the i-th state selected by getStates().
      */
     vector_type const& getValueVector() const;
     vector_type& getValueVector();
@@ -187,35 +186,24 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
     uint64_t getOffset(storm::storage::sparse::state_type state) const;
 
     /*!
-     * Invokes the given function with the state and the offset of its value, for every state this result is for.
+     * Invokes the given function with the state and its value, for every state this result is for.
      */
     template<typename Function>
     void forEachState(Function const& f) const {
-        if (states) {
-            uint64_t offset = 0;
-            for (auto const& state : *states) {
-                f(state, offset);
-                ++offset;
-            }
-        } else {
-            for (uint64_t state = 0; state < values.size(); ++state) {
-                f(state, state);
-            }
+        uint64_t offset = 0;
+        for (auto const& state : states) {
+            f(state, values[offset]);
+            ++offset;
         }
     }
-
-    /*!
-     * Asserts that the given bounds have the same shape as the values.
-     */
-    void assertBoundsShape(vector_type const& bounds) const;
 
     /*!
      * Writes the value stored at the given offset, followed by its bounds if any are known.
      */
     void printValue(std::ostream& out, uint64_t offset) const;
 
-    // The states this result holds values for, or nothing at all if it is a result for all states.
-    std::optional<storm::storage::BitVector> states;
+    // The states this result holds values for, which are all states of the model unless it was narrowed down.
+    storm::storage::BitVector states;
 
     // The values of the quantitative check result, one per state this result is for. These are estimates that
     // lie within the bounds below but carry no further guarantee.
