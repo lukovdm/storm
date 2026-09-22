@@ -15,31 +15,31 @@ struct SolutionBounds {
     std::optional<std::vector<ValueType>> lower;
     std::optional<std::vector<ValueType>> upper;
 
-    /*
+    /*!
      * Returns true if the lower bound is set.
      */
     bool hasLower() const {
         return lower.has_value();
     }
 
-    /*
+    /*!
      * Returns true if the upper bound is set.
      */
     bool hasUpper() const {
         return upper.has_value();
     }
 
-    /*
+    /*!
      * Returns true if at least one of the bounds is set.
      */
     bool hasAny() const {
         return hasLower() || hasUpper();
     }
 
-    /*
+    /*!
      * Returns true if every one of the given values lies within the bounds that are set. Meant for assertions.
      */
-    bool enclose(std::vector<ValueType> const& values) const {
+    bool encloses(std::vector<ValueType> const& values) const {
         auto const isBoundedBy = [&values](std::optional<std::vector<ValueType>> const& bound, bool fromBelow) {
             if (!bound.has_value()) {
                 return true;
@@ -57,7 +57,7 @@ struct SolutionBounds {
         return isBoundedBy(lower, true) && isBoundedBy(upper, false);
     }
 
-    /*
+    /*!
      * Clears both bounds.
      */
     void clear() {

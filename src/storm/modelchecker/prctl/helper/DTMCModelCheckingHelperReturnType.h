@@ -23,10 +23,6 @@ struct DTMCSparseModelCheckingHelperReturnType {
         // Intentionally left empty.
     }
 
-    virtual ~DTMCSparseModelCheckingHelperReturnType() {
-        // Intentionally left empty.
-    }
-
     // The values computed for the states.
     std::vector<ValueType> values;
 

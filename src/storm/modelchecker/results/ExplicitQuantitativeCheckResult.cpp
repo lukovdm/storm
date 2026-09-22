@@ -156,19 +156,19 @@ ExplicitQuantitativeCheckResult<ValueType>::getSolutionBounds() const {
 
 template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::setLowerBounds(vector_type lowerBounds) {
-    STORM_LOG_ASSERT(lowerBounds.size() == values.size(), "Bounds must have the same size as the values.");
     this->bounds.lower = std::move(lowerBounds);
+    STORM_LOG_ASSERT(bounds.encloses(values), "Bounds must have the same size as the values and enclose them.");
 }
 
 template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::setUpperBounds(vector_type upperBounds) {
-    STORM_LOG_ASSERT(upperBounds.size() == values.size(), "Bounds must have the same size as the values.");
     this->bounds.upper = std::move(upperBounds);
+    STORM_LOG_ASSERT(bounds.encloses(values), "Bounds must have the same size as the values and enclose them.");
 }
 
 template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::setBounds(storm::solver::SolutionBounds<ExtendedValueType> bounds) {
-    STORM_LOG_ASSERT(bounds.enclose(values), "Bounds must have the same size as the values and enclose them.");
+    STORM_LOG_ASSERT(bounds.encloses(values), "Bounds must have the same size as the values and enclose them.");
     this->bounds = std::move(bounds);
 }
 
@@ -371,7 +371,7 @@ std::ostream& ExplicitQuantitativeCheckResult<ValueType>::writeToStream(std::ost
             }
             out << "] (bounds)";
         }
-    } else if (!this->isResultForAllStates() && values.size() == 1) {
+    } else if (values.size() == 1) {
         this->printValue(out, 0);
     } else {
         out << "{";
@@ -406,10 +406,12 @@ std::unique_ptr<CheckResult> ExplicitQuantitativeCheckResult<ValueType>::compare
 
     // A comparison is only sound if the bound falls outside the lower and upper bound of the result.
     if (this->hasLowerBounds() && this->hasUpperBounds()) {
-        for (uint64_t offset = 0; offset < values.size(); ++offset) {
+        uint64_t offset = 0;
+        for (auto const& state : states) {
             STORM_LOG_WARN_COND(!((*bounds.lower)[offset] < bound && bound < (*bounds.upper)[offset]),
                                 "The bound " << bound << " lies between the lower bound " << (*bounds.lower)[offset] << " and the upper bound "
-                                             << (*bounds.upper)[offset] << ", so the comparison against it is not decided at state " << offset << ".");
+                                             << (*bounds.upper)[offset] << ", so the comparison against it is not decided at state " << state << ".");
+            ++offset;
         }
     }
 

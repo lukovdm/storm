@@ -377,18 +377,15 @@ DTMCSparseModelCheckingHelperReturnType<SolutionType> SparseDtmcPrctlHelper<Valu
         DTMCSparseModelCheckingHelperReturnType<SolutionType> returnValue =
             computeUntilProbabilities(env, std::move(goal), transitionMatrix, backwardTransitions,
                                       storm::storage::BitVector(transitionMatrix.getRowCount(), true), ~psiStates, qualitative);
-        for (auto& entry : returnValue.values) {
-            entry = storm::utility::one<SolutionType>() - entry;
+        storm::utility::vector::subtractFromConstantOneVector(returnValue.values);
+        auto& bounds = returnValue.solutionBounds;
+        if (bounds.hasLower()) {
+            storm::utility::vector::subtractFromConstantOneVector(*bounds.lower);
+        }
+        if (bounds.hasUpper()) {
+            storm::utility::vector::subtractFromConstantOneVector(*bounds.upper);
         }
         // Inverse the bounds, lb = 1 - ub and ub = 1 - lb.
-        auto& bounds = returnValue.solutionBounds;
-        for (auto* bound : {&bounds.lower, &bounds.upper}) {
-            if (*bound) {
-                for (auto& entry : **bound) {
-                    entry = storm::utility::one<SolutionType>() - entry;
-                }
-            }
-        }
         std::swap(bounds.lower, bounds.upper);
         return returnValue;
     }
@@ -744,9 +741,9 @@ SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeBaierTra
 
         // Start by computing all 'before' states, i.e. the states for which the conditional probability is defined.
         std::vector<ValueType> probabilitiesToReachConditionStates =
-            std::move(computeUntilProbabilities(env, storm::solver::SolveGoal<ValueType>(), transitionMatrix, backwardTransitions,
-                                                storm::storage::BitVector(transitionMatrix.getRowCount(), true), conditionStates, false)
-                          .values);
+            computeUntilProbabilities(env, storm::solver::SolveGoal<ValueType>(), transitionMatrix, backwardTransitions,
+                                      storm::storage::BitVector(transitionMatrix.getRowCount(), true), conditionStates, false)
+                .values;
 
         result.beforeStates = storm::storage::BitVector(targetStates.size(), true);
         uint_fast64_t state = 0;
@@ -917,10 +914,10 @@ SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeConditio
                 }
                 goal.setRelevantValues(std::move(newRelevantValues));
                 std::vector<ValueType> conditionalProbabilities =
-                    std::move(computeUntilProbabilities(env, std::move(goal), newTransitionMatrix, newTransitionMatrix.transpose(),
-                                                        storm::storage::BitVector(newTransitionMatrix.getRowCount(), true), transformedModel.targetStates.get(),
-                                                        qualitative)
-                                  .values);
+                    computeUntilProbabilities(env, std::move(goal), newTransitionMatrix, newTransitionMatrix.transpose(),
+                                              storm::storage::BitVector(newTransitionMatrix.getRowCount(), true), transformedModel.targetStates.get(),
+                                              qualitative)
+                        .values;
 
                 storm::utility::vector::setVectorValues(result, transformedModel.beforeStates, conditionalProbabilities);
             }
