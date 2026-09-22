@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <vector>
 
@@ -33,6 +34,27 @@ struct SolutionBounds {
      */
     bool hasAny() const {
         return hasLower() || hasUpper();
+    }
+
+    /*
+     * Returns true if every one of the given values lies within the bounds that are set. Meant for assertions.
+     */
+    bool enclose(std::vector<ValueType> const& values) const {
+        auto const isBoundedBy = [&values](std::optional<std::vector<ValueType>> const& bound, bool fromBelow) {
+            if (!bound.has_value()) {
+                return true;
+            }
+            if (bound->size() != values.size()) {
+                return false;
+            }
+            for (uint64_t i = 0; i < values.size(); ++i) {
+                if (fromBelow ? (*bound)[i] > values[i] : (*bound)[i] < values[i]) {
+                    return false;
+                }
+            }
+            return true;
+        };
+        return isBoundedBy(lower, true) && isBoundedBy(upper, false);
     }
 
     /*
