@@ -651,14 +651,14 @@ class DtmcPrctlModelCheckerTest : public ::testing::Test {
         if (!result->isExplicitQuantitativeCheckResult()) {
             return;  // Only explicit results carry bounds.
         }
-        // The result is filtered to the initial states at this point, so its bounds are those of the initial states.
+        // The result is filtered to the initial states at this point, so the first entry belongs to the first initial state.
         auto const& explicitResult = result->template asExplicitQuantitativeCheckResult<ValueType>();
         ValueType const tolerance = TestType::isExact ? this->parseNumber("0") : this->parseNumber("1e-12");
         if (explicitResult.hasLowerBounds()) {
-            EXPECT_LE(storm::utility::minimum(explicitResult.getLowerBoundVector()), expected + tolerance) << "The lower bound exceeds the expected value.";
+            EXPECT_LE(explicitResult.getLowerBoundVector().front(), expected + tolerance) << "The lower bound exceeds the expected value.";
         }
         if (explicitResult.hasUpperBounds()) {
-            EXPECT_LE(expected, storm::utility::maximum(explicitResult.getUpperBoundVector()) + tolerance) << "The upper bound falls below the expected value.";
+            EXPECT_LE(expected, explicitResult.getUpperBoundVector().front() + tolerance) << "The upper bound falls below the expected value.";
         }
     }
 
