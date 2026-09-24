@@ -337,13 +337,13 @@ void ExplicitQuantitativeCheckResult<ValueType>::printValue(std::ostream& out, u
     if (this->hasLowerBounds()) {
         print(out, this->getLowerBoundVector()[offset]);
     } else {
-        out << "-";
+        out << "?";
     }
     out << ", ";
     if (this->hasUpperBounds()) {
         print(out, this->getUpperBoundVector()[offset]);
     } else {
-        out << "-";
+        out << "?";
     }
     out << "]";
 }
@@ -361,13 +361,13 @@ std::ostream& ExplicitQuantitativeCheckResult<ValueType>::writeToStream(std::ost
             if (this->hasLowerBounds()) {
                 print(out, storm::utility::minimum(this->getLowerBoundVector()));
             } else {
-                out << "-";
+                out << "?";
             }
             out << ", ";
             if (this->hasUpperBounds()) {
                 print(out, storm::utility::maximum(this->getUpperBoundVector()));
             } else {
-                out << "-";
+                out << "?";
             }
             out << "] (bounds)";
         }

@@ -61,6 +61,14 @@ struct SolutionBounds {
     }
 
     /*!
+     * Sets both bounds to the given values, i.e. states that these values are known exactly.
+     */
+    void setExact(std::vector<ValueType> const& values) {
+        lower = values;
+        upper = values;
+    }
+
+    /*!
      * Turns bounds on a probability p into bounds on 1-p, i.e. the new lower bound is one minus the old upper bound and vice versa.
      */
     void invertProbabilityBounds() {

@@ -270,6 +270,13 @@ void AbstractEquationSolver<ValueType>::setSolutionBounds(SolutionBounds<ValueTy
 }
 
 template<typename ValueType>
+void AbstractEquationSolver<ValueType>::setSolutionBoundsExact(std::vector<ValueType> const& x) const {
+    SolutionBounds<ValueType> bounds;
+    bounds.setExact(x);
+    this->setSolutionBounds(std::move(bounds));
+}
+
+template<typename ValueType>
 void AbstractEquationSolver<ValueType>::clearSolutionBounds() const {
     solutionBounds.clear();
 }

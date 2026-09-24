@@ -814,6 +814,11 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
         }
     }
 
+    if (qualitativeStateSets.maybeStates.empty()) {
+        // The qualitative precomputation already decided every state, so all values are exact.
+        resultBounds.setExact(result);
+    }
+
     // Extend scheduler with choices for the states in the qualitative state sets.
     if (produceScheduler) {
         extendScheduler(*scheduler, minimize, qualitativeStateSets, transitionMatrix, backwardTransitions, phiStates, psiStates);

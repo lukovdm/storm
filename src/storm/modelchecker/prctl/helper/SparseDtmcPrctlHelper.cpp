@@ -294,6 +294,11 @@ DTMCSparseModelCheckingHelperReturnType<SolutionType> SparseDtmcPrctlHelper<Valu
             }
         }
     }
+    if (maybeStates.empty()) {
+        // The qualitative precomputation already decided every state, so all values are exact.
+        solutionBounds.setExact(result);
+    }
+
     DTMCSparseModelCheckingHelperReturnType<SolutionType> returnValue(std::move(result));
     returnValue.solutionBounds = std::move(solutionBounds);
     return returnValue;

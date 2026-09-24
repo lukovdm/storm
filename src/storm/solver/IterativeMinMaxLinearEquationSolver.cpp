@@ -571,6 +571,7 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquation
             if (this->isTrackSchedulerSet()) {
                 this->schedulerChoices = std::vector<uint_fast64_t>(x.size(), 0);
             }
+            this->setSolutionBoundsExact(x);
             return true;
         }
 

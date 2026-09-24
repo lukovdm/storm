@@ -233,6 +233,13 @@ class AbstractEquationSolver {
     void setSolutionBounds(SolutionBounds<ValueType> bounds) const;
 
     /*!
+     * Reports the given solution as an exact one, i.e. stores it as both the lower and the upper bound.
+     *
+     * @param x The computed solution.
+     */
+    void setSolutionBoundsExact(std::vector<ValueType> const& x) const;
+
+    /*!
      * Discards any bounds on the solution obtained by a previous call. This must happen whenever solving
      * starts, so that a solver that is reused does not report stale bounds.
      */
