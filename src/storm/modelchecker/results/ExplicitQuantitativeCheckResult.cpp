@@ -245,11 +245,27 @@ template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::sum() const {
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Sum of empty set is not defined.");
 
+    // Infinities are kept out of the running sum, as adding them to it is either a no-op or, for the types that
+    // carry infinity as a separate kind, an error. They only decide what the sum is once all values are seen.
+    bool hasPositiveInfinity = false;
+    bool hasNegativeInfinity = false;
     ExtendedValueType sum = storm::utility::zero<ExtendedValueType>();
     for (auto const& element : values) {
-        STORM_LOG_THROW(!storm::utility::isInfinity(element), storm::exceptions::InvalidOperationException,
-                        "Cannot compute the sum of values containing infinity.");
-        sum += element;
+        if (storm::utility::isInfinity(element)) {
+            hasPositiveInfinity = true;
+        } else if (storm::utility::isNegativeInfinity(element)) {
+            hasNegativeInfinity = true;
+        } else {
+            sum += element;
+        }
+    }
+    STORM_LOG_THROW(!hasPositiveInfinity || !hasNegativeInfinity, storm::exceptions::InvalidOperationException,
+                    "Cannot compute the sum of values containing both infinity and -infinity.");
+    if (hasPositiveInfinity) {
+        return storm::utility::positiveInfinity<ValueType>();
+    }
+    if (hasNegativeInfinity) {
+        return storm::utility::negativeInfinity<ValueType>();
     }
     return sum;
 }
@@ -258,13 +274,12 @@ template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::average() const {
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Average of empty set is not defined.");
 
-    ExtendedValueType sum = storm::utility::zero<ExtendedValueType>();
-    for (auto const& element : values) {
-        STORM_LOG_THROW(!storm::utility::isInfinity(element), storm::exceptions::InvalidOperationException,
-                        "Cannot compute the average of values containing infinity.");
-        sum += element;
+    ExtendedValueType const total = sum();
+    if (storm::utility::isInfinity(total) || storm::utility::isNegativeInfinity(total)) {
+        // Dividing an infinite sum by the finite number of values leaves it unchanged.
+        return total;
     }
-    return sum / storm::utility::convertNumber<ExtendedValueType, uint64_t>(values.size());
+    return total / storm::utility::convertNumber<ExtendedValueType, uint64_t>(values.size());
 }
 
 template<typename ValueType>
