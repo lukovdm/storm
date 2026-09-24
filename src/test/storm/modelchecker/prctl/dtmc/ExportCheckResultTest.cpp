@@ -195,7 +195,7 @@ TEST(ExportCheckResultTest, RangeOutputShowsBounds) {
 
     std::stringstream out;
     result.writeToStream(out);
-    EXPECT_EQ("[0.25, 0.5] (range) [0.2, -] (bounds)", out.str());
+    EXPECT_EQ("[0.25, 0.5] (range) [0.2, ?] (bounds)", out.str());
 }
 
 TEST(ExportCheckResultTest, InfiniteRewardDouble) {
