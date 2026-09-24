@@ -1,8 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <optional>
 #include <vector>
+
+#include "storm/utility/constants.h"
 
 namespace storm::solver {
 
@@ -55,6 +58,20 @@ struct SolutionBounds {
             return true;
         };
         return isBoundedBy(lower, true) && isBoundedBy(upper, false);
+    }
+
+    /*!
+     * Turns bounds on a probability p into bounds on 1-p, i.e. the new lower bound is one minus the old upper bound and vice versa.
+     */
+    void invertProbabilityBounds() {
+        auto const oneMinus = [](ValueType const& value) { return storm::utility::one<ValueType>() - value; };
+        if (hasLower()) {
+            std::ranges::transform(*lower, lower->begin(), oneMinus);
+        }
+        if (hasUpper()) {
+            std::ranges::transform(*upper, upper->begin(), oneMinus);
+        }
+        std::swap(lower, upper);
     }
 
     /*!

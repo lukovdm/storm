@@ -856,16 +856,7 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
         for (auto& element : result.values) {
             element = storm::utility::one<SolutionType>() - element;
         }
-        // Inverse the bounds, lb = 1 - ub and ub = 1 - lb.
-        auto& bounds = result.solutionBounds;
-        for (auto* bound : {&bounds.lower, &bounds.upper}) {
-            if (*bound) {
-                for (auto& entry : **bound) {
-                    entry = storm::utility::one<SolutionType>() - entry;
-                }
-            }
-        }
-        std::swap(bounds.lower, bounds.upper);
+        result.solutionBounds.invertProbabilityBounds();
         return result;
     }
 }

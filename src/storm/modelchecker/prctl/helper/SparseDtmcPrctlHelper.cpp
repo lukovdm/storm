@@ -378,15 +378,7 @@ DTMCSparseModelCheckingHelperReturnType<SolutionType> SparseDtmcPrctlHelper<Valu
             computeUntilProbabilities(env, std::move(goal), transitionMatrix, backwardTransitions,
                                       storm::storage::BitVector(transitionMatrix.getRowCount(), true), ~psiStates, qualitative);
         storm::utility::vector::subtractFromConstantOneVector(returnValue.values);
-        auto& bounds = returnValue.solutionBounds;
-        if (bounds.hasLower()) {
-            storm::utility::vector::subtractFromConstantOneVector(*bounds.lower);
-        }
-        if (bounds.hasUpper()) {
-            storm::utility::vector::subtractFromConstantOneVector(*bounds.upper);
-        }
-        // Inverse the bounds, lb = 1 - ub and ub = 1 - lb.
-        std::swap(bounds.lower, bounds.upper);
+        returnValue.solutionBounds.invertProbabilityBounds();
         return returnValue;
     }
 }
