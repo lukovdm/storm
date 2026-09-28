@@ -185,6 +185,11 @@ void ExplicitQuantitativeCheckResult<ValueType>::setBounds(storm::solver::Soluti
 }
 
 template<typename ValueType>
+void ExplicitQuantitativeCheckResult<ValueType>::setValuesExact() {
+    bounds.setExact(values);
+}
+
+template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::clearBounds() {
     bounds.clear();
 }

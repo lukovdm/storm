@@ -80,6 +80,9 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
 
     bool returnValue = true;
     bool aborted = false;
+    // Trivial SCCs are settled by substitution, so they only ever inherit the error of their successors. SCCs come
+    // in topological order, so conjoining as we go is enough.
+    bool allSccsExact = true;
     if (this->sortedSccDecomposition->size() == 1 && (!this->choiceFixedForRowGroup || this->choiceFixedForRowGroup.get().empty())) {
         // Handle the case where there is just one large SCC, as there are no fixed choices for states, we solve it like this
         if (auto const& scc = *this->sortedSccDecomposition->begin(); scc.size() == 1) {
@@ -90,6 +93,7 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
             returnValue = solveTrivialScc(*scc.begin(), dir, x, b);
         } else {
             returnValue = solveFullyConnectedEquationSystem(sccSolverEnvironment, dir, x, b);
+            allSccsExact = this->sccSolver->hasExactSolutionBounds();
         }
     } else {
         // Solve each SCC individually
@@ -129,6 +133,7 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
                     sccAsBitVector.set(state, true);
                 }
                 returnValue = solveScc(sccSolverEnvironment, dir, scc, sccAsBitVector, x, b, newRelevantValues) && returnValue;
+                allSccsExact = allSccsExact && this->sccSolver->hasExactSolutionBounds();
                 // clear sccAsBitVector, either by clearing all bits or by clearing the bits of the current SCC (if its small)
                 if (scc.size() * 64 < sccAsBitVector.size()) {
                     for (auto const& state : scc) {
@@ -149,7 +154,7 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
     }
 
     if (returnValue && !aborted) {
-        trySetSolutionBoundsFromPrecision(env, x);
+        trySetSolutionBounds(env, x, allSccsExact);
     }
 
     if (!this->isCachingEnabled()) {
@@ -160,8 +165,12 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
 }
 
 template<typename ValueType, typename SolutionType>
-void TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::trySetSolutionBoundsFromPrecision(Environment const& env,
-                                                                                                       std::vector<SolutionType> const& x) const {
+void TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::trySetSolutionBounds(Environment const& env, std::vector<SolutionType> const& x,
+                                                                                          bool allSccsExact) const {
+    if (allSccsExact) {
+        this->setSolutionBoundsExact(x);
+        return;
+    }
     // A sound solve hands every SCC a precision of eps divided by the length of the longest SCC chain, and the
     // deviation an SCC inherits from its predecessors enters its own solution as a convex combination of the values
     // at the exits, without amplification. The per-SCC deviations therefore add up to at most eps along any chain.

@@ -771,15 +771,23 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquation
 
         auto status = viHelper.VI(x, b, numIterations, env.solver().minMax().getRelativeTerminationCriterion(),
                                   storm::utility::convertNumber<SolutionType>(env.solver().minMax().getPrecision()), dir, viCallback,
-                                  env.solver().minMax().getMultiplicationStyle(), this->getUncertaintyResolutionMode(), solutionBoundsRef);
-        if (solutionBounds.hasAny()) {
-            this->setSolutionBounds(std::move(solutionBounds));
-        }
+                                  env.solver().minMax().getMultiplicationStyle(), this->getUncertaintyResolutionMode(), solutionBoundsRef, guarantee);
         this->reportStatus(status, numIterations);
 
         // If requested, we store the scheduler for retrieval.
         if (this->isTrackSchedulerSet()) {
+            // Extracting the scheduler applies one more update to x, which leaves it on the side of the solution
+            // that the iteration put it on, so the bounds follow it there.
             this->extractScheduler(x, b, dir, this->getUncertaintyResolutionMode());
+            if (solutionBounds.hasLower()) {
+                solutionBounds.lower = x;
+            }
+            if (solutionBounds.hasUpper()) {
+                solutionBounds.upper = x;
+            }
+        }
+        if (solutionBounds.hasAny()) {
+            this->setSolutionBounds(std::move(solutionBounds));
         }
 
         if (!this->isCachingEnabled()) {
@@ -792,15 +800,23 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquation
 
         auto status = viHelper.VI(x, b, numIterations, env.solver().minMax().getRelativeTerminationCriterion(),
                                   storm::utility::convertNumber<SolutionType>(env.solver().minMax().getPrecision()), dir, viCallback,
-                                  env.solver().minMax().getMultiplicationStyle(), this->getUncertaintyResolutionMode(), solutionBoundsRef);
-        if (solutionBounds.hasAny()) {
-            this->setSolutionBounds(std::move(solutionBounds));
-        }
+                                  env.solver().minMax().getMultiplicationStyle(), this->getUncertaintyResolutionMode(), solutionBoundsRef, guarantee);
         this->reportStatus(status, numIterations);
 
         // If requested, we store the scheduler for retrieval.
         if (this->isTrackSchedulerSet()) {
+            // Extracting the scheduler applies one more update to x, which leaves it on the side of the solution
+            // that the iteration put it on, so the bounds follow it there.
             this->extractScheduler(x, b, dir, this->getUncertaintyResolutionMode());
+            if (solutionBounds.hasLower()) {
+                solutionBounds.lower = x;
+            }
+            if (solutionBounds.hasUpper()) {
+                solutionBounds.upper = x;
+            }
+        }
+        if (solutionBounds.hasAny()) {
+            this->setSolutionBounds(std::move(solutionBounds));
         }
 
         if (!this->isCachingEnabled()) {

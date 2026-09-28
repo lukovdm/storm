@@ -40,10 +40,14 @@ class TopologicalMinMaxLinearEquationSolver : public StandardMinMaxLinearEquatio
     void createSortedSccDecomposition(bool needLongestChainSize) const;
 
     /*!
-     * Reports the precision that the SCCs were solved with as a bound on the solution, if that precision is a
-     * sound one. Does nothing otherwise.
+     * Reports what the SCC-wise solve established about the solution: the values themselves if no SCC needed an
+     * approximating procedure, otherwise the precision the SCCs were solved with, if that precision is a sound one.
+     * Does nothing otherwise.
+     *
+     * @param x The computed solution.
+     * @param allSccsExact Whether every SCC was solved exactly.
      */
-    void trySetSolutionBoundsFromPrecision(Environment const& env, std::vector<SolutionType> const& x) const;
+    void trySetSolutionBounds(Environment const& env, std::vector<SolutionType> const& x, bool allSccsExact) const;
 
     // Solves the SCC with the given index
     // ... for the case that the SCC is trivial

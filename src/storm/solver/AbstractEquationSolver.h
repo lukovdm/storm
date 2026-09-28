@@ -191,6 +191,12 @@ class AbstractEquationSolver {
     bool hasSolutionUpperBounds() const;
 
     /*!
+     * Retrieves whether the bounds computed by the last call to this solver coincide, i.e. whether that call
+     * reported the solution itself rather than an enclosure of it.
+     */
+    bool hasExactSolutionBounds() const;
+
+    /*!
      * Retrieves sound bounds on the solution that the last call to this solver computed.
      * @pre The respective bound was computed, see hasSolutionLowerBounds() resp. hasSolutionUpperBounds().
      */
@@ -238,6 +244,15 @@ class AbstractEquationSolver {
      * @param x The computed solution.
      */
     void setSolutionBoundsExact(std::vector<SolutionType> const& x) const;
+
+    /*!
+     * Folds the bounds that were handed to this solver beforehand into the ones it computed itself, keeping
+     * whichever is tighter on either side. Where the solver established no bound of its own, the a priori one
+     * becomes the reported bound.
+     *
+     * @param x The computed solution.
+     */
+    void addAPrioriSolutionBounds(std::vector<SolutionType> const& x) const;
 
     /*!
      * Discards any bounds on the solution obtained by a previous call. This must happen whenever solving

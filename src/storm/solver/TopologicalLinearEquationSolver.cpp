@@ -86,12 +86,16 @@ bool TopologicalLinearEquationSolver<ValueType>::internalSolveEquations(Environm
     // Handle the case where there is just one large SCC
     bool returnValue = true;
     bool aborted = false;
+    // Trivial SCCs are settled by substitution, so they only ever inherit the error of their successors. SCCs come
+    // in topological order, so conjoining as we go is enough.
+    bool allSccsExact = true;
     if (this->sortedSccDecomposition->size() == 1) {
         if (auto const& scc = *this->sortedSccDecomposition->begin(); scc.size() == 1) {
             // Catch the trivial case where the whole system is just a single state.
             returnValue = solveTrivialScc(*scc.begin(), x, b);
         } else {
             returnValue = solveFullyConnectedEquationSystem(sccSolverEnvironment, x, b);
+            allSccsExact = this->sccSolver->hasExactSolutionBounds();
         }
     } else {
         // Solve each SCC individually
@@ -123,6 +127,7 @@ bool TopologicalLinearEquationSolver<ValueType>::internalSolveEquations(Environm
                     sccAsBitVector.set(state, true);
                 }
                 returnValue = solveScc(sccSolverEnvironment, scc, sccAsBitVector, x, b, newRelevantValues) && returnValue;
+                allSccsExact = allSccsExact && this->sccSolver->hasExactSolutionBounds();
                 // clear sccAsBitVector, either by clearing all bits or by clearing the bits of the current SCC (if its small)
                 if (scc.size() * 64 < sccAsBitVector.size()) {
                     for (auto const& state : scc) {
@@ -143,7 +148,7 @@ bool TopologicalLinearEquationSolver<ValueType>::internalSolveEquations(Environm
     }
 
     if (returnValue && !aborted) {
-        trySetSolutionBoundsFromPrecision(env, x);
+        trySetSolutionBounds(env, x, allSccsExact);
     }
 
     if (!this->isCachingEnabled()) {
@@ -154,7 +159,11 @@ bool TopologicalLinearEquationSolver<ValueType>::internalSolveEquations(Environm
 }
 
 template<typename ValueType>
-void TopologicalLinearEquationSolver<ValueType>::trySetSolutionBoundsFromPrecision(Environment const& env, std::vector<ValueType> const& x) const {
+void TopologicalLinearEquationSolver<ValueType>::trySetSolutionBounds(Environment const& env, std::vector<ValueType> const& x, bool allSccsExact) const {
+    if (allSccsExact) {
+        this->setSolutionBoundsExact(x);
+        return;
+    }
     if constexpr (std::is_same_v<ValueType, storm::RationalFunction>) {
         // Precisions are meaningless for rational functions.
         return;

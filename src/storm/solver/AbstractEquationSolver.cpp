@@ -251,6 +251,11 @@ bool AbstractEquationSolver<SolutionType>::hasSolutionUpperBounds() const {
 }
 
 template<typename SolutionType>
+bool AbstractEquationSolver<SolutionType>::hasExactSolutionBounds() const {
+    return solutionBounds.isExact();
+}
+
+template<typename SolutionType>
 std::vector<SolutionType> const& AbstractEquationSolver<SolutionType>::getSolutionLowerBounds() const {
     STORM_LOG_ASSERT(this->hasSolutionLowerBounds(), "No lower bound on the solution was computed.");
     return *solutionBounds.lower;
@@ -286,8 +291,6 @@ void AbstractEquationSolver<SolutionType>::setSolutionBoundsFromPrecision(std::v
         SolutionBounds<SolutionType> bounds;
         std::vector<SolutionType>& lower = bounds.lower.emplace(x.size());
         std::vector<SolutionType>& upper = bounds.upper.emplace(x.size());
-        bool const tightenFromBelow = this->hasLowerBound();
-        bool const tightenFromAbove = this->hasUpperBound();
         for (uint64_t i = 0; i < x.size(); ++i) {
             // For the relative criterion the guarantee reads |x_i - s_i| <= precision * |s_i| for the exact solution s.
             // That gives |s_i| <= |x_i| / (1 - precision) and hence the deviation below, which does not refer to s.
@@ -295,14 +298,37 @@ void AbstractEquationSolver<SolutionType>::setSolutionBoundsFromPrecision(std::v
                 relative ? precision * storm::utility::abs<SolutionType>(x[i]) / (storm::utility::one<SolutionType>() - precision) : precision;
             lower[i] = x[i] - deviation;
             upper[i] = x[i] + deviation;
-            if (tightenFromBelow) {
-                lower[i] = std::max(lower[i], this->getLowerBound(i));
-            }
-            if (tightenFromAbove) {
-                upper[i] = std::min(upper[i], this->getUpperBound(i));
-            }
         }
         this->setSolutionBounds(std::move(bounds));
+    }
+}
+
+template<typename SolutionType>
+void AbstractEquationSolver<SolutionType>::addAPrioriSolutionBounds(std::vector<SolutionType> const& x) const {
+    if constexpr (std::is_same_v<SolutionType, storm::RationalFunction>) {
+        // Rational functions are not ordered, so there is no tighter of two bounds to pick.
+        return;
+    } else {
+        if (this->hasLowerBound()) {
+            bool const hadBound = solutionBounds.hasLower();
+            std::vector<SolutionType>& bound = hadBound ? *solutionBounds.lower : solutionBounds.lower.emplace(x.size());
+            STORM_LOG_ASSERT(bound.size() == x.size(), "Computed lower bound does not match the size of the solution.");
+            for (uint64_t i = 0; i < x.size(); ++i) {
+                // A computed value can sit a rounding error below the a priori bound. Following it down there keeps
+                // the bound sound, as that only moves it further away from the solution.
+                SolutionType const aPriori = std::min(this->getLowerBound(i), x[i]);
+                bound[i] = hadBound ? std::max(bound[i], aPriori) : aPriori;
+            }
+        }
+        if (this->hasUpperBound()) {
+            bool const hadBound = solutionBounds.hasUpper();
+            std::vector<SolutionType>& bound = hadBound ? *solutionBounds.upper : solutionBounds.upper.emplace(x.size());
+            STORM_LOG_ASSERT(bound.size() == x.size(), "Computed upper bound does not match the size of the solution.");
+            for (uint64_t i = 0; i < x.size(); ++i) {
+                SolutionType const aPriori = std::max(this->getUpperBound(i), x[i]);
+                bound[i] = hadBound ? std::min(bound[i], aPriori) : aPriori;
+            }
+        }
     }
 }
 

@@ -150,6 +150,13 @@ class ExplicitQuantitativeCheckResult : public QuantitativeCheckResult<ValueType
         requires(!std::is_same_v<storm::utility::ExtendedValueType<ValueType>, ValueType>);
 
     /*!
+     * States that the values of this result are the exact ones, i.e. bounds each of them by itself from either
+     * side. Meant for computations that arrive at the values rather than approaching them, such as unrolling a
+     * fixed number of steps.
+     */
+    void setValuesExact();
+
+    /*!
      * Drops all bounds, e.g. after an operation that cannot maintain them.
      */
     void clearBounds();

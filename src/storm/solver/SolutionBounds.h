@@ -61,6 +61,14 @@ struct SolutionBounds {
     }
 
     /*!
+     * Returns true if both bounds are set and coincide, i.e. if they pin the solution down to single values rather
+     * than enclosing it.
+     */
+    bool isExact() const {
+        return hasLower() && hasUpper() && *lower == *upper;
+    }
+
+    /*!
      * Sets both bounds to the given values, i.e. states that these values are known exactly.
      */
     void setExact(std::vector<ValueType> const& values) {
