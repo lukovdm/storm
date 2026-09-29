@@ -250,12 +250,12 @@ class AbstractEquationSolver {
     void setSolutionBoundsExact(std::vector<SolutionType> const& x) const;
 
     /*!
-     * Folds the bounds handed to this solver beforehand into the ones it computed itself, keeping whichever is
-     * tighter on either side.
+     * Settles the bounds to report once solving is over: the ones handed to this solver beforehand are folded into
+     * the ones it computed itself, and both are widened until they enclose the solution that is handed back.
      *
      * @param x The computed solution.
      */
-    void addAPrioriSolutionBounds(std::vector<SolutionType> const& x) const;
+    void finalizeSolutionBounds(std::vector<SolutionType> const& x) const;
 
     /*!
      * Discards any bounds on the solution obtained by a previous call. This must happen whenever solving

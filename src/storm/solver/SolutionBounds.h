@@ -107,6 +107,19 @@ struct SolutionBounds {
     }
 
     /*!
+     * Widens whichever bounds are set until they enclose the given values. A bound only ever moves away from the
+     * solution that way, so it stays sound.
+     */
+    void widenTo(std::vector<ValueType> const& values) {
+        if (hasLower()) {
+            std::ranges::transform(*lower, values, lower->begin(), [](ValueType const& bound, ValueType const& value) { return std::min(bound, value); });
+        }
+        if (hasUpper()) {
+            std::ranges::transform(*upper, values, upper->begin(), [](ValueType const& bound, ValueType const& value) { return std::max(bound, value); });
+        }
+    }
+
+    /*!
      * Clears both bounds.
      */
     void clear() {

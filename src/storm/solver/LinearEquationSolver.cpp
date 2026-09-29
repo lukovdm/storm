@@ -28,7 +28,7 @@ bool LinearEquationSolver<ValueType>::solveEquations(Environment const& env, std
     this->clearSolutionBounds();
     bool const result = this->internalSolveEquations(env, x, b);
     if (result) {
-        this->addAPrioriSolutionBounds(x);
+        this->finalizeSolutionBounds(x);
     }
     return result;
 }

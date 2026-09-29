@@ -44,7 +44,7 @@ bool MinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquations(Environ
     this->clearSolutionBounds();
     bool const result = internalSolveEquations(env, d, x, b);
     if (result) {
-        this->addAPrioriSolutionBounds(x);
+        this->finalizeSolutionBounds(x);
     }
     return result;
 }

@@ -309,7 +309,7 @@ void AbstractEquationSolver<SolutionType>::setSolutionBoundsFromPrecision(std::v
 }
 
 template<typename SolutionType>
-void AbstractEquationSolver<SolutionType>::addAPrioriSolutionBounds(std::vector<SolutionType> const& x) const {
+void AbstractEquationSolver<SolutionType>::finalizeSolutionBounds(std::vector<SolutionType> const& x) const {
     if constexpr (std::is_same_v<SolutionType, storm::RationalFunction>) {
         // Rational functions are not ordered, so there is no tighter of two bounds to pick.
         return;
@@ -319,10 +319,7 @@ void AbstractEquationSolver<SolutionType>::addAPrioriSolutionBounds(std::vector<
             std::vector<SolutionType>& bound = hadBound ? *solutionBounds.lower : solutionBounds.lower.emplace(x.size());
             STORM_LOG_ASSERT(bound.size() == x.size(), "Computed lower bound does not match the size of the solution.");
             for (uint64_t i = 0; i < x.size(); ++i) {
-                // A computed value can sit a rounding error below the a priori bound. Following it down there keeps
-                // the bound sound, as that only moves it further away from the solution.
-                SolutionType const aPriori = std::min(this->getLowerBound(i), x[i]);
-                bound[i] = hadBound ? std::max(bound[i], aPriori) : aPriori;
+                bound[i] = hadBound ? std::max(bound[i], this->getLowerBound(i)) : this->getLowerBound(i);
             }
         }
         if (this->hasUpperBound()) {
@@ -330,10 +327,12 @@ void AbstractEquationSolver<SolutionType>::addAPrioriSolutionBounds(std::vector<
             std::vector<SolutionType>& bound = hadBound ? *solutionBounds.upper : solutionBounds.upper.emplace(x.size());
             STORM_LOG_ASSERT(bound.size() == x.size(), "Computed upper bound does not match the size of the solution.");
             for (uint64_t i = 0; i < x.size(); ++i) {
-                SolutionType const aPriori = std::max(this->getUpperBound(i), x[i]);
-                bound[i] = hadBound ? std::min(bound[i], aPriori) : aPriori;
+                bound[i] = hadBound ? std::min(bound[i], this->getUpperBound(i)) : this->getUpperBound(i);
             }
         }
+        // Every step between establishing a bound and handing back a solution, the extraction of a scheduler among
+        // them, can move a value a rounding error past it. Following the values keeps the bounds sound.
+        solutionBounds.widenTo(x);
     }
 }
 

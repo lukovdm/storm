@@ -766,19 +766,13 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquation
                                   env.solver().minMax().getMultiplicationStyle(), this->getUncertaintyResolutionMode(), solutionBoundsRef, guarantee);
         this->reportStatus(status, numIterations);
 
-        // If requested, we store the scheduler for retrieval.
-        if (this->isTrackSchedulerSet()) {
-            // The extraction updates x once more, which keeps it on the side the iteration put it on.
-            this->extractScheduler(x, b, dir, this->getUncertaintyResolutionMode());
-            if (solutionBounds.hasLower()) {
-                solutionBounds.lower = x;
-            }
-            if (solutionBounds.hasUpper()) {
-                solutionBounds.upper = x;
-            }
-        }
         if (solutionBounds.hasAny()) {
             this->setSolutionBounds(std::move(solutionBounds));
+        }
+
+        // If requested, we store the scheduler for retrieval.
+        if (this->isTrackSchedulerSet()) {
+            this->extractScheduler(x, b, dir, this->getUncertaintyResolutionMode());
         }
 
         if (!this->isCachingEnabled()) {
@@ -794,19 +788,13 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquation
                                   env.solver().minMax().getMultiplicationStyle(), this->getUncertaintyResolutionMode(), solutionBoundsRef, guarantee);
         this->reportStatus(status, numIterations);
 
-        // If requested, we store the scheduler for retrieval.
-        if (this->isTrackSchedulerSet()) {
-            // The extraction updates x once more, which keeps it on the side the iteration put it on.
-            this->extractScheduler(x, b, dir, this->getUncertaintyResolutionMode());
-            if (solutionBounds.hasLower()) {
-                solutionBounds.lower = x;
-            }
-            if (solutionBounds.hasUpper()) {
-                solutionBounds.upper = x;
-            }
-        }
         if (solutionBounds.hasAny()) {
             this->setSolutionBounds(std::move(solutionBounds));
+        }
+
+        // If requested, we store the scheduler for retrieval.
+        if (this->isTrackSchedulerSet()) {
+            this->extractScheduler(x, b, dir, this->getUncertaintyResolutionMode());
         }
 
         if (!this->isCachingEnabled()) {
