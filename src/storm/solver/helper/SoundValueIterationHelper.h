@@ -29,11 +29,6 @@ class SoundValueIterationHelper {
         std::optional<ValueType> const a, b;
 
         void trySetAverage(std::vector<ValueType>& out) const;
-
-        /*!
-         * Writes the enclosure of the solution that this data represents.
-         * @return whether the two scaling factors it is built from are both known, i.e. whether anything was written.
-         */
         bool trySetLowerUpper(std::vector<ValueType>& lowerOut, std::vector<ValueType>& upperOut) const;
         bool checkCustomTerminationCondition(storm::solver::TerminationCondition<ValueType> const& condition) const;
 

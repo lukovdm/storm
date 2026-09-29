@@ -772,12 +772,7 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
                         ecInformation.get().setValues(bound, qualitativeStateSets.maybeStates, boundInEcQuotient);
                         return bound;
                     };
-                    if (resultForMaybeStates.solutionBounds.hasLower()) {
-                        resultBounds.lower = liftBound(*resultForMaybeStates.solutionBounds.lower);
-                    }
-                    if (resultForMaybeStates.solutionBounds.hasUpper()) {
-                        resultBounds.upper = liftBound(*resultForMaybeStates.solutionBounds.upper);
-                    }
+                    resultBounds = resultForMaybeStates.solutionBounds.transform(liftBound);
                     ecInformation.get().setValues(result, qualitativeStateSets.maybeStates, resultForMaybeStates.getValues());
                     if (produceScheduler) {
                         ecInformation.get().setScheduler(*scheduler, qualitativeStateSets.maybeStates, transitionMatrix, backwardTransitions,
@@ -794,12 +789,7 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
                         storm::utility::vector::setVectorValues<SolutionType>(bound, qualitativeStateSets.maybeStates, boundForMaybeStates);
                         return bound;
                     };
-                    if (resultForMaybeStates.solutionBounds.hasLower()) {
-                        resultBounds.lower = embedBound(*resultForMaybeStates.solutionBounds.lower);
-                    }
-                    if (resultForMaybeStates.solutionBounds.hasUpper()) {
-                        resultBounds.upper = embedBound(*resultForMaybeStates.solutionBounds.upper);
-                    }
+                    resultBounds = resultForMaybeStates.solutionBounds.transform(embedBound);
                     storm::utility::vector::setVectorValues<SolutionType>(result, qualitativeStateSets.maybeStates, resultForMaybeStates.getValues());
                 } else {
                     // For interval models, the result for maybe states indeed also holds values for all qualitative states.
@@ -814,6 +804,11 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
         }
     }
 
+    if (qualitativeStateSets.maybeStates.empty()) {
+        // The qualitative precomputation already decided every state, so all values are exact.
+        resultBounds.setExact(result);
+    }
+
     // Extend scheduler with choices for the states in the qualitative state sets.
     if (produceScheduler) {
         extendScheduler(*scheduler, minimize, qualitativeStateSets, transitionMatrix, backwardTransitions, phiStates, psiStates);
@@ -824,11 +819,6 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || !scheduler->isPartialScheduler(), "Expected a fully defined scheduler.");
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || scheduler->isDeterministicScheduler(), "Expected a deterministic scheduler.");
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || scheduler->isMemorylessScheduler(), "Expected a memoryless scheduler.");
-
-    // With no maybe states nothing was solved, so the values are exact and bound themselves.
-    if (qualitativeStateSets.maybeStates.empty()) {
-        resultBounds.setExact(result);
-    }
 
     // Return result.
     MDPSparseModelCheckingHelperReturnType<SolutionType> returnValue(std::move(result), std::move(scheduler));
@@ -1004,19 +994,13 @@ typename SparseMdpPrctlHelper<ValueType, SolutionType>::ExtendedReturnType Spars
                     return newChoicesWithoutReward;
                 });
 
-            // All states of an eliminated end component share the value of their quotient state, so a bound on
-            // the latter bounds each of them.
-            auto liftFromEcQuotient = [&ecElimResult](std::vector<ExtendedSolutionType>& valuesInEcQuotient) {
+            // All states of an eliminated end component share their quotient state's value, and its bounds.
+            auto liftFromEcQuotient = [&ecElimResult](std::vector<ExtendedSolutionType> const& valuesInEcQuotient) {
                 std::vector<ExtendedSolutionType> lifted(ecElimResult.oldToNewStateMapping.size());
                 storm::utility::vector::selectVectorValues(lifted, ecElimResult.oldToNewStateMapping, valuesInEcQuotient);
                 return lifted;
             };
-            if (result.solutionBounds.hasLower()) {
-                result.solutionBounds.lower = liftFromEcQuotient(*result.solutionBounds.lower);
-            }
-            if (result.solutionBounds.hasUpper()) {
-                result.solutionBounds.upper = liftFromEcQuotient(*result.solutionBounds.upper);
-            }
+            result.solutionBounds = result.solutionBounds.transform(liftFromEcQuotient);
             result.values = liftFromEcQuotient(result.values);
             return result;
         }
@@ -1510,12 +1494,7 @@ typename SparseMdpPrctlHelper<ValueType, SolutionType>::ExtendedReturnType Spars
                     storm::utility::vector::setVectorValues(bound, qualitativeStateSets.maybeStates, boundForMaybeStates);
                     return bound;
                 };
-                if (resultForMaybeStates.solutionBounds.hasLower()) {
-                    resultBounds.lower = embedBound(*resultForMaybeStates.solutionBounds.lower);
-                }
-                if (resultForMaybeStates.solutionBounds.hasUpper()) {
-                    resultBounds.upper = embedBound(*resultForMaybeStates.solutionBounds.upper);
-                }
+                resultBounds = resultForMaybeStates.solutionBounds.transform(embedBound);
                 // Set values of resulting vector according to result.
                 storm::utility::vector::setVectorValues(result, qualitativeStateSets.maybeStates, resultForMaybeStates.getValues());
                 if (produceScheduler) {
@@ -1537,8 +1516,8 @@ typename SparseMdpPrctlHelper<ValueType, SolutionType>::ExtendedReturnType Spars
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || scheduler->isDeterministicScheduler(), "Expected a deterministic scheduler.");
     STORM_LOG_ASSERT((!produceScheduler && !scheduler) || scheduler->isMemorylessScheduler(), "Expected a memoryless scheduler.");
 
-    // With no maybe states nothing was solved, so the values are exact and bound themselves.
     if (qualitativeStateSets.maybeStates.empty()) {
+        // The qualitative precomputation already decided every state, so all values are exact.
         resultBounds.setExact(result);
     }
 

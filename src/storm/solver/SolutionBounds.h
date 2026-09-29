@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <optional>
+#include <type_traits>
 #include <vector>
 
 #include "storm/utility/constants.h"
@@ -61,8 +62,7 @@ struct SolutionBounds {
     }
 
     /*!
-     * Returns true if both bounds are set and coincide, i.e. if they pin the solution down to single values rather
-     * than enclosing it.
+     * Returns true if both bounds are set and coincide.
      */
     bool isExact() const {
         return hasLower() && hasUpper() && *lower == *upper;
@@ -88,6 +88,22 @@ struct SolutionBounds {
             std::ranges::transform(*upper, upper->begin(), oneMinus);
         }
         std::swap(lower, upper);
+    }
+
+    /*!
+     * Applies the given function to whichever of the bounds are set, e.g. to carry them along a transformation of
+     * the solution vector they belong to.
+     */
+    template<typename Function>
+    auto transform(Function const& function) const {
+        SolutionBounds<typename std::invoke_result_t<Function, std::vector<ValueType> const&>::value_type> result;
+        if (hasLower()) {
+            result.lower = function(*lower);
+        }
+        if (hasUpper()) {
+            result.upper = function(*upper);
+        }
+        return result;
     }
 
     /*!

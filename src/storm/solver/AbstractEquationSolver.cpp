@@ -268,6 +268,11 @@ std::vector<SolutionType> const& AbstractEquationSolver<SolutionType>::getSoluti
 }
 
 template<typename SolutionType>
+SolutionBounds<SolutionType> const& AbstractEquationSolver<SolutionType>::getSolutionBounds() const {
+    return solutionBounds;
+}
+
+template<typename SolutionType>
 void AbstractEquationSolver<SolutionType>::setSolutionBounds(SolutionBounds<SolutionType> bounds) const {
     STORM_LOG_ASSERT(!bounds.hasLower() || !bounds.hasUpper() || bounds.lower->size() == bounds.upper->size(),
                      "Bounds on the solution must have the same size.");

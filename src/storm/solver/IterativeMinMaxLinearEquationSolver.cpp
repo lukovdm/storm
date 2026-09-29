@@ -428,15 +428,8 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::performPolicy
         // Policy iteration's own termination says the scheduler is optimal, not how accurately the values under
         // it were computed, so the only statement to make is the one the inner solver made.
         if (status == SolverStatus::Converged) {
-            storm::solver::SolutionBounds<SolutionType> solutionBounds;
-            if (solver->hasSolutionLowerBounds()) {
-                solutionBounds.lower = solver->getSolutionLowerBounds();
-            }
-            if (solver->hasSolutionUpperBounds()) {
-                solutionBounds.upper = solver->getSolutionUpperBounds();
-            }
-            if (solutionBounds.hasAny()) {
-                this->setSolutionBounds(std::move(solutionBounds));
+            if (solver->getSolutionBounds().hasAny()) {
+                this->setSolutionBounds(solver->getSolutionBounds());
             }
         }
 
@@ -665,8 +658,7 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquation
         this->startMeasureProgress();
         auto statusIters = helper.solveEquations(lowerX, *upperX, b, numIterations,
                                                  storm::utility::convertNumber<ValueType>(env.solver().minMax().getPrecision()), dir, gviCallback);
-        // Guessing value iteration only writes back a guess it has verified, so the two vectors enclose the
-        // solution in every iteration, aborted or not. Read them out before x is overwritten with the average.
+        // A verified guess encloses the solution in every iteration.
         storm::solver::SolutionBounds<SolutionType> solutionBounds;
         solutionBounds.lower = lowerX;
         solutionBounds.upper = *upperX;
@@ -776,8 +768,7 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquation
 
         // If requested, we store the scheduler for retrieval.
         if (this->isTrackSchedulerSet()) {
-            // Extracting the scheduler applies one more update to x, which leaves it on the side of the solution
-            // that the iteration put it on, so the bounds follow it there.
+            // The extraction updates x once more, which keeps it on the side the iteration put it on.
             this->extractScheduler(x, b, dir, this->getUncertaintyResolutionMode());
             if (solutionBounds.hasLower()) {
                 solutionBounds.lower = x;
@@ -805,8 +796,7 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquation
 
         // If requested, we store the scheduler for retrieval.
         if (this->isTrackSchedulerSet()) {
-            // Extracting the scheduler applies one more update to x, which leaves it on the side of the solution
-            // that the iteration put it on, so the bounds follow it there.
+            // The extraction updates x once more, which keeps it on the side the iteration put it on.
             this->extractScheduler(x, b, dir, this->getUncertaintyResolutionMode());
             if (solutionBounds.hasLower()) {
                 solutionBounds.lower = x;
@@ -1022,8 +1012,7 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::solveEquation
         this->startMeasureProgress();
         auto status = rsHelper.RS(x, b, numIterations, storm::utility::convertNumber<ValueType>(env.solver().minMax().getPrecision()), dir, rsCallback);
 
-        // Rational search reports convergence only once it has verified a sharpened candidate to be an exact fixed
-        // point, so the result is the solution rather than an approximation.
+        // Convergence here means a sharpened candidate was verified to be an exact fixed point.
         if (status == SolverStatus::Converged) {
             this->setSolutionBoundsExact(x);
         }

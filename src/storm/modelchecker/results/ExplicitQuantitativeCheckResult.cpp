@@ -288,8 +288,6 @@ typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQ
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::aggregateVector(vector_type const& vector,
                                                                                                                                    FilterType filter) {
-    // A bound has the same shape as the values, so wrapping it in a result of its own reuses the methods above
-    // rather than repeating them.
     ExplicitQuantitativeCheckResult<ValueType> const asResult{vector};
     switch (filter) {
         case FilterType::MIN:
@@ -308,8 +306,6 @@ typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQ
 template<typename ValueType>
 AggregatedValue<typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType> ExplicitQuantitativeCheckResult<ValueType>::aggregate(
     FilterType filter) const {
-    // The values go through the base implementation, so the aggregations keep what getMin(), sum() and friends
-    // promise about them.
     AggregatedValue<ExtendedValueType> result = QuantitativeCheckResult<ValueType>::aggregate(filter);
     if (this->hasLowerBounds()) {
         result.lower = aggregateVector(*bounds.lower, filter);
@@ -386,7 +382,6 @@ void ExplicitQuantitativeCheckResult<ValueType>::printValue(std::ostream& out, u
         return;
     }
     out << " [";
-    // A side that is not known is written as a dash, so that it cannot be read as an infinite bound.
     if (this->hasLowerBounds()) {
         print(out, this->getLowerBoundVector()[offset]);
     } else {
@@ -409,7 +404,7 @@ std::ostream& ExplicitQuantitativeCheckResult<ValueType>::writeToStream(std::ost
         std::pair<ExtendedValueType, ExtendedValueType> minmax = this->getMinMax();
         printRange(out, minmax.first, minmax.second);
         if (this->hasLowerBounds() || this->hasUpperBounds()) {
-            // The smallest lower and the largest upper bound enclose all values, with a dash for a side that is not known.
+            // The smallest lower and the largest upper bound enclose all values.
             out << " [";
             if (this->hasLowerBounds()) {
                 print(out, storm::utility::minimum(this->getLowerBoundVector()));

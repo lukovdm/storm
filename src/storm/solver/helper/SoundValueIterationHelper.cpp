@@ -413,8 +413,7 @@ SolverStatus SoundValueIterationHelper<ValueType, TrivialRowGrouping>::SVI(
     }
     auto res = SVI(xy, offsets, numIterations, relative, doublePrec, dir, lowerBound, upperBound, iterationCallback, relevantValues);
     if (solutionBounds.has_value()) {
-        // Sound value iteration keeps the solution enclosed in every iteration, aborted or not, but only once
-        // both scaling factors are known. Read it out before x is overwritten with the average of the two sides.
+        // The iteration encloses the solution throughout once both scaling factors are known.
         std::vector<ValueType>& lower = solutionBounds->lower.emplace(xy.first.size());
         std::vector<ValueType>& upper = solutionBounds->upper.emplace(xy.first.size());
         if (!res.trySetLowerUpper(lower, upper)) {

@@ -429,8 +429,6 @@ std::vector<storm::utility::ExtendedValueType<ValueType>> SparseCtmcCslHelper::c
         }
     }
 
-    // TODO: the DTMC helper also reports sound bounds on these values; carrying them through the CTMC helpers
-    // would let reward queries on CTMCs report an enclosure as well.
     return storm::modelchecker::helper::SparseDtmcPrctlHelper<ValueType>::computeReachabilityRewards(
                env, std::move(goal), probabilityMatrix, backwardTransitions, totalRewardVector, targetStates, qualitative)
         .values;

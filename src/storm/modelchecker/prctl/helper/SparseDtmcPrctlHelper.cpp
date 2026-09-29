@@ -164,12 +164,7 @@ std::vector<SolutionType> computeRobustValuesForMaybeStates(Environment const& e
     solver->solveEquations(env, x, b);
 
     // This goes through the same MinMax solvers the MDP helper uses, so it gets the same bounds out of them.
-    if (solver->hasSolutionLowerBounds()) {
-        solutionBounds.lower = solver->getSolutionLowerBounds();
-    }
-    if (solver->hasSolutionUpperBounds()) {
-        solutionBounds.upper = solver->getSolutionUpperBounds();
-    }
+    solutionBounds = solver->getSolutionBounds();
 
     return x;
 }
@@ -291,20 +286,15 @@ DTMCSparseModelCheckingHelperReturnType<SolutionType> SparseDtmcPrctlHelper<Valu
                     storm::utility::vector::setVectorValues<SolutionType>(bound, maybeStates, boundForMaybeStates);
                     return bound;
                 };
-                if (solver->hasSolutionLowerBounds()) {
-                    solutionBounds.lower = embedBound(solver->getSolutionLowerBounds());
-                }
-                if (solver->hasSolutionUpperBounds()) {
-                    solutionBounds.upper = embedBound(solver->getSolutionUpperBounds());
-                }
+                solutionBounds = solver->getSolutionBounds().transform(embedBound);
 
                 // Set values of resulting vector according to result.
                 storm::utility::vector::setVectorValues(result, maybeStates, x);
             }
         }
     }
-    // With no maybe states nothing was solved, so the values are exact and bound themselves.
     if (maybeStates.empty()) {
+        // The qualitative precomputation already decided every state, so all values are exact.
         solutionBounds.setExact(result);
     }
     DTMCSparseModelCheckingHelperReturnType<SolutionType> returnValue(std::move(result));
@@ -677,12 +667,7 @@ SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabi
                     storm::utility::vector::setVectorValues(bound, maybeStates, boundForMaybeStates);
                     return bound;
                 };
-                if (boundsForMaybeStates.hasLower()) {
-                    solutionBounds.lower = embedBound(*boundsForMaybeStates.lower);
-                }
-                if (boundsForMaybeStates.hasUpper()) {
-                    solutionBounds.upper = embedBound(*boundsForMaybeStates.upper);
-                }
+                solutionBounds = boundsForMaybeStates.transform(embedBound);
 
                 // Set values of resulting vector according to result.
                 storm::utility::vector::setVectorValues(result, maybeStates, x);
@@ -744,20 +729,15 @@ SparseDtmcPrctlHelper<ValueType, RewardModelType, SolutionType>::computeReachabi
                     storm::utility::vector::setVectorValues(bound, maybeStates, boundForMaybeStates);
                     return bound;
                 };
-                if (solver->hasSolutionLowerBounds()) {
-                    solutionBounds.lower = embedBound(solver->getSolutionLowerBounds());
-                }
-                if (solver->hasSolutionUpperBounds()) {
-                    solutionBounds.upper = embedBound(solver->getSolutionUpperBounds());
-                }
+                solutionBounds = solver->getSolutionBounds().transform(embedBound);
 
                 // Set values of resulting vector according to result.
                 storm::utility::vector::setVectorValues(result, maybeStates, x);
             }
         }
     }
-    // With no maybe states nothing was solved, so the values are exact and bound themselves.
     if (maybeStates.empty()) {
+        // The qualitative precomputation already decided every state, so all values are exact.
         solutionBounds.setExact(result);
     }
     DTMCSparseModelCheckingHelperReturnType<ExtendedSolutionType> returnValue(std::move(result));

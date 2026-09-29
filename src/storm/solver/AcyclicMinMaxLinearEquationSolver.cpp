@@ -108,8 +108,6 @@ bool AcyclicMinMaxLinearEquationSolver<ValueType>::internalSolveEquations(Enviro
         }
     }
 
-    // Ordering the row groups topologically means every value is computed from ones that are already final, so
-    // the single sweep above ends at the solution.
     this->setSolutionBoundsExact(x);
 
     if (!this->isCachingEnabled()) {

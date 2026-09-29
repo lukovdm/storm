@@ -171,11 +171,6 @@ void TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::trySetSolut
         this->setSolutionBoundsExact(x);
         return;
     }
-    // A sound solve hands every SCC a precision of eps divided by the length of the longest SCC chain, and the
-    // deviation an SCC inherits from its predecessors enters its own solution as a convex combination of the values
-    // at the exits, without amplification. The per-SCC deviations therefore add up to at most eps along any chain.
-    // An unsound solve only reports that its iteration stopped moving, which says nothing about the distance to the
-    // solution.
     if (!env.solver().isForceSoundness()) {
         return;
     }

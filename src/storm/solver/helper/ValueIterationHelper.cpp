@@ -59,9 +59,6 @@ class VIOperatorBackend {
         return isConverged;
     }
 
-    /*!
-     * Retrieves whether the last iteration did not decrease resp. increase any entry of the operand.
-     */
     bool nonDecreasing() const {
         return isNonDecreasing;
     }
@@ -130,18 +127,8 @@ SolverStatus ValueIterationHelper<ValueType, TrivialRowGrouping, SolutionType>::
     }
     if constexpr (TrackDirection) {
         if (mult == MultiplicationStyle::GaussSeidel) {
-            /*
-             * An iteration that decreased nothing gives x >= x_old, so every entry of x was computed from entries at
-             * most the corresponding ones of x and monotonicity of the update operator T gives x <= T(x). Iterating T
-             * from there increases towards a fixpoint, of which the systems handed to this helper have only one, so x
-             * lies below the solution. The dual argument applies to an iteration that increased nothing, and both at
-             * once to one that moved nothing. This is a property of the last iteration alone: it needs neither
-             * convergence nor a particular starting point.
-             *
-             * It does need the operand to be updated in place, as the backend reads the direction off the entry it
-             * overwrites. With a regular multiplication that entry holds the iterate from two steps ago, so nothing
-             * is claimed there.
-             */
+            // An iteration that decreased nothing gives x <= T(x), so x lies below the unique fixpoint; dually for
+            // one that increased nothing.
             if (backend.nonDecreasing()) {
                 solutionBounds->lower = operand;
             }

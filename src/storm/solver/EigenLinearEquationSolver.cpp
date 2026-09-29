@@ -82,7 +82,6 @@ bool EigenLinearEquationSolver<storm::RationalNumber>::internalSolveEquations(En
     if (solver.info() != Eigen::ComputationInfo::Success) {
         return false;
     }
-    // An LU factorization solves the system outright, unlike the iterative methods below.
     this->setSolutionBoundsExact(x);
     return true;
 }
@@ -105,7 +104,6 @@ bool EigenLinearEquationSolver<storm::RationalFunction>::internalSolveEquations(
     if (solver.info() != Eigen::ComputationInfo::Success) {
         return false;
     }
-    // An LU factorization solves the system outright, unlike the iterative methods below.
     this->setSolutionBoundsExact(x);
     return true;
 }
@@ -122,7 +120,6 @@ bool EigenLinearEquationSolver<ValueType>::internalSolveEquations(Environment co
         Eigen::SparseLU<Eigen::SparseMatrix<ValueType>, Eigen::COLAMDOrdering<int>> solver;
         solver.compute(*this->eigenA);
         solver._solve_impl(eigenB, eigenX);
-        // An LU factorization solves the system outright, unlike the iterative methods below.
         this->setSolutionBoundsExact(x);
     } else {
         bool converged = false;
