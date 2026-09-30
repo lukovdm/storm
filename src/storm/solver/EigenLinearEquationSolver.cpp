@@ -120,6 +120,9 @@ bool EigenLinearEquationSolver<ValueType>::internalSolveEquations(Environment co
         Eigen::SparseLU<Eigen::SparseMatrix<ValueType>, Eigen::COLAMDOrdering<int>> solver;
         solver.compute(*this->eigenA);
         solver._solve_impl(eigenB, eigenX);
+        if (solver.info() != Eigen::ComputationInfo::Success) {
+            return false;
+        }
         this->setSolutionBoundsExact(x);
     } else {
         bool converged = false;

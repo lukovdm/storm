@@ -795,6 +795,7 @@ MDPSparseModelCheckingHelperReturnType<SolutionType> SparseMdpPrctlHelper<ValueT
                     // For interval models, the result for maybe states indeed also holds values for all qualitative states.
                     STORM_LOG_ASSERT(resultForMaybeStates.getValues().size() == transitionMatrix.getColumnCount(), "Dimensions do not match.");
                     result = resultForMaybeStates.getValues();
+                    resultBounds = std::move(resultForMaybeStates.solutionBounds);
                 }
                 if (produceScheduler) {
                     extractSchedulerChoices<SolutionType, !storm::IsIntervalType<ValueType>>(*scheduler, resultForMaybeStates.getScheduler(),
