@@ -379,10 +379,16 @@ bool NativeLinearEquationSolver<ValueType>::solveEquationsPower(Environment cons
         return this->updateStatus(current, x, guarantee, numIterations, env.solver().native().getMaximalNumberOfIterations());
     };
     this->startMeasureProgress();
+    // Reading the direction of every sweep costs in the innermost loop, so unless the initial vector already carries
+    // a guarantee, only do it where soundness was asked for.
     storm::solver::SolutionBounds<ValueType> solutionBounds;
+    storm::OptionalRef<storm::solver::SolutionBounds<ValueType>> solutionBoundsRef;
+    if (guarantee != SolverGuarantee::None || env.solver().isForceSoundness()) {
+        solutionBoundsRef.reset(solutionBounds);
+    }
     auto status = viHelper.VI(x, b, numIterations, env.solver().native().getRelativeTerminationCriterion(),
                               storm::utility::convertNumber<ValueType>(env.solver().native().getPrecision()), {}, viCallback,
-                              env.solver().native().getPowerMethodMultiplicationStyle(), UncertaintyResolutionMode::Unset, solutionBounds);
+                              env.solver().native().getPowerMethodMultiplicationStyle(), UncertaintyResolutionMode::Unset, solutionBoundsRef, guarantee);
     if (solutionBounds.hasAny()) {
         this->setSolutionBounds(std::move(solutionBounds));
     }

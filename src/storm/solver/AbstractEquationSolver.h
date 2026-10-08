@@ -196,6 +196,12 @@ class AbstractEquationSolver {
     bool hasExactSolutionBounds() const;
 
     /*!
+     * Retrieves whether both bounds were established by the solving procedure itself, rather than inherited from
+     * bounds that were known beforehand.
+     */
+    bool hasCertifiedSolutionBounds() const;
+
+    /*!
      * Retrieves sound bounds on the solution that the last call to this solver computed.
      * @pre The respective bound was computed, see hasSolutionLowerBounds() resp. hasSolutionUpperBounds().
      */
@@ -243,6 +249,11 @@ class AbstractEquationSolver {
     void setSolutionBounds(SolutionBounds<SolutionType> bounds) const;
 
     /*!
+     * Takes over the solution bounds of the given solver, including where they came from.
+     */
+    void setSolutionBoundsFromOtherSolver(AbstractEquationSolver<SolutionType> const& other) const;
+
+    /*!
      * Reports the given solution as an exact one, i.e. stores it as both the lower and the upper bound.
      *
      * @param x The computed solution.
@@ -266,7 +277,7 @@ class AbstractEquationSolver {
     /*!
      * Turns a precision that the solving procedure is known to have achieved into sound bounds on the solution,
      * i.e. stores [x_i - d_i, x_i + d_i] where d_i is the largest deviation from x_i that is still compatible with
-     * that precision. Any a priori bounds known to this solver are used to tighten the result.
+     * that precision.
      *
      * @param x The computed solution.
      * @param precision The precision that the computation is guaranteed to have achieved.
@@ -328,6 +339,10 @@ class AbstractEquationSolver {
    private:
     // Sound bounds on the solution, if the last call to this solver produced any.
     mutable SolutionBounds<SolutionType> solutionBounds;
+
+    // Whether the respective side of those bounds was established by the solving procedure itself.
+    mutable bool certifiedLowerBound = false;
+    mutable bool certifiedUpperBound = false;
 
     // Indicates the progress of this solver.
     mutable boost::optional<storm::utility::ProgressMeasurement> progressMeasurement;

@@ -41,9 +41,14 @@ storm::Environment TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType
                                        env.solver().topological().isUnderlyingMinMaxMethodSetFromDefault());
     if (adaptPrecision) {
         STORM_LOG_ASSERT(this->longestSccChainSize, "Did not compute the longest SCC chain size although it is needed.");
-        storm::RationalNumber subEnvPrec =
-            subEnv.solver().minMax().getPrecision() / storm::utility::convertNumber<storm::RationalNumber>(this->longestSccChainSize.get());
-        subEnv.solver().minMax().setPrecision(subEnvPrec);
+        storm::RationalNumber const prec = subEnv.solver().minMax().getPrecision();
+        storm::RationalNumber divisor = storm::utility::convertNumber<storm::RationalNumber>(this->longestSccChainSize.get());
+        if (subEnv.solver().minMax().getRelativeTerminationCriterion()) {
+            // Relative errors compose multiplicatively along a chain, so dividing by its length alone leaves
+            // (1 + prec/k)^k - 1 > prec. Dividing by k(1 + prec) as well brings the product back below prec.
+            divisor *= storm::utility::one<storm::RationalNumber>() + prec;
+        }
+        subEnv.solver().minMax().setPrecision(prec / divisor);
     }
     return subEnv;
 }
@@ -83,6 +88,7 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
     // Trivial SCCs are settled by substitution, so they only ever inherit the error of their successors. SCCs come
     // in topological order, so conjoining as we go is enough.
     bool allSccsExact = true;
+    bool allSccsCertified = true;
     if (this->sortedSccDecomposition->size() == 1 && (!this->choiceFixedForRowGroup || this->choiceFixedForRowGroup.get().empty())) {
         // Handle the case where there is just one large SCC, as there are no fixed choices for states, we solve it like this
         if (auto const& scc = *this->sortedSccDecomposition->begin(); scc.size() == 1) {
@@ -94,6 +100,7 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
         } else {
             returnValue = solveFullyConnectedEquationSystem(sccSolverEnvironment, dir, x, b);
             allSccsExact = this->sccSolver->hasExactSolutionBounds();
+            allSccsCertified = this->sccSolver->hasCertifiedSolutionBounds();
         }
     } else {
         // Solve each SCC individually
@@ -134,6 +141,7 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
                 }
                 returnValue = solveScc(sccSolverEnvironment, dir, scc, sccAsBitVector, x, b, newRelevantValues) && returnValue;
                 allSccsExact = allSccsExact && this->sccSolver->hasExactSolutionBounds();
+                allSccsCertified = allSccsCertified && this->sccSolver->hasCertifiedSolutionBounds();
                 // clear sccAsBitVector, either by clearing all bits or by clearing the bits of the current SCC (if its small)
                 if (scc.size() * 64 < sccAsBitVector.size()) {
                     for (auto const& state : scc) {
@@ -154,7 +162,7 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
     }
 
     if (returnValue && !aborted) {
-        trySetSolutionBounds(env, x, allSccsExact);
+        trySetSolutionBounds(env, x, allSccsExact, allSccsCertified && needAdaptPrecision);
     }
 
     if (!this->isCachingEnabled()) {
@@ -166,12 +174,12 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
 
 template<typename ValueType, typename SolutionType>
 void TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::trySetSolutionBounds(Environment const& env, std::vector<SolutionType> const& x,
-                                                                                          bool allSccsExact) const {
+                                                                                          bool allSccsExact, bool allSccsCertified) const {
     if (allSccsExact) {
         this->setSolutionBoundsExact(x);
         return;
     }
-    if (!env.solver().isForceSoundness()) {
+    if (!allSccsCertified) {
         return;
     }
     this->setSolutionBoundsFromPrecision(x, storm::utility::convertNumber<SolutionType>(env.solver().minMax().getPrecision()),

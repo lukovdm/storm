@@ -1,5 +1,7 @@
 #include "storm/solver/AbstractEquationSolver.h"
 
+#include <algorithm>
+
 #include "storm/adapters/RationalFunctionAdapter.h"
 #include "storm/exceptions/InvalidOperationException.h"
 #include "storm/exceptions/InvalidStateException.h"
@@ -273,10 +275,24 @@ SolutionBounds<SolutionType> const& AbstractEquationSolver<SolutionType>::getSol
 }
 
 template<typename SolutionType>
+bool AbstractEquationSolver<SolutionType>::hasCertifiedSolutionBounds() const {
+    return certifiedLowerBound && certifiedUpperBound;
+}
+
+template<typename SolutionType>
 void AbstractEquationSolver<SolutionType>::setSolutionBounds(SolutionBounds<SolutionType> bounds) const {
     STORM_LOG_ASSERT(!bounds.hasLower() || !bounds.hasUpper() || bounds.lower->size() == bounds.upper->size(),
                      "Bounds on the solution must have the same size.");
+    certifiedLowerBound = bounds.hasLower();
+    certifiedUpperBound = bounds.hasUpper();
     solutionBounds = std::move(bounds);
+}
+
+template<typename SolutionType>
+void AbstractEquationSolver<SolutionType>::setSolutionBoundsFromOtherSolver(AbstractEquationSolver<SolutionType> const& other) const {
+    solutionBounds = other.solutionBounds;
+    certifiedLowerBound = other.certifiedLowerBound;
+    certifiedUpperBound = other.certifiedUpperBound;
 }
 
 template<typename SolutionType>
@@ -314,20 +330,33 @@ void AbstractEquationSolver<SolutionType>::finalizeSolutionBounds(std::vector<So
         // Rational functions are not ordered, so there is no tighter of two bounds to pick.
         return;
     } else {
+        // A bound of zero resp. of one or infinity holds for any probability or reward, so it only tightens.
+        auto const isInformative = [](boost::optional<SolutionType> const& global, boost::optional<std::vector<SolutionType>> const& local,
+                                      auto const& isTrivial) {
+            if (global && !isTrivial(*global)) {
+                return true;
+            }
+            return local.has_value() && std::ranges::any_of(*local, [&isTrivial](SolutionType const& value) { return !isTrivial(value); });
+        };
         if (this->hasLowerBound()) {
             bool const hadBound = solutionBounds.hasLower();
-            std::vector<SolutionType>& bound = hadBound ? *solutionBounds.lower : solutionBounds.lower.emplace(x.size());
-            STORM_LOG_ASSERT(bound.size() == x.size(), "Computed lower bound does not match the size of the solution.");
-            for (uint64_t i = 0; i < x.size(); ++i) {
-                bound[i] = hadBound ? std::max(bound[i], this->getLowerBound(i)) : this->getLowerBound(i);
+            if (hadBound || isInformative(lowerBound, lowerBounds, [](SolutionType const& value) { return storm::utility::isZero(value); })) {
+                std::vector<SolutionType>& bound = hadBound ? *solutionBounds.lower : solutionBounds.lower.emplace(x.size());
+                STORM_LOG_ASSERT(bound.size() == x.size(), "Computed lower bound does not match the size of the solution.");
+                for (uint64_t i = 0; i < x.size(); ++i) {
+                    bound[i] = hadBound ? std::max(bound[i], this->getLowerBound(i)) : this->getLowerBound(i);
+                }
             }
         }
         if (this->hasUpperBound()) {
             bool const hadBound = solutionBounds.hasUpper();
-            std::vector<SolutionType>& bound = hadBound ? *solutionBounds.upper : solutionBounds.upper.emplace(x.size());
-            STORM_LOG_ASSERT(bound.size() == x.size(), "Computed upper bound does not match the size of the solution.");
-            for (uint64_t i = 0; i < x.size(); ++i) {
-                bound[i] = hadBound ? std::min(bound[i], this->getUpperBound(i)) : this->getUpperBound(i);
+            if (hadBound || isInformative(upperBound, upperBounds,
+                                          [](SolutionType const& value) { return storm::utility::isOne(value) || storm::utility::isInfinity(value); })) {
+                std::vector<SolutionType>& bound = hadBound ? *solutionBounds.upper : solutionBounds.upper.emplace(x.size());
+                STORM_LOG_ASSERT(bound.size() == x.size(), "Computed upper bound does not match the size of the solution.");
+                for (uint64_t i = 0; i < x.size(); ++i) {
+                    bound[i] = hadBound ? std::min(bound[i], this->getUpperBound(i)) : this->getUpperBound(i);
+                }
             }
         }
         // Every step between establishing a bound and handing back a solution, the extraction of a scheduler among
@@ -339,6 +368,8 @@ void AbstractEquationSolver<SolutionType>::finalizeSolutionBounds(std::vector<So
 template<typename SolutionType>
 void AbstractEquationSolver<SolutionType>::clearSolutionBounds() const {
     solutionBounds.clear();
+    certifiedLowerBound = false;
+    certifiedUpperBound = false;
 }
 
 template<typename SolutionType>

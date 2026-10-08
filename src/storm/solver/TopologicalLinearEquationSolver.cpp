@@ -49,8 +49,14 @@ storm::Environment TopologicalLinearEquationSolver<ValueType>::getEnvironmentFor
     if (adaptPrecision) {
         STORM_LOG_ASSERT(this->longestSccChainSize, "Did not compute the longest SCC chain size although it is needed.");
         auto subEnvPrec = subEnv.solver().getPrecisionOfLinearEquationSolver(subEnv.solver().getLinearEquationSolverType());
-        subEnv.solver().setLinearEquationSolverPrecision(
-            static_cast<storm::RationalNumber>(subEnvPrec.first.get() / storm::utility::convertNumber<storm::RationalNumber>(this->longestSccChainSize.get())));
+        storm::RationalNumber const prec = subEnvPrec.first.get();
+        storm::RationalNumber divisor = storm::utility::convertNumber<storm::RationalNumber>(this->longestSccChainSize.get());
+        if (subEnvPrec.second.is_initialized() && subEnvPrec.second.get()) {
+            // Relative errors compose multiplicatively along a chain, so dividing by its length alone leaves
+            // (1 + prec/k)^k - 1 > prec. Dividing by k(1 + prec) as well brings the product back below prec.
+            divisor *= storm::utility::one<storm::RationalNumber>() + prec;
+        }
+        subEnv.solver().setLinearEquationSolverPrecision(static_cast<storm::RationalNumber>(prec / divisor));
     }
     return subEnv;
 }
@@ -89,6 +95,7 @@ bool TopologicalLinearEquationSolver<ValueType>::internalSolveEquations(Environm
     // Trivial SCCs are settled by substitution, so they only ever inherit the error of their successors. SCCs come
     // in topological order, so conjoining as we go is enough.
     bool allSccsExact = true;
+    bool allSccsCertified = true;
     if (this->sortedSccDecomposition->size() == 1) {
         if (auto const& scc = *this->sortedSccDecomposition->begin(); scc.size() == 1) {
             // Catch the trivial case where the whole system is just a single state.
@@ -96,6 +103,7 @@ bool TopologicalLinearEquationSolver<ValueType>::internalSolveEquations(Environm
         } else {
             returnValue = solveFullyConnectedEquationSystem(sccSolverEnvironment, x, b);
             allSccsExact = this->sccSolver->hasExactSolutionBounds();
+            allSccsCertified = this->sccSolver->hasCertifiedSolutionBounds();
         }
     } else {
         // Solve each SCC individually
@@ -128,6 +136,7 @@ bool TopologicalLinearEquationSolver<ValueType>::internalSolveEquations(Environm
                 }
                 returnValue = solveScc(sccSolverEnvironment, scc, sccAsBitVector, x, b, newRelevantValues) && returnValue;
                 allSccsExact = allSccsExact && this->sccSolver->hasExactSolutionBounds();
+                allSccsCertified = allSccsCertified && this->sccSolver->hasCertifiedSolutionBounds();
                 // clear sccAsBitVector, either by clearing all bits or by clearing the bits of the current SCC (if its small)
                 if (scc.size() * 64 < sccAsBitVector.size()) {
                     for (auto const& state : scc) {
@@ -148,7 +157,7 @@ bool TopologicalLinearEquationSolver<ValueType>::internalSolveEquations(Environm
     }
 
     if (returnValue && !aborted) {
-        trySetSolutionBounds(env, x, allSccsExact);
+        trySetSolutionBounds(env, x, allSccsExact, allSccsCertified && needAdaptPrecision);
     }
 
     if (!this->isCachingEnabled()) {
@@ -159,7 +168,8 @@ bool TopologicalLinearEquationSolver<ValueType>::internalSolveEquations(Environm
 }
 
 template<typename ValueType>
-void TopologicalLinearEquationSolver<ValueType>::trySetSolutionBounds(Environment const& env, std::vector<ValueType> const& x, bool allSccsExact) const {
+void TopologicalLinearEquationSolver<ValueType>::trySetSolutionBounds(Environment const& env, std::vector<ValueType> const& x, bool allSccsExact,
+                                                                      bool allSccsCertified) const {
     if (allSccsExact) {
         this->setSolutionBoundsExact(x);
         return;
@@ -168,13 +178,11 @@ void TopologicalLinearEquationSolver<ValueType>::trySetSolutionBounds(Environmen
         // Precisions are meaningless for rational functions.
         return;
     } else {
-        if (!env.solver().isForceSoundness()) {
+        auto const precision = env.solver().getPrecisionOfLinearEquationSolver(env.solver().topological().getUnderlyingEquationSolverType());
+        if (!allSccsCertified || !precision.first.is_initialized() || !precision.second.is_initialized()) {
             return;
         }
-        // The native precision is kept in sync with the one of whichever solver type is configured (see
-        // SolverEnvironment::setLinearEquationSolverPrecision), so this is the precision enforced in the SCCs.
-        this->setSolutionBoundsFromPrecision(x, storm::utility::convertNumber<ValueType>(env.solver().native().getPrecision()),
-                                             env.solver().native().getRelativeTerminationCriterion());
+        this->setSolutionBoundsFromPrecision(x, storm::utility::convertNumber<ValueType>(precision.first.get()), precision.second.get());
     }
 }
 

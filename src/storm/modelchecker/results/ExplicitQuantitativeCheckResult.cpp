@@ -2,6 +2,8 @@
 
 #include "storm/modelchecker/results/ExplicitQuantitativeCheckResult.h"
 
+#include <algorithm>
+
 #include "storm/adapters/JsonAdapter.h"
 #include "storm/adapters/RationalFunctionAdapter.h"
 #include "storm/exceptions/InvalidOperationException.h"
@@ -228,13 +230,13 @@ void ExplicitQuantitativeCheckResult<ValueType>::filter(QualitativeCheckResult c
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::getMin() const {
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Minimum of empty set is not defined.");
-    return storm::utility::minimum(values);
+    return aggregateVector(values, FilterType::MIN);
 }
 
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::getMax() const {
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Maximum of empty set is not defined.");
-    return storm::utility::maximum(values);
+    return aggregateVector(values, FilterType::MAX);
 }
 
 template<typename ValueType>
@@ -247,57 +249,57 @@ ExplicitQuantitativeCheckResult<ValueType>::getMinMax() const {
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::sum() const {
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Sum of empty set is not defined.");
-
-    // Infinities are kept out of the running sum, as adding them to it is either a no-op or, for the types that
-    // carry infinity as a separate kind, an error. They only decide what the sum is once all values are seen.
-    bool hasPositiveInfinity = false;
-    bool hasNegativeInfinity = false;
-    ExtendedValueType sum = storm::utility::zero<ExtendedValueType>();
-    for (auto const& element : values) {
-        if (storm::utility::isInfinity(element)) {
-            hasPositiveInfinity = true;
-        } else if (storm::utility::isNegativeInfinity(element)) {
-            hasNegativeInfinity = true;
-        } else {
-            sum += element;
-        }
-    }
-    STORM_LOG_THROW(!hasPositiveInfinity || !hasNegativeInfinity, storm::exceptions::InvalidOperationException,
-                    "Cannot compute the sum of values containing both infinity and -infinity.");
-    if (hasPositiveInfinity) {
-        return storm::utility::positiveInfinity<ValueType>();
-    }
-    if (hasNegativeInfinity) {
-        return storm::utility::negativeInfinity<ValueType>();
-    }
-    return sum;
+    return aggregateVector(values, FilterType::SUM);
 }
 
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::average() const {
     STORM_LOG_THROW(!values.empty(), storm::exceptions::InvalidOperationException, "Average of empty set is not defined.");
-
-    ExtendedValueType const total = sum();
-    if (storm::utility::isInfinity(total) || storm::utility::isNegativeInfinity(total)) {
-        // Dividing an infinite sum by the finite number of values leaves it unchanged.
-        return total;
-    }
-    return total / storm::utility::convertNumber<ExtendedValueType, uint64_t>(values.size());
+    return aggregateVector(values, FilterType::AVG);
 }
 
 template<typename ValueType>
 typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQuantitativeCheckResult<ValueType>::aggregateVector(vector_type const& vector,
                                                                                                                                    FilterType filter) {
-    ExplicitQuantitativeCheckResult<ValueType> const asResult{vector};
+    STORM_LOG_THROW(!vector.empty(), storm::exceptions::InvalidOperationException, "Aggregate of empty set is not defined.");
     switch (filter) {
         case FilterType::MIN:
-            return asResult.getMin();
+            return storm::utility::minimum(vector);
         case FilterType::MAX:
-            return asResult.getMax();
-        case FilterType::SUM:
-            return asResult.sum();
-        case FilterType::AVG:
-            return asResult.average();
+            return storm::utility::maximum(vector);
+        case FilterType::SUM: {
+            // Infinities are kept out of the running sum, since adding infinities is not always defined.
+            // If the vector does contain an infinity, the results are decided by it.
+            bool hasPositiveInfinity = false;
+            bool hasNegativeInfinity = false;
+            ExtendedValueType sum = storm::utility::zero<ExtendedValueType>();
+            for (auto const& element : vector) {
+                if (storm::utility::isInfinity(element)) {
+                    hasPositiveInfinity = true;
+                } else if (storm::utility::isNegativeInfinity(element)) {
+                    hasNegativeInfinity = true;
+                } else {
+                    sum += element;
+                }
+            }
+            STORM_LOG_THROW(!hasPositiveInfinity || !hasNegativeInfinity, storm::exceptions::InvalidOperationException,
+                            "Cannot compute the sum of values containing both infinity and -infinity.");
+            if (hasPositiveInfinity) {
+                return storm::utility::positiveInfinity<ValueType>();
+            }
+            if (hasNegativeInfinity) {
+                return storm::utility::negativeInfinity<ValueType>();
+            }
+            return sum;
+        }
+        case FilterType::AVG: {
+            ExtendedValueType const total = aggregateVector(vector, FilterType::SUM);
+            if (storm::utility::isInfinity(total) || storm::utility::isNegativeInfinity(total)) {
+                // Dividing an infinite sum by the finite number of values leaves it unchanged.
+                return total;
+            }
+            return total / storm::utility::convertNumber<ExtendedValueType, uint64_t>(vector.size());
+        }
         default:
             STORM_LOG_THROW(false, storm::exceptions::InvalidOperationException, "The filter " << toString(filter) << " does not aggregate values.");
     }
