@@ -13,7 +13,7 @@ namespace storm::solver {
 /*!
  * Sound lower and upper bounds on a solution vector. Both have the same size as the solution. They are tracked
  * independently, as an algorithm may establish only one of them; an unset bound means that side is not known.
- * Soundness refers to the approximation error of the algorithm, not to floating point rounding.
+ * Soundness refers to the approximation error of the algorithm. If ValueType is not exact (e.g. double), rounding errors may occur.
  */
 template<typename ValueType>
 struct SolutionBounds {
