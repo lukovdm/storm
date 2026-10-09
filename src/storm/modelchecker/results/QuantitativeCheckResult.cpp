@@ -24,7 +24,7 @@ AggregatedValue<typename QuantitativeCheckResult<ValueType>::ExtendedValueType> 
         case FilterType::AVG:
             return {this->average(), std::nullopt, std::nullopt};
         default:
-            STORM_LOG_THROW(false, storm::exceptions::InvalidOperationException, "The filter " << toString(filter) << " does not aggregate values.");
+            STORM_LOG_THROW_UNCONDITIONALLY(storm::exceptions::InvalidOperationException, "The filter " << toString(filter) << " does not aggregate values.");
     }
 }
 
