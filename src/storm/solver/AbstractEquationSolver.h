@@ -196,12 +196,6 @@ class AbstractEquationSolver {
     bool hasExactSolutionBounds() const;
 
     /*!
-     * Retrieves whether both bounds were established by the solving procedure itself, rather than inherited from
-     * bounds that were known beforehand.
-     */
-    bool hasCertifiedSolutionBounds() const;
-
-    /*!
      * Retrieves sound bounds on the solution that the last call to this solver computed.
      * @pre The respective bound was computed, see hasSolutionLowerBounds() resp. hasSolutionUpperBounds().
      */
@@ -247,11 +241,6 @@ class AbstractEquationSolver {
      * that this is as well.
      */
     void setSolutionBounds(SolutionBounds<SolutionType> bounds) const;
-
-    /*!
-     * Takes over the solution bounds of the given solver, including where they came from.
-     */
-    void setSolutionBoundsFromOtherSolver(AbstractEquationSolver<SolutionType> const& other) const;
 
     /*!
      * Reports the given solution as an exact one, i.e. stores it as both the lower and the upper bound.
@@ -339,10 +328,6 @@ class AbstractEquationSolver {
    private:
     // Sound bounds on the solution, if the last call to this solver produced any.
     mutable SolutionBounds<SolutionType> solutionBounds;
-
-    // Whether the respective side of those bounds was established by the solving procedure itself.
-    mutable bool certifiedLowerBound = false;
-    mutable bool certifiedUpperBound = false;
 
     // Indicates the progress of this solver.
     mutable boost::optional<storm::utility::ProgressMeasurement> progressMeasurement;

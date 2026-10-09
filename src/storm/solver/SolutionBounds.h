@@ -70,6 +70,32 @@ struct SolutionBounds {
     }
 
     /*!
+     * Returns true if both bounds are set and pin every value down to the given precision, i.e. if they are no
+     * further apart than that precision allows.
+     */
+    bool isWithinPrecision(ValueType const& precision, bool relative) const {
+        if (!hasLower() || !hasUpper()) {
+            return false;
+        }
+        ValueType const zero = storm::utility::zero<ValueType>();
+        for (uint64_t i = 0; i < lower->size(); ++i) {
+            ValueType const& low = (*lower)[i];
+            ValueType const& up = (*upper)[i];
+            ValueType allowed = precision;
+            if (relative) {
+                // The enclosed value is at least as far from zero as the bound closer to it, unless the two
+                // straddle zero, where only coinciding bounds say anything.
+                allowed = (low <= zero && up >= zero) ? zero : precision * std::min(storm::utility::abs<ValueType>(low), storm::utility::abs<ValueType>(up));
+            }
+            // Negated, so that a width that is not a number is rejected.
+            if (!(up - low <= allowed)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /*!
      * Sets both bounds to the given values, i.e. states that these values are known exactly.
      */
     void setExact(std::vector<ValueType> const& values) {

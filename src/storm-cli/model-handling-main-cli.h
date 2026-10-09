@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <sstream>
 
 #include "storm-cli-utilities/model-handling.h"
@@ -131,31 +132,43 @@ void printFilteredResult(std::unique_ptr<storm::modelchecker::CheckResult> const
                     STORM_LOG_THROW(false, storm::exceptions::InvalidArgumentException, "Unhandled filter type.");
             }
             auto const aggregate = result->asQuantitativeCheckResult<ValueType>().aggregate(ft);
-            auto printValue = [](storm::utility::ExtendedValueType<ValueType> const& value) {
-                if (storm::utility::isInfinity(value)) {
+            auto const printSide = [](std::optional<storm::utility::ExtendedValueType<ValueType>> const& value, bool approximate) {
+                if (!value) {
+                    STORM_PRINT("?");
+                } else if (storm::utility::isInfinity(*value)) {
                     STORM_PRINT("inf");
-                } else if (storm::NumberTraits<ValueType>::IsExact && storm::utility::isConstant(value)) {
-                    STORM_PRINT(value << " (approx. " << storm::utility::convertNumber<double>(value) << ")");
+                } else if (approximate) {
+                    STORM_PRINT(storm::utility::convertNumber<double>(*value));
                 } else {
-                    STORM_PRINT(value);
+                    STORM_PRINT(*value);
                 }
             };
-            printValue(aggregate.value);
+            // Only an exact value type has a decimal approximation to add, and a rational function has none to give.
+            bool const approximates =
+                storm::NumberTraits<ValueType>::IsExact && !storm::utility::isInfinity(aggregate.value) && storm::utility::isConstant(aggregate.value);
+            printSide(aggregate.value, false);
+            if (approximates) {
+                STORM_PRINT(" (approx. ");
+                printSide(aggregate.value, true);
+                STORM_PRINT(")");
+            }
             // An aggregate of an enclosure encloses the aggregate, so report it in the same shape as the values do.
-            if (aggregate.hasLower() || aggregate.hasUpper()) {
-                STORM_PRINT(" [");
-                if (aggregate.hasLower()) {
-                    printValue(*aggregate.lower);
-                } else {
-                    STORM_PRINT("?");
-                }
+            if (aggregate.hasLower() && aggregate.hasUpper() && *aggregate.lower == *aggregate.upper) {
+                STORM_PRINT(". Exact solution.");
+            } else if (aggregate.hasLower() || aggregate.hasUpper()) {
+                STORM_PRINT(". Solution bounds: [");
+                printSide(aggregate.lower, false);
                 STORM_PRINT(", ");
-                if (aggregate.hasUpper()) {
-                    printValue(*aggregate.upper);
-                } else {
-                    STORM_PRINT("?");
-                }
+                printSide(aggregate.upper, false);
                 STORM_PRINT("]");
+                if (approximates) {
+                    STORM_PRINT(" (approx. [");
+                    printSide(aggregate.lower, true);
+                    STORM_PRINT(", ");
+                    printSide(aggregate.upper, true);
+                    STORM_PRINT("])");
+                }
+                STORM_PRINT(".");
             }
         }
     } else {

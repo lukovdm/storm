@@ -333,6 +333,29 @@ TEST(MinMaxLinearEquationSolverTest, InitialSchedulerDoesNotYieldBounds) {
     EXPECT_FALSE(solver->hasSolutionUpperBounds());
 }
 
+TEST(MinMaxLinearEquationSolverTest, PolicyIterationWithInexactInnerSolveAddsNoBounds) {
+    auto A = buildTwoSccMatrix();
+    std::vector<double> b = {0.0, 0.0, 0.25, 0.0};
+
+    storm::Environment env;
+    env.solver().minMax().setMethod(storm::solver::MinMaxMethod::PolicyIteration);
+    env.solver().setLinearEquationSolverType(storm::solver::EquationSolverType::Native);
+    env.solver().native().setMethod(storm::solver::NativeLinearEquationSolverMethod::SoundValueIteration);
+
+    std::vector<double> x(4);
+    auto solver = createSolver(env, A);
+    solver->setBounds(0.0, 1.0);
+    ASSERT_NO_THROW(solver->solveEquations(env, storm::OptimizationDirection::Maximize, x, b));
+
+    // The inner solver encloses the values of the scheduler it was handed, but an inexact inner solve may have
+    // let policy iteration stop at a suboptimal one, which those bounds say nothing about. So the reported
+    // bounds are the ones that were known beforehand.
+    ASSERT_TRUE(solver->hasSolutionLowerBounds());
+    ASSERT_TRUE(solver->hasSolutionUpperBounds());
+    EXPECT_EQ(0.0, solver->getSolutionLowerBounds()[0]);
+    EXPECT_EQ(1.0, solver->getSolutionUpperBounds()[0]);
+}
+
 TEST(MinMaxLinearEquationSolverTest, TopologicalWithUnsoundSccMethodReportsNoBounds) {
     auto A = buildTwoSccMatrix();
     std::vector<double> b = {0.0, 0.0, 0.25, 0.0};

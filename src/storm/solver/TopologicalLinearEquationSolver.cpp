@@ -95,7 +95,7 @@ bool TopologicalLinearEquationSolver<ValueType>::internalSolveEquations(Environm
     // Trivial SCCs are settled by substitution, so they only ever inherit the error of their successors. SCCs come
     // in topological order, so conjoining as we go is enough.
     bool allSccsExact = true;
-    bool allSccsCertified = true;
+    bool allSccsPrecise = true;
     if (this->sortedSccDecomposition->size() == 1) {
         if (auto const& scc = *this->sortedSccDecomposition->begin(); scc.size() == 1) {
             // Catch the trivial case where the whole system is just a single state.
@@ -103,7 +103,7 @@ bool TopologicalLinearEquationSolver<ValueType>::internalSolveEquations(Environm
         } else {
             returnValue = solveFullyConnectedEquationSystem(sccSolverEnvironment, x, b);
             allSccsExact = this->sccSolver->hasExactSolutionBounds();
-            allSccsCertified = this->sccSolver->hasCertifiedSolutionBounds();
+            allSccsPrecise = lastSccMetPrecision(sccSolverEnvironment);
         }
     } else {
         // Solve each SCC individually
@@ -136,7 +136,7 @@ bool TopologicalLinearEquationSolver<ValueType>::internalSolveEquations(Environm
                 }
                 returnValue = solveScc(sccSolverEnvironment, scc, sccAsBitVector, x, b, newRelevantValues) && returnValue;
                 allSccsExact = allSccsExact && this->sccSolver->hasExactSolutionBounds();
-                allSccsCertified = allSccsCertified && this->sccSolver->hasCertifiedSolutionBounds();
+                allSccsPrecise = allSccsPrecise && lastSccMetPrecision(sccSolverEnvironment);
                 // clear sccAsBitVector, either by clearing all bits or by clearing the bits of the current SCC (if its small)
                 if (scc.size() * 64 < sccAsBitVector.size()) {
                     for (auto const& state : scc) {
@@ -157,7 +157,7 @@ bool TopologicalLinearEquationSolver<ValueType>::internalSolveEquations(Environm
     }
 
     if (returnValue && !aborted) {
-        trySetSolutionBounds(env, x, allSccsExact, allSccsCertified && needAdaptPrecision);
+        trySetSolutionBounds(env, x, allSccsExact, allSccsPrecise && needAdaptPrecision);
     }
 
     if (!this->isCachingEnabled()) {
@@ -169,7 +169,7 @@ bool TopologicalLinearEquationSolver<ValueType>::internalSolveEquations(Environm
 
 template<typename ValueType>
 void TopologicalLinearEquationSolver<ValueType>::trySetSolutionBounds(Environment const& env, std::vector<ValueType> const& x, bool allSccsExact,
-                                                                      bool allSccsCertified) const {
+                                                                      bool allSccsPrecise) const {
     if (allSccsExact) {
         this->setSolutionBoundsExact(x);
         return;
@@ -179,10 +179,25 @@ void TopologicalLinearEquationSolver<ValueType>::trySetSolutionBounds(Environmen
         return;
     } else {
         auto const precision = env.solver().getPrecisionOfLinearEquationSolver(env.solver().topological().getUnderlyingEquationSolverType());
-        if (!allSccsCertified || !precision.first.is_initialized() || !precision.second.is_initialized()) {
+        if (!allSccsPrecise || !precision.first.is_initialized()) {
             return;
         }
-        this->setSolutionBoundsFromPrecision(x, storm::utility::convertNumber<ValueType>(precision.first.get()), precision.second.get());
+        this->setSolutionBoundsFromPrecision(x, storm::utility::convertNumber<ValueType>(precision.first.get()),
+                                             precision.second.is_initialized() && precision.second.get());
+    }
+}
+
+template<typename ValueType>
+bool TopologicalLinearEquationSolver<ValueType>::lastSccMetPrecision(Environment const& sccSolverEnvironment) const {
+    if constexpr (std::is_same_v<ValueType, storm::RationalFunction>) {
+        return false;
+    } else {
+        auto const precision = sccSolverEnvironment.solver().getPrecisionOfLinearEquationSolver(sccSolverEnvironment.solver().getLinearEquationSolverType());
+        if (!precision.first.is_initialized()) {
+            return false;
+        }
+        return this->sccSolver->getSolutionBounds().isWithinPrecision(storm::utility::convertNumber<ValueType>(precision.first.get()),
+                                                                      precision.second.is_initialized() && precision.second.get());
     }
 }
 

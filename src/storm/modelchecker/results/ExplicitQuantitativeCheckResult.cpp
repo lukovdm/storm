@@ -301,7 +301,7 @@ typename ExplicitQuantitativeCheckResult<ValueType>::ExtendedValueType ExplicitQ
             return total / storm::utility::convertNumber<ExtendedValueType, uint64_t>(vector.size());
         }
         default:
-            STORM_LOG_THROW(false, storm::exceptions::InvalidOperationException, "The filter " << toString(filter) << " does not aggregate values.");
+            STORM_LOG_THROW_UNCONDITIONALLY(storm::exceptions::InvalidOperationException, "The filter " << toString(filter) << " does not aggregate values.");
     }
 }
 
@@ -340,62 +340,99 @@ storm::storage::Scheduler<ValueType>& ExplicitQuantitativeCheckResult<ValueType>
     return *scheduler.value();
 }
 
+// Whether a value of this type is printed with its decimal approximation alongside.
 template<typename ValueType>
-void print(std::ostream& out, ValueType const& value) {
+constexpr bool printsApproximation = std::is_same_v<ValueType, storm::RationalNumber> || std::is_same_v<ValueType, storm::ExtendedRationalNumber>;
+
+template<typename ValueType>
+void printExact(std::ostream& out, ValueType const& value) {
     if (storm::utility::isInfinity(value)) {
         out << "inf";
     } else {
         out << value;
-        if (std::is_same_v<ValueType, storm::RationalNumber> || std::is_same_v<ValueType, storm::ExtendedRationalNumber>) {
-            out << " (approx. " << storm::utility::convertNumber<double>(value) << ")";
+    }
+}
+
+template<typename ValueType>
+void printApproximation(std::ostream& out, ValueType const& value) {
+    if (storm::utility::isInfinity(value)) {
+        out << "inf";
+    } else {
+        out << storm::utility::convertNumber<double>(value);
+    }
+}
+
+template<typename ValueType>
+void print(std::ostream& out, ValueType const& value) {
+    printExact(out, value);
+    if constexpr (printsApproximation<ValueType>) {
+        if (!storm::utility::isInfinity(value)) {
+            out << " (approx. ";
+            printApproximation(out, value);
+            out << ")";
         }
+    }
+}
+
+/*!
+ * Writes the given interval, an unknown end of it as "?".
+ */
+template<typename ValueType>
+void printInterval(std::ostream& out, std::optional<ValueType> const& lower, std::optional<ValueType> const& upper) {
+    auto const printEnd = [&out](std::optional<ValueType> const& value, bool approximate) {
+        if (!value) {
+            out << "?";
+        } else if (approximate) {
+            printApproximation(out, *value);
+        } else {
+            printExact(out, *value);
+        }
+    };
+    out << "[";
+    printEnd(lower, false);
+    out << ", ";
+    printEnd(upper, false);
+    out << "]";
+    if constexpr (printsApproximation<ValueType>) {
+        out << " (approx. [";
+        printEnd(lower, true);
+        out << ", ";
+        printEnd(upper, true);
+        out << "])";
     }
 }
 
 template<typename ValueType>
 void printRange(std::ostream& out, ValueType const& min, ValueType const& max) {
-    out << "[";
-    print(out, min);
-    out << ", ";
-    print(out, max);
-    out << "]";
-    if (std::is_same_v<ValueType, storm::RationalNumber> || std::is_same_v<ValueType, storm::ExtendedRationalNumber>) {
-        out << " (approx. [";
-        if (storm::utility::isInfinity(min)) {
-            out << "inf";
-        } else {
-            out << storm::utility::convertNumber<double>(min);
-        }
-        out << ", ";
-        if (storm::utility::isInfinity(max)) {
-            out << "inf";
-        } else {
-            out << storm::utility::convertNumber<double>(max);
-        }
-        out << "])";
-    }
+    printInterval<ValueType>(out, min, max);
     out << " (range)";
+}
+
+/*!
+ * Writes the given bounds on the solution, and nothing at all if neither side is known.
+ */
+template<typename ValueType>
+void printBounds(std::ostream& out, std::optional<ValueType> const& lower, std::optional<ValueType> const& upper) {
+    if (!lower && !upper) {
+        return;
+    }
+    if (lower && upper && *lower == *upper) {
+        out << ". Exact solution.";
+        return;
+    }
+    out << ". Solution bounds: ";
+    printInterval(out, lower, upper);
+    out << ".";
 }
 
 template<typename ValueType>
 void ExplicitQuantitativeCheckResult<ValueType>::printValue(std::ostream& out, uint64_t offset) const {
     print(out, values[offset]);
-    if (!this->hasLowerBounds() && !this->hasUpperBounds()) {
-        return;
-    }
-    out << " [";
-    if (this->hasLowerBounds()) {
-        print(out, this->getLowerBoundVector()[offset]);
-    } else {
-        out << "?";
-    }
-    out << ", ";
-    if (this->hasUpperBounds()) {
-        print(out, this->getUpperBoundVector()[offset]);
-    } else {
-        out << "?";
-    }
-    out << "]";
+    std::optional<ExtendedValueType> const lower =
+        this->hasLowerBounds() ? std::optional<ExtendedValueType>(this->getLowerBoundVector()[offset]) : std::nullopt;
+    std::optional<ExtendedValueType> const upper =
+        this->hasUpperBounds() ? std::optional<ExtendedValueType>(this->getUpperBoundVector()[offset]) : std::nullopt;
+    printBounds(out, lower, upper);
 }
 
 template<typename ValueType>
@@ -405,21 +442,15 @@ std::ostream& ExplicitQuantitativeCheckResult<ValueType>::writeToStream(std::ost
     if (values.size() >= 10 && minMaxSupported) {
         std::pair<ExtendedValueType, ExtendedValueType> minmax = this->getMinMax();
         printRange(out, minmax.first, minmax.second);
-        if (this->hasLowerBounds() || this->hasUpperBounds()) {
+        if (bounds.isExact()) {
+            out << ". Exact solution.";
+        } else {
             // The smallest lower and the largest upper bound enclose all values.
-            out << " [";
-            if (this->hasLowerBounds()) {
-                print(out, storm::utility::minimum(this->getLowerBoundVector()));
-            } else {
-                out << "?";
-            }
-            out << ", ";
-            if (this->hasUpperBounds()) {
-                print(out, storm::utility::maximum(this->getUpperBoundVector()));
-            } else {
-                out << "?";
-            }
-            out << "] (bounds)";
+            std::optional<ExtendedValueType> const lower =
+                this->hasLowerBounds() ? std::optional<ExtendedValueType>(storm::utility::minimum(this->getLowerBoundVector())) : std::nullopt;
+            std::optional<ExtendedValueType> const upper =
+                this->hasUpperBounds() ? std::optional<ExtendedValueType>(storm::utility::maximum(this->getUpperBoundVector())) : std::nullopt;
+            printBounds(out, lower, upper);
         }
     } else if (values.size() == 1) {
         this->printValue(out, 0);

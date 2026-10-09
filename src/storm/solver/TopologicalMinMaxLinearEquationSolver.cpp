@@ -88,7 +88,7 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
     // Trivial SCCs are settled by substitution, so they only ever inherit the error of their successors. SCCs come
     // in topological order, so conjoining as we go is enough.
     bool allSccsExact = true;
-    bool allSccsCertified = true;
+    bool allSccsPrecise = true;
     if (this->sortedSccDecomposition->size() == 1 && (!this->choiceFixedForRowGroup || this->choiceFixedForRowGroup.get().empty())) {
         // Handle the case where there is just one large SCC, as there are no fixed choices for states, we solve it like this
         if (auto const& scc = *this->sortedSccDecomposition->begin(); scc.size() == 1) {
@@ -100,7 +100,7 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
         } else {
             returnValue = solveFullyConnectedEquationSystem(sccSolverEnvironment, dir, x, b);
             allSccsExact = this->sccSolver->hasExactSolutionBounds();
-            allSccsCertified = this->sccSolver->hasCertifiedSolutionBounds();
+            allSccsPrecise = lastSccMetPrecision(sccSolverEnvironment);
         }
     } else {
         // Solve each SCC individually
@@ -141,7 +141,7 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
                 }
                 returnValue = solveScc(sccSolverEnvironment, dir, scc, sccAsBitVector, x, b, newRelevantValues) && returnValue;
                 allSccsExact = allSccsExact && this->sccSolver->hasExactSolutionBounds();
-                allSccsCertified = allSccsCertified && this->sccSolver->hasCertifiedSolutionBounds();
+                allSccsPrecise = allSccsPrecise && lastSccMetPrecision(sccSolverEnvironment);
                 // clear sccAsBitVector, either by clearing all bits or by clearing the bits of the current SCC (if its small)
                 if (scc.size() * 64 < sccAsBitVector.size()) {
                     for (auto const& state : scc) {
@@ -162,7 +162,7 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
     }
 
     if (returnValue && !aborted) {
-        trySetSolutionBounds(env, x, allSccsExact, allSccsCertified && needAdaptPrecision);
+        trySetSolutionBounds(env, x, allSccsExact, allSccsPrecise && needAdaptPrecision);
     }
 
     if (!this->isCachingEnabled()) {
@@ -174,16 +174,23 @@ bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::internalSol
 
 template<typename ValueType, typename SolutionType>
 void TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::trySetSolutionBounds(Environment const& env, std::vector<SolutionType> const& x,
-                                                                                          bool allSccsExact, bool allSccsCertified) const {
+                                                                                          bool allSccsExact, bool allSccsPrecise) const {
     if (allSccsExact) {
         this->setSolutionBoundsExact(x);
         return;
     }
-    if (!allSccsCertified) {
+    if (!allSccsPrecise) {
         return;
     }
     this->setSolutionBoundsFromPrecision(x, storm::utility::convertNumber<SolutionType>(env.solver().minMax().getPrecision()),
                                          env.solver().minMax().getRelativeTerminationCriterion());
+}
+
+template<typename ValueType, typename SolutionType>
+bool TopologicalMinMaxLinearEquationSolver<ValueType, SolutionType>::lastSccMetPrecision(Environment const& sccSolverEnvironment) const {
+    return this->sccSolver->getSolutionBounds().isWithinPrecision(
+        storm::utility::convertNumber<SolutionType>(sccSolverEnvironment.solver().minMax().getPrecision()),
+        sccSolverEnvironment.solver().minMax().getRelativeTerminationCriterion());
 }
 
 template<typename ValueType, typename SolutionType>

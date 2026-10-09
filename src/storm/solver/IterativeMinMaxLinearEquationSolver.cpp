@@ -425,10 +425,11 @@ bool IterativeMinMaxLinearEquationSolver<ValueType, SolutionType>::performPolicy
 
         STORM_LOG_INFO("Number of iterations: " << iterations);
 
-        // Policy iteration's own termination says the scheduler is optimal, not how accurately the values under
-        // it were computed, so the only statement to make is the one the inner solver made.
-        if (status == SolverStatus::Converged) {
-            this->setSolutionBoundsFromOtherSolver(*solver);
+        // Policy iteration stops once no choice improves the values it was handed, which with an inexact inner
+        // solve can already happen at a scheduler that is arbitrarily far from optimal. Only an inner solve that
+        // was exact says anything about the solution.
+        if (status == SolverStatus::Converged && solver->hasExactSolutionBounds()) {
+            this->setSolutionBounds(solver->getSolutionBounds());
         }
 
         this->reportStatus(status, iterations);
