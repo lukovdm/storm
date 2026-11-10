@@ -4,6 +4,7 @@
 #include "storm/exceptions/InvalidPropertyException.h"
 #include "storm/exceptions/InvalidStateException.h"
 #include "storm/logic/FragmentSpecification.h"
+#include "storm/modelchecker/helper/conditional/SymbolicConditionalHelper.h"
 #include "storm/modelchecker/prctl/helper/SymbolicMdpPrctlHelper.h"
 #include "storm/modelchecker/results/SymbolicQualitativeCheckResult.h"
 #include "storm/modelchecker/results/SymbolicQuantitativeCheckResult.h"
@@ -25,6 +26,8 @@ bool SymbolicMdpPrctlModelChecker<ModelType>::canHandleStatic(CheckTask<storm::l
     storm::logic::Formula const& formula = checkTask.getFormula();
     return formula.isInFragment(storm::logic::prctl()
                                     .setLongRunAverageRewardFormulasAllowed(false)
+                                    .setConditionalProbabilityFormulasAllowed(true)
+                                    .setOnlyEventuallyFormuluasInConditionalFormulasAllowed(true)
                                     .setTimeOperatorsAllowed(true)
                                     .setReachbilityTimeFormulasAllowed(true)
                                     .setRewardAccumulationAllowed(true));
@@ -48,6 +51,30 @@ std::unique_ptr<CheckResult> SymbolicMdpPrctlModelChecker<ModelType>::computeUnt
     return storm::modelchecker::helper::SymbolicMdpPrctlHelper<DdType, ValueType>::computeUntilProbabilities(
         env, checkTask.getOptimizationDirection(), this->getModel(), this->getModel().getTransitionMatrix(), leftResult.getTruthValuesVector(),
         rightResult.getTruthValuesVector(), checkTask.isQualitativeSet());
+}
+
+template<typename ModelType>
+std::unique_ptr<CheckResult> SymbolicMdpPrctlModelChecker<ModelType>::computeConditionalProbabilities(
+    Environment const& env, CheckTask<storm::logic::ConditionalFormula, ValueType> const& checkTask) {
+    storm::logic::ConditionalFormula const& conditionalFormula = checkTask.getFormula();
+    STORM_LOG_THROW(checkTask.isOptimizationDirectionSet(), storm::exceptions::InvalidPropertyException,
+                    "Formula needs to specify whether minimal or maximal values are to be computed on nondeterministic model.");
+    STORM_LOG_THROW(this->getModel().getInitialStates().getNonZeroCount() == 1, storm::exceptions::InvalidPropertyException,
+                    "Cannot compute conditional probabilities on MDPs with more than one initial state.");
+    STORM_LOG_THROW(checkTask.isOnlyInitialStatesRelevantSet(), storm::exceptions::InvalidPropertyException,
+                    "Conditional probabilities can only be computed for the initial states of the model.");
+    STORM_LOG_THROW(conditionalFormula.getSubformula().isEventuallyFormula() && conditionalFormula.getConditionFormula().isEventuallyFormula(),
+                    storm::exceptions::InvalidPropertyException, "Illegal conditional probability formula.");
+
+    std::unique_ptr<CheckResult> targetResult = this->check(env, conditionalFormula.getSubformula().asEventuallyFormula().getSubformula());
+    std::unique_ptr<CheckResult> conditionResult = this->check(env, conditionalFormula.getConditionFormula().asEventuallyFormula().getSubformula());
+    std::optional<ValueType> threshold;
+    if (checkTask.isBoundSet()) {
+        threshold = checkTask.getBoundThreshold();
+    }
+    return storm::modelchecker::computeSymbolicConditionalProbabilities<DdType, ValueType>(
+        env, checkTask.getOptimizationDirection(), this->getModel(), targetResult->asSymbolicQualitativeCheckResult<DdType>().getTruthValuesVector(),
+        conditionResult->asSymbolicQualitativeCheckResult<DdType>().getTruthValuesVector(), threshold);
 }
 
 template<typename ModelType>

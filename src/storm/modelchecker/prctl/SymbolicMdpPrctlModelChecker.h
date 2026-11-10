@@ -28,6 +28,8 @@ class SymbolicMdpPrctlModelChecker : public SymbolicPropositionalModelChecker<Mo
                                                                    CheckTask<storm::logic::UntilFormula, ValueType> const& checkTask) override;
     virtual std::unique_ptr<CheckResult> computeGloballyProbabilities(Environment const& env,
                                                                       CheckTask<storm::logic::GloballyFormula, ValueType> const& checkTask) override;
+    virtual std::unique_ptr<CheckResult> computeConditionalProbabilities(Environment const& env,
+                                                                         CheckTask<storm::logic::ConditionalFormula, ValueType> const& checkTask) override;
     virtual std::unique_ptr<CheckResult> computeCumulativeRewards(Environment const& env,
                                                                   CheckTask<storm::logic::CumulativeRewardFormula, ValueType> const& checkTask) override;
     virtual std::unique_ptr<CheckResult> computeInstantaneousRewards(Environment const& env,
