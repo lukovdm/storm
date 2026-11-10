@@ -844,7 +844,7 @@ Cudd_EqualSupNormRel(
     if (f == g) return(1);
     if (Cudd_IsConstant(f) && Cudd_IsConstant(g)) {
         CUDD_VALUE_TYPE absDiff = ddAbs((cuddV(f) - cuddV(g)));
-        if (absDiff/cuddV(f) < tolerance || absDiff < Cudd_ReadEpsilon(dd)) {
+        if (absDiff/ddAbs(cuddV(f)) < tolerance || absDiff < Cudd_ReadEpsilon(dd)) {
             return(1);
         } else {
             if (pr>0) {

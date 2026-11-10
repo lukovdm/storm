@@ -342,7 +342,7 @@ int storm_rational_number_equal_modulo_precision(int relative, storm_rational_nu
         if (storm::utility::isZero<storm::RationalNumber>(srn_a)) {
             return storm::utility::isZero<storm::RationalNumber>(srn_b);
         } else {
-            return storm::utility::abs(storm::RationalNumber(srn_a - srn_b)) / srn_a < srn_p ? 1 : 0;
+            return storm::utility::abs(storm::RationalNumber(srn_a - srn_b)) / storm::utility::abs(srn_a) < srn_p ? 1 : 0;
         }
     } else {
         return storm::utility::abs(storm::RationalNumber(srn_a - srn_b)) < srn_p ? 1 : 0;
